@@ -1,7 +1,7 @@
-<VI_Package_Builder_Settings Version="2017" Created_Date="2013-10-06 22:44:14" Modified_Date="2018-03-06 23:16:09" Creator="elijahkerry" Comments="" ID="3ddf64b147366d4017cedc4ee253ee14">
+<VI_Package_Builder_Settings Version="2017" Created_Date="2013-10-06 22:44:14" Modified_Date="2018-03-09 13:29:49" Creator="elijahkerry" Comments="" ID="d0134c4082491c02060a67f6c32760a5">
   <Library_General_Settings>
     <Package_File_Name>national_instruments_lib_configuration_dialog_actor</Package_File_Name>
-    <Library_Version>1.0.4.21</Library_Version>
+    <Library_Version>1.1.0.23</Library_Version>
     <Auto_Increment_Version>false</Auto_Increment_Version>
     <Library_Source_Folder>.</Library_Source_Folder>
     <Library_Output_Folder>..\..\Desktop\Build Output</Library_Output_Folder>
@@ -317,7 +317,7 @@ Updated for 2015</Release_Notes>
         <Path>Methods\Load Configuration.vi</Path>
         <VI_Title/>
       </Items_Data>
-      <GUID>4CCA9A2C0F344625C570DD482897B179</GUID>
+      <GUID>6731EF14E68D3BFF29911A125BB0D012</GUID>
     </Functions_Palette_Data>
     <Functions_Palette_Data>
       <Parent_Palette_Index>0</Parent_Palette_Index>
@@ -380,7 +380,7 @@ Updated for 2015</Release_Notes>
         <Path>Accessors\Read Configuration File Path.vi</Path>
         <VI_Title/>
       </Items_Data>
-      <GUID>E9ECD4B55E8F329FE12A39E7E399A660</GUID>
+      <GUID>0B00FB2FE156D1898110AAA33240486A</GUID>
     </Functions_Palette_Data>
   </Library_Palette_Definition>
 </VI_Package_Builder_Settings>
