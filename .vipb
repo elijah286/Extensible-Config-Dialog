@@ -1,7 +1,7 @@
-<VI_Package_Builder_Settings Version="2017" Created_Date="2013-10-06 22:44:14" Modified_Date="2018-03-20 00:33:48" Creator="elijahkerry" Comments="" ID="881928315dec0e0b5c4a8bbca419a174">
+<VI_Package_Builder_Settings Version="2017" Created_Date="2013-10-06 22:44:14" Modified_Date="2018-03-20 00:35:50" Creator="elijahkerry" Comments="" ID="a004e4b1b4f8352f9b82f60a5bd24e53">
   <Library_General_Settings>
     <Package_File_Name>national_instruments_lib_configuration_dialog_actor</Package_File_Name>
-    <Library_Version>1.1.1.23</Library_Version>
+    <Library_Version>1.1.1.24</Library_Version>
     <Auto_Increment_Version>false</Auto_Increment_Version>
     <Library_Source_Folder>.</Library_Source_Folder>
     <Library_Output_Folder>..\..\Desktop\Build Output</Library_Output_Folder>
