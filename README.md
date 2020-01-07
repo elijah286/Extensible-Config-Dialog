@@ -13,3 +13,4 @@ Installation:
 - oglib_variantconfig
 - oglib_appcontrol
 - oglib_file
+2) Open and run TESTING ONLY.vi to ensure everything is setup and loaded correctly
