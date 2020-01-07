@@ -3,7 +3,7 @@ LabVIEW Reference Architecture for Configuration Dialogs
 
 Overview
 
-This provides a framework for configuraiton dialogs that uses a plugin model built on actor framework. It simplifies the task of reading/writing configuration to disk and taking care of formatting for arbitrary data
+This provides a framework for resizeable configuraiton dialogs that uses a plugin model for extensibility and easy customization. It simplifies the task of reading/writing configuration to disk and taking care of formatting for arbitrary data
 
 Installation
 
