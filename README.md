@@ -18,3 +18,10 @@ Installation:
 - If it works correctly, a blank configuration dialog should appear
 - If running this vi results in the error "An error will be thrown if the configuration dialog attempts to return any message to the calling actor other than the 'Handle Last Ack,' the path is invalid.
 - Change the path to a valid directory
+
+Running example with plugins
+1) Navigate to /Basic Configuration Dialog and open the included project 'Config Dialog Example'
+2) Open 'Launch Example Dialog.vi'
+2) Modify the path to point to the included 'ConfigFile.ini' file in the same directory
+3) Run the VI
+4) Change settings and confirm that the ini file is modified
