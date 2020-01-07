@@ -1,10 +1,12 @@
 # Extensible-Config-Dialog
 LabVIEW Reference Architecture for Configuration Dialogs
 
-Overview:
+Overview
+
 This provides a framework for configuraiton dialogs that uses a plugin model built on actor framework. It simplifies the task of reading/writing configuration to disk and taking care of formatting for arbitrary data
 
-Installation:
+Installation
+
 1) Run the included VIPC file to automatically download and install required dependncies, which includes:
 - oglib_array
 - oglib_error
@@ -20,8 +22,16 @@ Installation:
 - Change the path to a valid directory
 
 Running example with plugins
+
 1) Navigate to /Basic Configuration Dialog and open the included project 'Config Dialog Example'
 2) Open 'Launch Example Dialog.vi'
 2) Modify the path to point to the included 'ConfigFile.ini' file in the same directory
 3) Run the VI
 4) Change settings and confirm that the ini file is modified
+
+Adding Custom Dialogs and Config
+
+1) A child class will need to be created for every dialog. It will need to be a child of 
+2) Use the private data cluster of the class to define the configuration parameters that this pane will modify
+2) Override methods to save/load configuraiton parameters to disk
+3) Implement method for displaying configuration dialog 
