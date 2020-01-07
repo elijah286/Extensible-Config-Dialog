@@ -13,4 +13,7 @@ Installation:
 - oglib_variantconfig
 - oglib_appcontrol
 - oglib_file
+
 2) Open and run TESTING ONLY.vi to ensure everything is setup and loaded correctly
+- If running this vi results in the error "An error will be thrown if the configuration dialog attempts to return any message to the calling actor other than the 'Handle Last Ack,' the path is invalid.
+- Change the path to a valid directory
