@@ -31,7 +31,11 @@ Running example with plugins
 
 Adding Custom Dialogs and Config
 
-1) A child class will need to be created for every dialog. It will need to be a child of 
+Note: it is easiest to start from the 'Config Dialog Example' project by saving a copy and modifying the implementation.
+
+Steps:
+1) Create a child class of Configuration.lvclass
 2) Use the private data cluster of the class to define the configuration parameters that this pane will modify
-2) Override methods to save/load configuraiton parameters to disk
-3) Implement method for displaying configuration dialog 
+2) Override methods to save/load configuraiton parameters to disk: 'Read Configuration Parameters.vi' and 'Store Configuration Parameters.vi'
+3) Implement method for displaying configuration dialog. Again, I HIGHLY recommend duplicating one of the examples included in the 'Example Configuration Dialog' project. They can be found in \Example Configuration Dialog.lvclass\SubPanel Displays' in the Project Tree. Note that the UI has been configured to ensure it resizes correctly
+Override 'Store Static VI References for Subpanel.vi' to reference the subpanel VIs you want to display and the name that should appear in the list
