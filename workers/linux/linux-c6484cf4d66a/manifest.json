@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "platform": "linux",
+  "version": "linux-c6484cf4d66a",
+  "labview_version": "2026",
+  "base_image": "nationalinstruments/labview:latest-linux",
+  "base_digest": "nationalinstruments/labview@sha256:c6484cf4d66a14355bd3195849c090573f413ed355c429c8cc0752fee589b28c",
+  "image_ref": "nationalinstruments/labview:latest-linux",
+  "build_date": "2026-06-16T21:00:12Z",
+  "git_sha": "ef5d1c496f459b131804891069c9b2ad148dcceb",
+  "run_url": "https://github.com/elijah286/Extensible-Config-Dialog/actions/runs/27647769940",
+  "vipc": [],
+  "nipkg_raw": "",
+  "nipkg_packages": []
+}
