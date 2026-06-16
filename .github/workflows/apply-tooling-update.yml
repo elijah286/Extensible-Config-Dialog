@@ -1,0 +1,249 @@
+# Apply LabVIEW CI update — one-click FULL upgrade target for the dashboard.
+#
+# The "Update now" button in the What's New dialog (.github/pages/whats-new.html)
+# deep-links here. Dispatching this workflow performs a COMPLETE update: it fetches
+# the latest tooling from the source repo (.github/labview-ci.yml: source.repo) and
+# runs the catalog-driven installer in --update mode, which re-pulls every tooling
+# file for this repo's selected activities (bringing new capabilities, not just a
+# version bump), rebrands them to this repo, preserves your own config + baked
+# dependencies, and bumps the version. The result is opened as a pull request.
+# Review + merge to finish — no terminal, no tokens. GitHub's own "Run workflow"
+# gate limits this to write-access users.
+name: Apply LabVIEW CI update
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Source ref to pull (blank = the source repo's default branch = latest)"
+        required: false
+        default: ''
+      enable_new_capabilities:
+        description: 'Also enable newly published capabilities in this repo'
+        type: boolean
+        default: true
+
+concurrency:
+  group: apply-tooling-update
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # A PAT with repo + workflow scope (added as TOOLING_UPDATE_TOKEN) lets the
+          # update push changes to .github/workflows/** — the default token cannot.
+          token: ${{ secrets.TOOLING_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Fetch latest tooling and run the installer in update mode
+        id: apply
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_REF: ${{ inputs.source_ref }}
+          ENABLE_NEW: ${{ inputs.enable_new_capabilities }}
+        run: |
+          set -euo pipefail
+          CFG=.github/labview-ci.yml
+          if [ ! -f "$CFG" ]; then
+            echo "::error::$CFG not found — this repo is not configured as a LabVIEW CI consumer."
+            exit 1
+          fi
+
+          SRC_REPO=$(awk '/^[[:space:]]*repo:[[:space:]]/{print $2; exit}' "$CFG")
+          SRC_REPO=${SRC_REPO:-elijah286/Extensible-Config-Dialog}
+          INSTALLED=$(awk '/^[[:space:]]*installedVersion:[[:space:]]/{print $2; exit}' "$CFG")
+          MAXPAR=$(awk '/^[[:space:]]*maxParallel:[[:space:]]/{print $2; exit}' "$CFG")
+          echo "source repo: $SRC_REPO  installed: ${INSTALLED:-unknown}"
+
+          REF="$INPUT_REF"
+          if [ -z "$REF" ]; then
+            REF=$(gh api "repos/$SRC_REPO" --jq '.default_branch' 2>/dev/null || echo main)
+          fi
+          echo "fetching ${SRC_REPO}@${REF}"
+
+          SRC_DIR="$(mktemp -d)"
+          if ! curl -fsSL "https://codeload.github.com/${SRC_REPO}/tar.gz/${REF}" | tar -xz -C "$SRC_DIR" --strip-components=1; then
+            echo "::error::could not download tooling from ${SRC_REPO}@${REF}."
+            exit 1
+          fi
+          if [ ! -f "$SRC_DIR/.github/labview-ci/install.py" ]; then
+            echo "::error::installer not found in the fetched tooling."
+            exit 1
+          fi
+
+          LATEST=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['version'])" "$SRC_DIR/.github/labview-ci/catalog.json")
+          echo "latest published version: $LATEST"
+
+          # Activity set: keep current selection, optionally add new stable capabilities.
+          ACTS=$(SRC_DIR="$SRC_DIR" python3 - <<'PY'
+          import os, re, json
+          cur, in_acts = [], False
+          for line in open('.github/labview-ci.yml', encoding='utf-8'):
+              if re.match(r'^\s*activities:\s*$', line):
+                  in_acts = True; continue
+              if in_acts:
+                  m = re.match(r'^\s*-\s*(\S+)', line)
+                  if m: cur.append(m.group(1)); continue
+                  in_acts = False
+          if os.environ.get('ENABLE_NEW', 'true').lower() == 'true':
+              cat = json.load(open(os.path.join(os.environ['SRC_DIR'], '.github/labview-ci/catalog.json'), encoding='utf-8'))
+              for c in cat.get('capabilities', []):
+                  if c.get('status') == 'stable' and c['id'] not in cur:
+                      cur.append(c['id'])
+          print(','.join(cur))
+          PY
+          )
+          echo "activities to install: $ACTS"
+
+          python3 "$SRC_DIR/.github/labview-ci/install.py" --update \
+            --source "$SRC_DIR" --target "$PWD" \
+            --repo "$GITHUB_REPOSITORY" \
+            --activities "$ACTS"
+
+          # Restore runner concurrency (install.py's manifest writer omits it).
+          if [ -n "${MAXPAR:-}" ]; then
+            MAXPAR="$MAXPAR" python3 - <<'PY'
+          import os, re
+          mp = os.environ['MAXPAR']
+          p = '.github/labview-ci.yml'
+          lines = open(p, encoding='utf-8').read().splitlines()
+          if not any('maxParallel:' in l for l in lines):
+              out = []
+              for line in lines:
+                  out.append(line)
+                  if re.match(r'^\s*os:\s*\[', line):
+                      out.append('  concurrency:')
+                      out.append(f'    maxParallel: {mp}')
+              open(p, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+              print(f'restored maxParallel: {mp}')
+          PY
+          fi
+
+          {
+            echo "installed=${INSTALLED:-unknown}"
+            echo "latest=$LATEST"
+            echo "source_repo=$SRC_REPO"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open the upgrade pull request
+        env:
+          GH_TOKEN: ${{ secrets.TOOLING_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+          INSTALLED: ${{ steps.apply.outputs.installed }}
+          LATEST: ${{ steps.apply.outputs.latest }}
+          SOURCE_REPO: ${{ steps.apply.outputs.source_repo }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -z "$(git status --porcelain)" ]; then
+            {
+              echo "## ✅ Already up to date"
+              echo ""
+              echo "This repository already runs the latest LabVIEW CI tooling (**v${LATEST}**). No changes were needed."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "No changes — already up to date."
+            exit 0
+          fi
+
+          BRANCH="ci/adopt-tooling-v${LATEST}"
+          git checkout -B "$BRANCH"
+          git add -A
+          CHANGED=$(git diff --cached --name-only | wc -l | tr -d ' ')
+
+          {
+            echo "Adopts the latest LabVIEW CI tooling (**v${INSTALLED} → v${LATEST}**) from \`${SOURCE_REPO}\`."
+            echo ""
+            echo "This is a **full update**: every tooling file for this repo's selected capabilities was"
+            echo "re-pulled at the latest version (new capabilities included), rebranded to this repo, with your"
+            echo "own configuration and baked dependencies preserved. **${CHANGED} file(s)** changed."
+            echo ""
+            echo "Triggered from the dashboard **Update now** button. Review and merge to finish — the version"
+            echo "badge turns green and the pipeline runs the updated capabilities."
+            echo ""
+            echo "> **See an older update PR, or a merge conflict?** You can ignore it — only this PR (the newest, **v${LATEST}**) matters. Any older \`ci/adopt-tooling-*\` update PR is closed automatically. And if this PR ever shows a conflict on \`catalog.json\` / \`labview-ci.yml\`, don't hand-resolve it: just click **Update now** again. That rebuilds this branch from the latest default branch, which clears the conflict (the update replaces those files wholesale, so there is never anything real to merge by hand)."
+          } > /tmp/pr-body.md
+
+          git commit -m "ci: adopt LabVIEW CI tooling v${LATEST} (full update)"
+
+          if ! git push -u origin "$BRANCH" --force 2>/tmp/push-err; then
+            cat /tmp/push-err || true
+            if grep -qi 'workflow' /tmp/push-err; then
+              {
+                echo "## ⚠️ Full update needs a one-time token"
+                echo ""
+                echo "The update is ready (**${CHANGED} file(s)**, v${INSTALLED} → v${LATEST}) but it changes GitHub"
+                echo "**workflow files**, which the built-in token is not allowed to push. To finish automatically:"
+                echo ""
+                echo "1. Create a token with **repo + workflow** scope (classic PAT: \`repo\` + \`workflow\`; or fine-grained: **Contents** + **Workflows** = Read and write)."
+                echo "2. Add it as the repository secret **TOOLING_UPDATE_TOKEN** (Settings ▸ Secrets and variables ▸ Actions)."
+                echo "3. Re-run **Update now**."
+              } >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=Token needed::Full update needs a PAT (TOOLING_UPDATE_TOKEN) with workflow scope to push workflow-file changes."
+              exit 0
+            fi
+            echo "::error title=Push failed::Could not push the update branch."
+            exit 1
+          fi
+
+          URL=$(gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url // empty')
+          if [ -n "$URL" ]; then
+            gh pr edit "$URL" --body-file /tmp/pr-body.md >/dev/null || true
+            echo "Updated existing PR: $URL"
+          elif URL=$(gh pr create --title "ci: adopt LabVIEW CI tooling v${LATEST}" \
+                       --base "${{ github.ref_name }}" --head "$BRANCH" \
+                       --body-file /tmp/pr-body.md 2>/tmp/pr-err); then
+            echo "Opened PR: $URL"
+          else
+            cat /tmp/pr-err || true
+            URL="${{ github.server_url }}/${{ github.repository }}/compare/${{ github.ref_name }}...${BRANCH}?expand=1"
+            echo "::warning title=Open the PR manually::GitHub Actions is not permitted to open PRs in this repo. Enable Settings > Actions > General > 'Allow GitHub Actions to create and approve pull requests', or use the link in the summary. The branch is already pushed."
+            {
+              echo "## ⬆️ Upgrade branch ready — open the pull request"
+              echo ""
+              echo "Adopts LabVIEW CI tooling **v${INSTALLED} → v${LATEST}** (committed to branch \`${BRANCH}\`, ${CHANGED} file(s))."
+              echo ""
+              echo "**[Open the pull request](${URL})** to review and merge."
+              echo ""
+              echo "> To make this fully one-click next time, enable **Settings > Actions > General > Workflow permissions > 'Allow GitHub Actions to create and approve pull requests'**."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Keep only ONE open update PR. A previous "Update now" that was never
+          # merged leaves a per-version branch behind; once this repo's default
+          # branch moves on, that stale branch collides on catalog.json /
+          # labview-ci.yml — a "conflict" that is never a real conflict, because the
+          # update overwrites those files wholesale. Close every OTHER open update
+          # PR and delete its branch so the newest one is the only thing you see.
+          gh pr list --state open --json number,headRefName \
+            --jq '.[] | select(.headRefName|test("^ci/(adopt|update)-tooling-v")) | "\(.number)\t\(.headRefName)"' 2>/dev/null \
+          | while IFS=$'\t' read -r num ref; do
+              if [ -z "${num:-}" ] || [ "$ref" = "$BRANCH" ]; then continue; fi
+              if gh pr close "$num" --delete-branch \
+                   --comment "Superseded by the newer update to **v${LATEST}** (branch \`${BRANCH}\`). This PR targeted an older version and would conflict with the current default branch, so it is closed automatically — there is nothing to resolve here." >/dev/null 2>&1; then
+                echo "Superseded stale update PR #$num ($ref)"
+              else
+                echo "Could not close PR #$num ($ref) — continuing"
+              fi
+            done || true
+
+          {
+            echo "## ✅ Upgrade pull request ready"
+            echo ""
+            echo "Adopts LabVIEW CI tooling **v${INSTALLED} → v${LATEST}** (${CHANGED} file(s) changed)."
+            echo ""
+            echo "**[Review &amp; merge the pull request](${URL})** to finish the update."
+          } >> "$GITHUB_STEP_SUMMARY"

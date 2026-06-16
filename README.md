@@ -39,3 +39,10 @@ Steps:
 2) Override methods to save/load configuraiton parameters to disk: 'Read Configuration Parameters.vi' and 'Store Configuration Parameters.vi'
 3) Implement method for displaying configuration dialog. Again, I HIGHLY recommend duplicating one of the examples included in the 'Example Configuration Dialog' project. They can be found in \Example Configuration Dialog.lvclass\SubPanel Displays' in the Project Tree. Note that the UI has been configured to ensure it resizes correctly
 Override 'Store Static VI References for Subpanel.vi' to reference the subpanel VIs you want to display and the name that should appear in the list
+
+<!-- labview-ci:dashboard -->
+## LabVIEW CI
+
+[![LabVIEW CI dashboard](https://img.shields.io/badge/LabVIEW%20CI-dashboard-2ea44f)](https://elijah286.github.io/Extensible-Config-Dialog/)
+
+LabVIEW CI runs on every pull request. See the [**CI dashboard**](https://elijah286.github.io/Extensible-Config-Dialog/) for build status, VI Analyzer results, VI diffs, and mass-compile reports.
