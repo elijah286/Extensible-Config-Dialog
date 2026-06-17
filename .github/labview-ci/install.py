@@ -460,7 +460,10 @@ def thin_install(catalog: dict, target_root: Path, owner: str | None, name: str 
         f"  labviewVersion: \"{labview_version}\"",
         f"  os: [{os_csv}]",
         "  concurrency:",
-        "    maxParallel: 20",
+        "    # Per-repo cap on parallel CI jobs. GitHub's real limit is per ACCOUNT",
+        "    # (Free 20, Pro 40, Team 60, Enterprise 500 jobs shared across ALL your",
+        "    # repos), and submissions/upgrades draw from it too -- so keep it modest.",
+        "    maxParallel: 5",
         "activities:",
     ] + [f"  - {a}" for a in acts] + [""]
     write(".github/labview-ci.yml", "\n".join(cfg))
