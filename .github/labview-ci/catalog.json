@@ -1,11 +1,120 @@
 {
   "schemaVersion": 1,
-  "version": "1.10.1",
+  "version": "1.14.0",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "1.14.0",
+        "date": "2026-06-16",
+        "title": "The version badge shows when CI is running",
+        "summary": "The navigation header's version badge now doubles as a live activity indicator: whenever workflow runs are queued or in progress, it replaces the version number with a spinning 'N running' badge that links to the Actions tab, then returns to the version once everything finishes. This makes the dashboard visibly reflect work in progress \u2014 for example a deploy you're waiting on right after 'Apply to New Repo' or an update \u2014 instead of looking stale while it catches up. It reads the repository's in-flight runs from the browser, so public repositories need no setup and private repositories reuse the dashboard's existing token; it only checks while the tab is open and falls back to the plain version number if activity can't be read. An in-progress tooling update still takes precedence and shows 'Updating to v\u2026'.",
+        "highlights": [
+          "While any workflow run is queued or in progress, the version badge becomes a live 'N running' indicator with a spinner and links to the Actions tab; it reverts to the version number when the runs finish.",
+          "Appears on the dashboard and every page that carries the shared header, and refreshes as runs start and finish (only while the tab is visible).",
+          "Public repositories work with no setup; private repositories reuse the dashboard's existing dispatch token, and the badge quietly falls back to the version number when activity can't be read.",
+          "An in-progress tooling update ('Updating to v\u2026') and the 'update available' cue still take priority over the running indicator."
+        ]
+      },
+      {
+        "version": "1.13.0",
+        "date": "2026-06-16",
+        "title": "Apply to New Repo detects an existing install and lets you keep settings or clear out old files",
+        "summary": "Re-running 'Apply to New Repo' on a repository that already has LabVIEW CI now notices the previous install and pauses to ask how to reconcile it, before anything is committed. You can keep the previous capabilities, LabVIEW version, and platforms (instead of the configurator's current selections), and you can have old tooling files that newer versions no longer use \u2014 for example workflows that were renamed or dropped \u2014 removed in the same pull request. Both are opt-in and listed up front, your own workflows and baked dependency files are never touched, and everything still lands in a reviewable pull request.",
+        "highlights": [
+          "Detects a prior install by reading the repo's .github/labview-ci.yml and prompts before committing \u2014 fresh repos are unaffected and install as before.",
+          "'Keep the existing settings' reuses the previously installed capabilities, LabVIEW version, and platforms instead of the configurator's current picks.",
+          "'Remove old tooling files no longer used' lists and deletes orphaned tooling files (e.g. renamed/removed workflows) in the install pull request; it recognizes tooling files by content, so your own workflows and baked VIPM dependency files are never removed.",
+          "The result summary and pull request spell out exactly what was kept and which files were removed."
+        ]
+      },
+      {
+        "version": "1.12.3",
+        "date": "2026-06-16",
+        "title": "Every Mass Compile report opens inside the dashboard",
+        "summary": "Mass Compile reports now always render inside the shared navigation header \u2014 even the minimal fallback report. Previously, if the friendly report builder was skipped or hit a snag, the run still published a plain log-dump page with no header, navigation, or version badge, so a few Mass Compile links opened a bare page outside the dashboard chrome. The safety-net report (both Windows and Linux) now carries the same header as the full report, with the revision picker and the Regenerate / Raw log / This commit actions. Every previously published Mass Compile report has also been refreshed in place so it shows the header too.",
+        "highlights": [
+          "The fallback Mass Compile report (emitted when the friendly builder is skipped) now includes the shared site header, so every Mass Compile report renders inside the dashboard chrome \u2014 brand, navigation, version badge, and the revision picker.",
+          "All previously published Mass Compile reports were refreshed to show the header as well; the figures are unchanged \u2014 only the chrome was added."
+        ]
+      },
+      {
+        "version": "1.12.2",
+        "date": "2026-06-16",
+        "title": "The header shows which repository you're viewing",
+        "summary": "The navigation header's top-left mark now shows the repository name \u2014 with a small LabVIEW CI label above it \u2014 instead of just the product name, so the repository whose results you're viewing is always visible, on the dashboard and on every report and page that carries the header. The name truncates with an ellipsis when space is tight (the full owner/name shows on hover), so the header stays tidy and fits all the way down to a narrow phone.",
+        "highlights": [
+          "The header's top-left brand now reads the repository name with a small LabVIEW CI kicker above it, so you can always tell which repository's dashboard or report you're looking at.",
+          "Responsive by design: the repository name truncates with an ellipsis (full owner/name on hover) and never collides with the mobile menu button, so the header fits cleanly on phones."
+        ]
+      },
+      {
+        "version": "1.12.1",
+        "date": "2026-06-16",
+        "title": "The 'create a token' links arrive with the settings pre-filled",
+        "summary": "When you set up the one-time token for Run now or Update now, the 'Create a fine-grained token' link now opens GitHub's form with the token name, the resource owner, and the Actions: Read and write permission already filled in \u2014 so you only have to pick the repository under Repository access (the one step GitHub gives no way to pre-fill from a link) and click Generate. The report header's Re-run / Regenerate token link already worked this way; now the dashboard and What's New match it.",
+        "highlights": [
+          "The Run now token setup (dashboard) and the Update now token setup (What's New) now pre-fill the token name, resource owner, and Actions: Read and write permission via GitHub's supported URL parameters.",
+          "Each link is clear that selecting the specific repository is the only manual step \u2014 GitHub provides no URL parameter to pre-select a repository."
+        ]
+      },
+      {
+        "version": "1.12.0",
+        "date": "2026-06-16",
+        "title": "Your pipeline is pinned to a version, and every report shares one header",
+        "summary": "Two things. First, an install or upgrade now pins your whole pipeline \u2014 the dashboard, the workflows, the report pages, everything \u2014 to the exact version you adopted. It stays on that version until you click Update now; it no longer tracks the source repo's latest changes automatically. (Previously the dashboard was rebuilt from the source's main branch on every run, so dashboard/header changes appeared before you upgraded.) The update check still tells you when a newer version is available. Second, the shared navigation header is now on every document the pipeline publishes \u2014 Mass Compile reports and the worker/container manifest pages join the dashboard, VI Analyzer reports, and the VI Browser. On a VI Analyzer or Mass Compile report the header also carries a revision picker (switch which revision's report you're viewing, just like the VI Browser's commit dropdown) and a one-click \u201cregenerate this report for this revision\u201d button.",
+        "highlights": [
+          "Installs and upgrades pin the consumer's source.ref to the exact version tag (v<version>), so the dashboard and all tooling only change when you run Update now \u2014 not whenever the source repo's main advances. The update-available check is unaffected (it reads the source's release channel).",
+          "The shared header now appears on Mass Compile reports and the worker/container manifest pages too, so navigation and branding are consistent across every published document.",
+          "VI Analyzer and Mass Compile reports gain a header revision picker \u2014 pick another revision to jump to that revision's report of the same type (the list only offers revisions that actually have that report).",
+          "Those reports also get a \u201cRe-run analysis\u201d / \u201cRegenerate report\u201d button in the header that dispatches a fresh run for the revision shown, reusing the dashboard's token and queued-run indicator."
+        ]
+      },
+      {
+        "version": "1.11.2",
+        "date": "2026-06-16",
+        "title": "Header fits the VI Browser, and a commit hash opens its VIs everywhere",
+        "summary": "Fixes the new navigation header on full-height pages: on the VI Browser the header was being laid out beside the sidebar instead of across the top, because that page uses its <body> as a side-by-side layout. The header now detects a page that lays its content out directly on <body> and tucks that content beneath itself, so it spans the top on every page. Separately, the commit hash in the dashboard's Commit column now opens that commit's VIs in the VI Browser \u2014 the same place the commit message already linked to \u2014 instead of the commit on GitHub, so both columns take you to the snapshots for that revision.",
+        "highlights": [
+          "The shared header now spans the full width at the top of the VI Browser (and any page that uses <body> as a flex/grid layout) instead of sitting beside the content.",
+          "On the dashboard, the Commit-column hash links to that commit's VIs in the VI Browser, matching the commit message link (it previously went to the commit on GitHub)."
+        ]
+      },
+      {
+        "version": "1.11.1",
+        "date": "2026-06-16",
+        "title": "Jump from a VI Analyzer report straight to that commit's VI snapshots",
+        "summary": "On a VI Analyzer report, the commit hash at the top now links to that exact revision's VI snapshots in the VI Browser, so you can go from a finding to seeing the VIs as they were at that commit in one click. The GitHub commit itself is still one click away \u2014 a 'commit on GitHub' link sits alongside the metadata (and the header's 'This commit' action still opens it on a standalone report).",
+        "highlights": [
+          "The commit hash on a VI Analyzer report links to that commit's VI snapshots in the VI Browser (it previously pointed at GitHub, which the report header's 'This commit' action already covers).",
+          "A 'commit on GitHub' link is kept in the report's metadata line so the commit is still reachable even when the report is viewed embedded (where the shared header hides itself)."
+        ]
+      },
+      {
+        "version": "1.11.0",
+        "date": "2026-06-16",
+        "title": "A consistent navigation header across the whole CI site",
+        "summary": "Every page the pipeline publishes \u2014 the dashboard, VI Analyzer reports, the VI Browser, and the Configure / Apply to New Repo pages \u2014 now shares one navigation header instead of each page carrying its own ad-hoc buttons in a corner. The header gives you the LabVIEW CI brand, links to the main areas, and context-aware actions for the page you're on: the dashboard surfaces Configure Workers and Apply to New Repo, while a VI Analyzer report surfaces Re-run analysis, Native report, and This commit. It is fully responsive (the links and actions collapse into a single menu on phones and narrow windows) and is deployed once as a shared asset, so it stays identical everywhere and survives as individual reports are added or regenerated. The version badge and these What's New notes now live in the header too.",
+        "highlights": [
+          "One shared header on every page \u2014 dashboard, VI Analyzer reports, VI Browser, Configure, Apply to New Repo, and What's New \u2014 so you can move between areas from anywhere with a consistent brand and navigation.",
+          "Context-aware actions live in the header: the dashboard offers Configure Workers and Apply to New Repo; a VI Analyzer report offers Re-run analysis (for that exact revision), Native report, and This commit.",
+          "Fully responsive \u2014 the navigation and actions collapse into a single menu button on phones and narrow windows, so the whole site is usable on mobile.",
+          "The header is a single asset deployed once at the site root, so it stays identical across pages, survives as reports come and go, and hides itself automatically when a report is embedded inside another page."
+        ]
+      },
+      {
+        "version": "1.10.2",
+        "date": "2026-06-16",
+        "title": "One-click install is reliable for a full-capability repo (no more “Load failed”)",
+        "summary": "Installing the pipeline into a repo from Apply to New Repo could fail partway through with “Load failed”. Since 1.10.1 pre-selects every capability, the install uploaded ~60 files as a separate blob request each, in a tight burst that trips GitHub's secondary rate limit (whose CORS-less response surfaces in the browser as a bare “Load failed”). The install now commits all text files in a single tree request (so only a handful of binary VIs are uploaded individually) and retries transient network / rate-limit hiccups with backoff, with a clear message and command-line fallback if anything still fails. Re-running the install is now a dependable way to put a repo's CI tooling back into a known-good state.",
+        "highlights": [
+          "Text files are committed in one git/trees request instead of one blob upload each — ~60 back-to-back API writes drop to ~13 — so a full-capability install no longer trips GitHub's secondary rate limit.",
+          "Every GitHub call retries network rejections and secondary-rate-limit / 5xx responses with backoff (honouring Retry-After); a persistent failure shows a clear “wait a minute and retry, or use the command line” message instead of “Load failed”.",
+          "Re-installing into a repo that already has the tooling reliably converges it to the current known-good state (the existing install branch / pull request is reused)."
+        ]
+      },
       {
         "version": "1.10.1",
         "date": "2026-06-16",
@@ -475,6 +584,7 @@
           ".github/workflows/integrate-deploy.yml",
           ".github/workflows/apply-tooling-update.yml",
           ".github/pages/index.html",
+          ".github/pages/lvci-header.js",
           ".github/pages/report-viewer.html",
           ".github/pages/integrate.html",
           ".github/pages/configure.html",

@@ -137,11 +137,14 @@ _PAGE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CI Worker {version} — {platform}</title>
+<script>window.LVCI={lvci_cfg};</script>
+<script src="{lvci_src}" defer></script>
 <style>
   :root{{--bg:#0d1117;--surface:#161b22;--border:#30363d;--fg:#e6edf3;--fg-muted:#8b949e;--row-border:#21262d;--link:#58a6ff;--accent:#2ea043}}
   @media(prefers-color-scheme:light){{:root{{--bg:#fff;--surface:#f6f8fa;--border:#d0d7de;--fg:#1f2328;--fg-muted:#57606a;--row-border:#eaeef2;--link:#0969da;--accent:#1a7f37}}}}
   *{{box-sizing:border-box}}
-  body{{margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg);line-height:1.5}}
+  body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg);line-height:1.5}}
+  .wrap{{max-width:980px;margin:0 auto;padding:24px}}
   h1{{font-size:1.4em;margin:0 0 4px}}
   h2{{font-size:1.05em;margin:28px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}}
   .sub{{color:var(--fg-muted);font-size:.85em;margin-bottom:18px}}
@@ -159,6 +162,7 @@ _PAGE = """<!DOCTYPE html>
 </style>
 </head>
 <body>
+<div class="wrap">
   <h1>CI Worker Manifest</h1>
   <div class="sub">Version <span class="ver">{version}</span> &nbsp;|&nbsp; {platform} &nbsp;|&nbsp; LabVIEW {labview_version}</div>
   <div class="nav">{nav}</div>
@@ -180,6 +184,7 @@ _PAGE = """<!DOCTYPE html>
 
   <h2>Installed packages (nipkg)</h2>
   {nipkg_section}
+</div>
 </body>
 </html>
 """
@@ -250,6 +255,14 @@ def render_html(m: dict, pages_url: str) -> str:
         nav=nav,
         vipc_section=vipc_section,
         nipkg_section=nipkg_section,
+        # Shared site header (lvci-header.js, deployed once at the Pages root).
+        # Worker manifests live at workers/<platform>/<version>/manifest.html
+        # (three deep). It's a per-worker page, not a per-revision report, so it
+        # gets the header + nav but no revision picker / regenerate action. The
+        # src is RELATIVE so it always loads same-origin (the header derives its
+        # base from its own resolved src — works in prod and local preview).
+        lvci_cfg=json.dumps({"context": "worker-manifest", "pagesUrl": (pages_url or "").rstrip("/")}),
+        lvci_src="../../../lvci-header.js",
     )
 
 
