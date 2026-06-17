@@ -29,6 +29,7 @@ env:
 permissions:
   contents: read
   statuses: write
+  packages: read
 
 jobs:
   vidiff:
@@ -105,9 +106,56 @@ jobs:
           echo "$FILES" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # VIDiff renders before/after images of changed VIs and the bare NI base image
+      # is sufficient for that. But when the Configure dialog selects a container
+      # (config.container.use in head/.github/labview-ci.yml), use that tag of the
+      # project's custom worker image so VIs that depend on add-ons still load and
+      # render. When unset it stays on the bare base (the original behavior). The
+      # head checkout lives under head/, so read the config from there.
+      - name: Resolve container image name
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          BASE_IMAGE: nationalinstruments/labview:latest-windows
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          custom="ghcr.io/${owner}/${name}"
+          use=""
+          if [ -f head/.github/labview-ci.yml ]; then
+            use=$(awk '
+              /^[[:space:]]*container:[[:space:]]*$/ {inc=1; next}
+              inc && /^    use:/ {sub(/^[[:space:]]*use:[[:space:]]*/,""); gsub(/"/,""); print; exit}
+              inc && /^[^[:space:]]/ {inc=0}
+            ' head/.github/labview-ci.yml | tr -d '[:space:]')
+          fi
+          if [ -n "$use" ]; then
+            if [ "$use" = "latest" ]; then img="${custom}:latest"; else img="${custom}:${use}"; fi
+          else
+            img="${BASE_IMAGE}"
+          fi
+          echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
+          echo "Resolved container image: ${img}"
+
       - name: Pull LabVIEW container image
         shell: powershell
-        run: docker pull $Env:LABVIEW_CONTAINER_IMAGE
+        run: |
+          docker pull $Env:LABVIEW_CONTAINER_IMAGE
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Pull failed for $Env:LABVIEW_CONTAINER_IMAGE - falling back to the base image."
+            $base = 'nationalinstruments/labview:latest-windows'
+            "LABVIEW_CONTAINER_IMAGE=$base" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            $Env:LABVIEW_CONTAINER_IMAGE = $base
+            docker pull $base
+          }
 
       - name: Run VIDiff inside container
         shell: powershell

@@ -29,6 +29,14 @@ on:
         description: 'Comma-separated capability ids (blank = keep current)'
         required: false
         default: ''
+      container_use:
+        description: 'Container image tag CI activities use (e.g. latest, win-<hash>, 2026; blank = keep current)'
+        required: false
+        default: ''
+      container_vipc:
+        description: 'Baked VIPC files as path::monitor pairs separated by ; (blank = keep current)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -57,6 +65,8 @@ jobs:
           IN_ANTIDOC: ${{ inputs.antidoc }}
           IN_RUNNERS: ${{ inputs.concurrent_runners }}
           IN_ACTS: ${{ inputs.activities }}
+          IN_CONTAINER_USE: ${{ inputs.container_use }}
+          IN_CONTAINER_VIPC: ${{ inputs.container_vipc }}
         run: |
           python3 - <<'PY'
           import os, re, json, datetime, pathlib
@@ -66,19 +76,34 @@ jobs:
           antidoc = os.environ['IN_ANTIDOC'].strip().lower() == 'true'
           runners = os.environ['IN_RUNNERS'].strip()
           acts_in = os.environ['IN_ACTS'].strip()
+          container_use_in = os.environ.get('IN_CONTAINER_USE', '').strip()
+          container_vipc_in = os.environ.get('IN_CONTAINER_VIPC', '').strip()
 
           # Preserve provenance fields from any existing manifest.
           mpath = pathlib.Path('.github/labview-ci.yml')
-          prev = {'activities': [], 'installedVersion': '', 'repo': '', 'ref': 'main'}
+          prev = {'activities': [], 'installedVersion': '', 'repo': '', 'ref': 'main',
+                  'container_use': '', 'vipc': []}
           if mpath.exists():
-              in_acts = False
+              in_acts = False; in_container = False; in_vipc = False; cur_vipc = None
               for line in mpath.read_text(encoding='utf-8').splitlines():
                   if re.match(r'^\s*activities:\s*$', line):
-                      in_acts = True; continue
+                      in_acts = True; in_container = False; in_vipc = False; continue
+                  if re.match(r'^\s*container:\s*$', line):
+                      in_container = True; in_acts = False; in_vipc = False; continue
                   if in_acts:
                       m = re.match(r'^\s*-\s*(\S+)', line)
                       if m: prev['activities'].append(m.group(1)); continue
                       in_acts = False
+                  if in_container:
+                      m = re.match(r'^\s{4}use:\s*"?([^"\s]+)"?', line)
+                      if m: prev['container_use'] = m.group(1); continue
+                      if re.match(r'^\s{4}vipc:\s*$', line): in_vipc = True; continue
+                      if in_vipc:
+                          m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
+                          if m: cur_vipc = {'path': m.group(1).strip(), 'monitor': True}; prev['vipc'].append(cur_vipc); continue
+                          m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
+                          if m and cur_vipc is not None: cur_vipc['monitor'] = (m.group(1).strip().lower() == 'true'); continue
+                      if re.match(r'^\s{0,3}\S', line): in_container = False; in_vipc = False
                   m = re.match(r'^\s*installedVersion:\s*(\S+)', line)
                   if m: prev['installedVersion'] = m.group(1)
                   m = re.match(r'^\s*repo:\s*(\S+)', line)
@@ -91,6 +116,21 @@ jobs:
               or prev['activities'] or ['dashboard', 'masscompile', 'vi-analyzer', 'vidiff']
           now = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
           max_parallel = int(runners) if runners.isdigit() and int(runners) > 0 else 1
+
+          # Container: explicit input wins; blank keeps whatever the manifest had.
+          container_use = container_use_in or prev['container_use'] or 'latest'
+          def _parse_vipc(s):
+              out = []
+              for entry in s.split(';'):
+                  entry = entry.strip()
+                  if not entry: continue
+                  if '::' in entry:
+                      path, mon = entry.rsplit('::', 1)
+                      out.append({'path': path.strip(), 'monitor': mon.strip().lower() not in ('0', 'false', 'no', 'off')})
+                  else:
+                      out.append({'path': entry, 'monitor': True})
+              return out
+          vipc = _parse_vipc(container_vipc_in) if container_vipc_in else prev['vipc']
 
           lines = [
               '# .github/labview-ci.yml - LabVIEW CI configuration',
@@ -108,8 +148,15 @@ jobs:
               f'  os: [{", ".join(os_list)}]',
               '  concurrency:',
               f'    maxParallel: {max_parallel}',
-              'activities:',
-          ] + [f'  - {a}' for a in acts] + ['']
+          ]
+          lines += ['  container:', f'    use: {container_use}']
+          if vipc:
+              lines.append('    vipc:')
+              for v in vipc:
+                  p = str(v['path']).replace('"', '')
+                  lines.append(f'      - path: "{p}"')
+                  lines.append(f"        monitor: {'true' if v['monitor'] else 'false'}")
+          lines += ['activities:'] + [f'  - {a}' for a in acts] + ['']
           mpath.parent.mkdir(parents=True, exist_ok=True)
           mpath.write_text('\n'.join(lines), encoding='utf-8')
           print('Wrote', mpath)
@@ -172,6 +219,7 @@ jobs:
           | Antidoc | ${{ inputs.antidoc }} |
           | Max concurrent runners | ${{ inputs.concurrent_runners }} |
           | Activities | ${{ inputs.activities }} |
+          | Container | ${{ inputs.container_use }} |
 
           Review and merge to apply. Container-dependency and LabVIEW-version changes
           take effect on the next image build; OS/runner settings apply where the
