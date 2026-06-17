@@ -1,0 +1,184 @@
+name: Mass Compile — Linux Container
+
+# Linux counterpart of the Windows mass compile. Produces the same friendly,
+# navigable report (problems grouped by VI, snapshot drawer, dashboard nav) for
+# the Linux container, deployed under masscompile/<sha>/linux/ so the report's
+# Windows/Linux toggle has real data on both sides — just like the VIDiff reports.
+
+on:
+  pull_request:
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+  push:
+    branches: [main]
+    paths:
+      - '**.vi'
+      - '**.ctl'
+      - '**.lvproj'
+      - '**.lvlib'
+      - '**.lvclass'
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to compile (leave blank for current HEAD)'
+        required: false
+        default: ''
+
+env:
+  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-linux
+  PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+permissions:
+  contents: write
+  pages: write
+  statuses: write
+  packages: read
+
+# No shared concurrency group: this mirrors run-vi-analyzer-linux-container.yml,
+# which deploys to gh-pages directly with no group. The Windows report workflows
+# share `report-pages-deploy` (cancel-in-progress:false) to serialize their pushes,
+# but GitHub keeps only one *pending* run per group — so adding a third member
+# would make a normal push cancel one of the three. The Linux job writes to a
+# disjoint path (masscompile/<sha>/linux/) with keep_files:true, so a rare
+# overlapping push is additive rather than destructive.
+
+jobs:
+  mass-compile-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine target SHA
+        id: sha
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          INPUT="${{ github.event.inputs.commit_sha }}"
+          if [ -n "$INPUT" ]; then
+            FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha')
+            echo "sha=$FULL" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post pending status
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"Mass Compile (Linux) in progress\",\"context\":\"CI / Mass Compile (Linux)\"}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Restore CI scripts from main
+        if: github.event.inputs.commit_sha != ''
+        run: git checkout origin/main -- .github/labview .github/workflows
+
+      - name: Pull LabVIEW Linux container
+        id: pull
+        run: docker pull ${{ env.LABVIEW_CONTAINER_IMAGE }}
+        continue-on-error: true
+
+      - name: Run Mass Compile inside Linux container
+        if: steps.pull.outcome == 'success'
+        id: compile
+        run: |
+          mkdir -p "${{ github.workspace }}/ci-out/masscompile"
+          docker run --rm \
+            -e "GITHUB_REPOSITORY=${{ github.repository }}" \
+            -v "${{ github.workspace }}:/workspace" \
+            ${{ env.LABVIEW_CONTAINER_IMAGE }} \
+            bash /workspace/.github/labview/masscompile.sh \
+              /workspace \
+              /workspace/ci-out/masscompile
+        continue-on-error: true
+
+      - name: Check report directory
+        id: report
+        run: |
+          if [ -f "${{ github.workspace }}/ci-out/masscompile/index.html" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build friendly Mass Compile report (group by VI + snapshots + platform toggle)
+        if: steps.report.outputs.exists == 'true'
+        continue-on-error: true
+        run: |
+          REPORT_DIR="${{ github.workspace }}/ci-out/masscompile"
+          python3 .github/labview/build-masscompile-report.py \
+            --log        "$REPORT_DIR/masscompile.log" \
+            --workspace  "${{ github.workspace }}" \
+            --out        "$REPORT_DIR" \
+            --platform   linux \
+            --meta       "$REPORT_DIR/compile-meta.json" \
+            --sha        "${{ steps.sha.outputs.sha }}" \
+            --repo       "${{ github.repository }}" \
+            --pages-url  "${{ env.PAGES_URL }}" \
+            --labview-version "${{ vars.LABVIEW_VERSION || '2026' }}" \
+            --commit-msg "$(git log -1 --pretty=%s   ${{ steps.sha.outputs.sha }})" \
+            --author     "$(git log -1 --pretty=%an  ${{ steps.sha.outputs.sha }})" \
+            --date       "$(git log -1 --pretty=%cI  ${{ steps.sha.outputs.sha }})"
+
+      - name: Upload report artifact
+        if: steps.report.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: masscompile-linux-report-${{ steps.sha.outputs.sha }}
+          path: ${{ github.workspace }}/ci-out/masscompile/
+          if-no-files-found: warn
+
+      - name: Deploy report to GitHub Pages
+        if: steps.report.outputs.exists == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ github.workspace }}/ci-out/masscompile
+          destination_dir: masscompile/${{ steps.sha.outputs.sha }}/linux
+          keep_files: true
+
+      - name: Post commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ steps.report.outputs.exists }}" = "true" ]; then
+            REPORT_URL="${{ env.PAGES_URL }}/masscompile/${{ steps.sha.outputs.sha }}/linux/index.html"
+          else
+            REPORT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          if [ "${{ steps.pull.outcome }}" = "success" ] && [ "${{ steps.compile.outcome }}" = "success" ]; then
+            STATE="success"
+          else
+            STATE="failure"
+          fi
+          PCT=""
+          SUMMARY="${{ github.workspace }}/ci-out/masscompile/summary.json"
+          if [ -f "$SUMMARY" ]; then
+            PCT=$(grep -o '"percent"[: ]*[0-9]*' "$SUMMARY" | grep -o '[0-9]*$' || true)
+          fi
+          if [ -n "$PCT" ]; then
+            DESC="${PCT}% of project VIs compiled (Linux)"
+          else
+            DESC="Mass Compile (Linux) $STATE"
+          fi
+          curl -s -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$REPORT_URL\",\"description\":\"$DESC\",\"context\":\"CI / Mass Compile (Linux)\"}"
+
+      - name: Fail the job if compile failed
+        if: always() && (steps.pull.outcome != 'success' || steps.compile.outcome != 'success')
+        run: exit 1
