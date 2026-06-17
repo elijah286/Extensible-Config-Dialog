@@ -151,6 +151,37 @@
     '.lvci-burger{display:none;align-items:center;justify-content:center;width:38px;height:34px;border:1px solid #30363d;border-radius:7px;background:transparent;color:inherit;cursor:pointer;flex:0 0 auto}',
     '@media(prefers-color-scheme:light){.lvci-burger{border-color:#d0d7de}}',
     '.lvci-burger svg{width:18px;height:18px;display:block}',
+    // Inline glyph wrapper — sizes the SVG and lets it inherit color (currentColor)
+    '.lvci-ic{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}',
+    '.lvci-ic svg{width:100%;height:100%;display:block}',
+    '.lvci-btn .lvci-ic{width:15px;height:15px}',
+    // ── Secondary actions: "More" button → popover (Configure / Update / About / theme)
+    '.lvci-dropdown{position:relative;display:inline-flex;align-items:center}',
+    '.lvci-more{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid #30363d;background:transparent;color:#8b949e;border-radius:7px;cursor:pointer}',
+    '.lvci-more svg{width:18px;height:18px;display:block}',
+    '.lvci-more:hover{background:rgba(177,186,196,.12);color:#e6edf3}',
+    '.lvci-more.open{background:rgba(177,186,196,.16);color:#e6edf3;border-color:#8b949e}',
+    '@media(prefers-color-scheme:light){.lvci-more{border-color:#d0d7de;color:#57606a}.lvci-more:hover,.lvci-more.open{background:rgba(80,90,100,.08);color:#1f2328}}',
+    '.lvci-dropdown-menu{display:none;position:absolute;top:100%;right:0;z-index:200;background:rgba(22,27,34,.98);border:1px solid #30363d;border-radius:10px;margin-top:8px;min-width:214px;padding:6px;',
+      'box-shadow:0 8px 28px rgba(1,4,9,.5);-webkit-backdrop-filter:saturate(160%) blur(8px);backdrop-filter:saturate(160%) blur(8px)}',
+    '.lvci-dropdown-menu.open{display:block;animation:lvci-pop .12s ease-out}',
+    '@keyframes lvci-pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}',
+    '.lvci-dropdown-menu>a,.lvci-dropdown-menu>button{display:flex;width:100%;align-items:center;gap:10px;padding:9px 10px;background:transparent;border:0;border-radius:7px;color:#e6edf3;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;text-align:left}',
+    '.lvci-dropdown-menu>a:hover,.lvci-dropdown-menu>button:hover{background:rgba(177,186,196,.12)}',
+    '.lvci-dropdown-menu .lvci-ic{width:17px;height:17px;color:#8b949e}',
+    '.lvci-dropdown-menu .lvci-sep{height:1px;background:#30363d;margin:5px 4px}',
+    '@media(prefers-color-scheme:light){.lvci-dropdown-menu{background:rgba(255,255,255,.98);border-color:#d0d7de;box-shadow:0 8px 28px rgba(140,149,159,.32)}.lvci-dropdown-menu>a,.lvci-dropdown-menu>button{color:#1f2328}.lvci-dropdown-menu>a:hover,.lvci-dropdown-menu>button:hover{background:rgba(80,90,100,.08)}.lvci-dropdown-menu .lvci-ic{color:#57606a}.lvci-dropdown-menu .lvci-sep{background:#d0d7de}}',
+    // Appearance (theme) segmented control — lives in the popover and mobile menu
+    '.lvci-theme{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 8px 8px 10px}',
+    '.lvci-theme-lbl{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#8b949e}',
+    '.lvci-seg{display:inline-flex;border:1px solid #30363d;border-radius:8px;overflow:hidden;background:rgba(177,186,196,.06)}',
+    '.lvci-seg-btn{display:inline-flex;align-items:center;justify-content:center;width:33px;height:27px;border:0;background:transparent;color:#8b949e;cursor:pointer;padding:0}',
+    '.lvci-seg-btn+.lvci-seg-btn{border-left:1px solid #30363d}',
+    '.lvci-seg-btn svg{width:15px;height:15px;display:block}',
+    '.lvci-seg-btn:hover{color:#e6edf3;background:rgba(177,186,196,.12)}',
+    '.lvci-seg-btn.on{background:#1f6feb;color:#fff}',
+    '@media(prefers-color-scheme:light){.lvci-theme-lbl{color:#57606a}.lvci-seg{border-color:#d0d7de;background:rgba(80,90,100,.04)}.lvci-seg-btn{color:#57606a}.lvci-seg-btn+.lvci-seg-btn{border-left-color:#d0d7de}.lvci-seg-btn:hover{color:#1f2328;background:rgba(80,90,100,.08)}.lvci-seg-btn.on{background:#0969da;color:#fff}}',
+    '@media(max-width:820px){.lvci-dropdown,.lvci-more{display:none}}',
     // Status line (re-run feedback) sits just under the bar, full width
     '.lvci-status{display:none;align-items:center;gap:8px;font-size:12.5px;padding:7px 16px;border-bottom:1px solid #30363d;',
       'background:rgba(22,27,34,.96);color:#8b949e}',
@@ -164,6 +195,16 @@
     '.lvci-tok code{background:#0d1117;padding:1px 5px;border-radius:4px}',
     '.lvci-tok input{padding:7px 9px;border-radius:7px;border:1px solid #30363d;background:#0d1117;color:#e6edf3;font-family:ui-monospace,Menlo,monospace}',
     '@media(prefers-color-scheme:light){.lvci-tok{background:#fff;border-color:#d0d7de;color:#1f2328}.lvci-tok code{background:#eef2f6}.lvci-tok input{background:#fff;border-color:#d0d7de;color:#1f2328}}',
+    // Rebuild banner (dashboard) — shown while the workflow that regenerates this
+    // page (or the Pages publish that follows) is in flight; links to that run.
+    '.lvci-rebuild{display:none;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #30363d;background:rgba(31,111,235,.12);color:#e6edf3;font-size:12.5px;line-height:1.5}',
+    '.lvci-rebuild.show{display:flex}',
+    '.lvci-rebuild .lvci-rb-spin{flex:0 0 auto;width:14px;height:14px;margin-top:3px;border:2px solid rgba(31,111,235,.35);border-top-color:#1f6feb;border-radius:50%;animation:lvci-spin .7s linear infinite}',
+    '.lvci-rebuild .lvci-rb-txt{min-width:0}',
+    '.lvci-rebuild .lvci-rb-sub{color:#8b949e}',
+    '.lvci-rebuild a{color:#58a6ff;text-decoration:none;font-weight:600;white-space:nowrap}',
+    '.lvci-rebuild a:hover{text-decoration:underline}',
+    '@media(prefers-color-scheme:light){.lvci-rebuild{background:rgba(9,105,218,.09);border-bottom-color:#d0d7de;color:#1f2328}.lvci-rebuild .lvci-rb-sub{color:#57606a}.lvci-rebuild a{color:#0969da}}',
     // ── Mobile menu ───────────────────────────────────────────────────────
     '.lvci-menu{display:none}',
     '@media(max-width:820px){',
@@ -175,13 +216,92 @@
       '.lvci-menu a,.lvci-menu button.lvci-m{display:flex;width:100%;align-items:center;gap:9px;text-align:left;',
         'color:#e6edf3;background:transparent;border:0;font-size:15px;font-weight:500;padding:11px 12px;border-radius:8px;text-decoration:none;cursor:pointer}',
       '.lvci-menu a:hover,.lvci-menu button.lvci-m:hover{background:rgba(177,186,196,.12)}',
+      '.lvci-menu .lvci-ic{width:19px;height:19px;color:#8b949e}',
+      '.lvci-menu .lvci-theme{padding:9px 12px}',
       '.lvci-menu .lvci-rev{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:8px 12px 4px}',
       '.lvci-menu .lvci-rev select{max-width:none;width:100%;font-size:15px;padding:10px}',
       '.lvci-menu .lvci-sep{height:1px;background:#30363d;margin:6px 4px}',
       '@media(prefers-color-scheme:light){.lvci-menu.open{background:#fff;border-bottom-color:#d0d7de}.lvci-menu a,.lvci-menu button.lvci-m{color:#1f2328}.lvci-menu .lvci-sep{background:#d0d7de}}',
     '}',
     // Give the page a little breathing room below the sticky bar on small screens
-    '@media(max-width:820px){body{overflow-x:hidden}}'
+    '@media(max-width:820px){body{overflow-x:hidden}}',
+    // ── Manual appearance override (Appearance control in the menu) ───────────
+    // "System" keeps the prefers-color-scheme rules above. Forcing light/dark
+    // sets data-lvci-theme on <html>; these rules re-assert the matching tokens
+    // and header surfaces at higher specificity, so the choice wins over the OS
+    // setting for both the shared header AND the CSS variables every CI page uses.
+    ':root[data-lvci-theme=light]{--bg:#ffffff;--surface:#f6f8fa;--border:#d0d7de;--fg:#1f2328;--fg-muted:#57606a;--link:#0969da;--hover:#f3f4f6;--row-border:#eaeef2;--accent:#1f883d;--accent-fg:#fff;--chip:#eaeef2;--code:#f6f8fa;--warn:#9a6700}',
+    ':root[data-lvci-theme=dark]{--bg:#0d1117;--surface:#161b22;--border:#30363d;--fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--hover:#1c2128;--row-border:#21262d;--accent:#238636;--accent-fg:#fff;--chip:#21262d;--code:#010409;--warn:#9a6700}',
+    // Forced LIGHT — header surfaces
+    ':root[data-lvci-theme=light] .lvci-hdr{background:rgba(255,255,255,.86);border-bottom-color:#d0d7de;color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-brand .lvci-kicker,:root[data-lvci-theme=light] .lvci-brand .lvci-sub{color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-brand .lvci-sub{border-color:#d0d7de}',
+    ':root[data-lvci-theme=light] .lvci-nav a:hover,:root[data-lvci-theme=light] .lvci-nav a.on{color:#1f2328;background:rgba(80,90,100,.10)}',
+    ':root[data-lvci-theme=light] .lvci-btn{border-color:#d0d7de}',
+    ':root[data-lvci-theme=light] .lvci-btn:hover{background:rgba(80,90,100,.08)}',
+    ':root[data-lvci-theme=light] .lvci-ver{color:#57606a;border-color:#d0d7de}',
+    ':root[data-lvci-theme=light] .lvci-ver:hover{color:#1f2328;border-color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-burger{border-color:#d0d7de}',
+    ':root[data-lvci-theme=light] .lvci-more{border-color:#d0d7de;color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-more:hover,:root[data-lvci-theme=light] .lvci-more.open{background:rgba(80,90,100,.08);color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-dropdown-menu{background:rgba(255,255,255,.98);border-color:#d0d7de;box-shadow:0 8px 28px rgba(140,149,159,.32)}',
+    ':root[data-lvci-theme=light] .lvci-dropdown-menu>a,:root[data-lvci-theme=light] .lvci-dropdown-menu>button{color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-dropdown-menu>a:hover,:root[data-lvci-theme=light] .lvci-dropdown-menu>button:hover{background:rgba(80,90,100,.08)}',
+    ':root[data-lvci-theme=light] .lvci-dropdown-menu .lvci-ic{color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-dropdown-menu .lvci-sep,:root[data-lvci-theme=light] .lvci-menu .lvci-sep{background:#d0d7de}',
+    ':root[data-lvci-theme=light] .lvci-theme-lbl{color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-seg{border-color:#d0d7de;background:rgba(80,90,100,.04)}',
+    ':root[data-lvci-theme=light] .lvci-seg-btn{color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-seg-btn+.lvci-seg-btn{border-left-color:#d0d7de}',
+    ':root[data-lvci-theme=light] .lvci-seg-btn:hover{color:#1f2328;background:rgba(80,90,100,.08)}',
+    ':root[data-lvci-theme=light] .lvci-seg-btn.on{background:#0969da;color:#fff}',
+    ':root[data-lvci-theme=light] .lvci-menu .lvci-ic{color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-rev .lvci-revlbl{color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-rev select{color:#1f2328;background:#fff;border-color:#d0d7de;color-scheme:light}',
+    ':root[data-lvci-theme=light] .lvci-status{background:#f6f8fa;border-bottom-color:#d0d7de;color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-tok{background:#fff;border-color:#d0d7de;color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-tok code{background:#eef2f6}',
+    ':root[data-lvci-theme=light] .lvci-tok input{background:#fff;border-color:#d0d7de;color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-menu.open{background:#fff;border-bottom-color:#d0d7de}',
+    ':root[data-lvci-theme=light] .lvci-menu a,:root[data-lvci-theme=light] .lvci-menu button.lvci-m{color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-rebuild{background:rgba(9,105,218,.09);border-bottom-color:#d0d7de;color:#1f2328}',
+    ':root[data-lvci-theme=light] .lvci-rebuild .lvci-rb-sub{color:#57606a}',
+    ':root[data-lvci-theme=light] .lvci-rebuild a{color:#0969da}',
+    // Forced DARK — counteract an OS light preference
+    ':root[data-lvci-theme=dark] .lvci-hdr{background:rgba(22,27,34,.86);border-bottom-color:#30363d;color:#e6edf3}',
+    ':root[data-lvci-theme=dark] .lvci-brand .lvci-kicker,:root[data-lvci-theme=dark] .lvci-brand .lvci-sub{color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-brand .lvci-sub{border-color:#30363d}',
+    ':root[data-lvci-theme=dark] .lvci-nav a:hover,:root[data-lvci-theme=dark] .lvci-nav a.on{color:#e6edf3;background:rgba(177,186,196,.16)}',
+    ':root[data-lvci-theme=dark] .lvci-btn{border-color:#30363d}',
+    ':root[data-lvci-theme=dark] .lvci-btn:hover{background:rgba(177,186,196,.12)}',
+    ':root[data-lvci-theme=dark] .lvci-ver{color:#8b949e;border-color:#30363d}',
+    ':root[data-lvci-theme=dark] .lvci-ver:hover{color:#e6edf3;border-color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-burger{border-color:#30363d}',
+    ':root[data-lvci-theme=dark] .lvci-more{border-color:#30363d;color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-more:hover,:root[data-lvci-theme=dark] .lvci-more.open{background:rgba(177,186,196,.12);color:#e6edf3}',
+    ':root[data-lvci-theme=dark] .lvci-dropdown-menu{background:rgba(22,27,34,.98);border-color:#30363d;box-shadow:0 8px 28px rgba(1,4,9,.5)}',
+    ':root[data-lvci-theme=dark] .lvci-dropdown-menu>a,:root[data-lvci-theme=dark] .lvci-dropdown-menu>button{color:#e6edf3}',
+    ':root[data-lvci-theme=dark] .lvci-dropdown-menu>a:hover,:root[data-lvci-theme=dark] .lvci-dropdown-menu>button:hover{background:rgba(177,186,196,.12)}',
+    ':root[data-lvci-theme=dark] .lvci-dropdown-menu .lvci-ic{color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-dropdown-menu .lvci-sep,:root[data-lvci-theme=dark] .lvci-menu .lvci-sep{background:#30363d}',
+    ':root[data-lvci-theme=dark] .lvci-theme-lbl{color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-seg{border-color:#30363d;background:rgba(177,186,196,.06)}',
+    ':root[data-lvci-theme=dark] .lvci-seg-btn{color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-seg-btn+.lvci-seg-btn{border-left-color:#30363d}',
+    ':root[data-lvci-theme=dark] .lvci-seg-btn:hover{color:#e6edf3;background:rgba(177,186,196,.12)}',
+    ':root[data-lvci-theme=dark] .lvci-seg-btn.on{background:#1f6feb;color:#fff}',
+    ':root[data-lvci-theme=dark] .lvci-menu .lvci-ic{color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-rev .lvci-revlbl{color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-rev select{color:#e6edf3;background:rgba(177,186,196,.10);border-color:#30363d;color-scheme:dark}',
+    ':root[data-lvci-theme=dark] .lvci-status{background:rgba(22,27,34,.96);border-bottom-color:#30363d;color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-tok{background:#161b22;border-color:#30363d;color:#e6edf3}',
+    ':root[data-lvci-theme=dark] .lvci-tok code{background:#0d1117}',
+    ':root[data-lvci-theme=dark] .lvci-tok input{background:#0d1117;border-color:#30363d;color:#e6edf3}',
+    ':root[data-lvci-theme=dark] .lvci-menu.open{background:rgba(22,27,34,.98);border-bottom-color:#30363d}',
+    ':root[data-lvci-theme=dark] .lvci-rebuild{background:rgba(31,111,235,.12);border-bottom-color:#30363d;color:#e6edf3}',
+    ':root[data-lvci-theme=dark] .lvci-rebuild .lvci-rb-sub{color:#8b949e}',
+    ':root[data-lvci-theme=dark] .lvci-rebuild a{color:#58a6ff}',
+    ':root[data-lvci-theme=dark] .lvci-menu a,:root[data-lvci-theme=dark] .lvci-menu button.lvci-m{color:#e6edf3}'
   ].join('\n');
 
   // ── Inline brand mark (a flow/analysis glyph) ─────────────────────────────
@@ -194,8 +314,18 @@
       '<path d="M8 8.6v3.2a1.6 1.6 0 0 0 1.6 1.6h4.8A1.6 1.6 0 0 0 16 11.8V8.6" stroke="#8b949e" stroke-width="1.5" stroke-linecap="round"/>' +
       '<path d="M12 13.4v1.1" stroke="#8b949e" stroke-width="1.5" stroke-linecap="round"/>' +
     '</svg>';
+  // Crisp, stroke-based glyphs (Lucide-style). Sized via CSS; inherit color via
+  // currentColor so they adapt to dark/light and hover states automatically.
   var ICON = {
-    burger: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    burger: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="19" r="1.3"/></svg>',
+    integrate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+    configure: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1.5" y1="14" x2="6.5" y2="14"/><line x1="9.5" y1="8" x2="14.5" y2="8"/><line x1="17.5" y1="16" x2="22.5" y2="16"/></svg>',
+    update: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    about: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="16" x2="12" y2="11.5"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+    sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 1.8v2.4M12 19.8v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M1.8 12h2.4M19.8 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/></svg>',
+    moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+    system: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="19" height="13" rx="2"/><line x1="8.5" y1="20.5" x2="15.5" y2="20.5"/><line x1="12" y1="16.5" x2="12" y2="20.5"/></svg>'
   };
 
   function esc(s) {
@@ -203,6 +333,59 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+
+  // Leading glyph for an action: a sized SVG wrapper (a.svg) or, as a fallback,
+  // an escaped text/emoji glyph (a.icon). SVG strings are our own trusted markup.
+  function iconHtml(a) {
+    if (a.svg) return '<span class="lvci-ic">' + a.svg + '</span>';
+    return a.icon ? esc(a.icon) + ' ' : '';
+  }
+
+  // ── Appearance: dark / light / system ─────────────────────────────────────
+  // Persisted per browser. "system" (the default) follows prefers-color-scheme;
+  // light/dark set data-lvci-theme on <html> so our overrides win over the OS
+  // setting for the shared header AND every CI page's standard CSS tokens.
+  var THEME_KEY = 'lvci-theme';
+  function getTheme() {
+    try { var t = localStorage.getItem(THEME_KEY); return (t === 'light' || t === 'dark') ? t : 'system'; }
+    catch (e) { return 'system'; }
+  }
+  function applyTheme(t) {
+    var r = document.documentElement;
+    if (t === 'light' || t === 'dark') { r.setAttribute('data-lvci-theme', t); r.style.colorScheme = t; }
+    else { r.removeAttribute('data-lvci-theme'); r.style.colorScheme = 'light dark'; }
+  }
+  function markThemeControls(t) {
+    var btns = document.querySelectorAll('.lvci-seg-btn');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('on', btns[i].getAttribute('data-theme') === t);
+  }
+  function setTheme(t) {
+    try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+    applyTheme(t);
+    markThemeControls(t);
+  }
+  // A compact segmented control (Light / Dark / System) for the menus.
+  function themeControl() {
+    var wrap = document.createElement('div'); wrap.className = 'lvci-theme';
+    var lbl = document.createElement('span'); lbl.className = 'lvci-theme-lbl'; lbl.textContent = 'Appearance';
+    var seg = document.createElement('div'); seg.className = 'lvci-seg';
+    seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Appearance');
+    var cur = getTheme();
+    [['light', ICON.sun, 'Light'], ['dark', ICON.moon, 'Dark'], ['system', ICON.system, 'System']].forEach(function (o) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'lvci-seg-btn' + (o[0] === cur ? ' on' : '');
+      b.setAttribute('data-theme', o[0]);
+      b.title = o[2]; b.setAttribute('aria-label', o[2] + ' appearance');
+      b.innerHTML = o[1];
+      b.addEventListener('click', function (e) { e.stopPropagation(); setTheme(o[0]); });
+      seg.appendChild(b);
+    });
+    wrap.appendChild(lbl); wrap.appendChild(seg);
+    return wrap;
+  }
+  // Honour the saved choice as early as the script runs (minimises any flash).
+  applyTheme(getTheme());
 
   // ── Primary navigation (the durable site sections). Data-driven so future
   //    capabilities — Builds, Documentation, Unit Tests — are a one-line add. ─
@@ -224,7 +407,8 @@
     'report-viewer': 'dashboard',
     'configure': 'dashboard',
     'integrate': 'dashboard',
-    'whats-new': 'dashboard'
+    'whats-new': 'dashboard',
+    'faq': 'dashboard'
   };
 
   // ── Per-revision DOCUMENT types ───────────────────────────────────────────
@@ -277,15 +461,35 @@
     }
     var A = {
       'dashboard': [
-        { label: 'Configure Workers', icon: '\u2699', kind: 'configure', accent: true },
-        { label: 'Apply to New Repo', icon: '\u2795', kind: 'integrate', primary: true }
+        { label: 'Apply to New Repo', svg: ICON.integrate, kind: 'integrate', primary: true }
       ],
       'worker-manifest': [],
       'vi-browser': [],
       'report-viewer': [],
       'configure': [],
       'integrate': [],
-      'whats-new': []
+      'whats-new': [],
+      'faq': []
+    };
+    return (A[ctx] || []).filter(Boolean);
+  }
+  function buildSecondaryActions() {
+    var A = {
+      'dashboard': [
+        { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
+        { label: 'Update now', svg: ICON.update, href: base + '/whats-new.html' },
+        { label: 'About', svg: ICON.about, href: base + '/faq.html' }
+      ],
+      'worker-manifest': [],
+      'vi-browser': [
+        { label: 'Update now', svg: ICON.update, href: base + '/whats-new.html' },
+        { label: 'About', svg: ICON.about, href: base + '/faq.html' }
+      ],
+      'report-viewer': [],
+      'configure': [],
+      'integrate': [],
+      'whats-new': [],
+      'faq': []
     };
     return (A[ctx] || []).filter(Boolean);
   }
@@ -401,7 +605,7 @@
     }
     el.className = mobile ? 'lvci-m' : ('lvci-btn' + (a.primary ? ' primary' : (a.accent ? ' accent' : '')));
     if (a.kind === 'rerun' && !mobile) el.id = 'lvci-rerun';
-    el.innerHTML = (a.icon ? esc(a.icon) + ' ' : '') + esc(a.label);
+    el.innerHTML = iconHtml(a) + esc(a.label);
     if (!a.href) {
       el.addEventListener('click', function () {
         if (a.kind === 'configure' || a.kind === 'integrate') openPage(a.kind);
@@ -556,6 +760,57 @@
     var actions = document.createElement('div');
     actions.className = 'lvci-actions';
     buildActions().forEach(function (a) { actions.appendChild(actionEl(a, false)); });
+    // "More" popover — always present so the Appearance control is available
+    // site-wide; it also hosts any context-specific secondary actions
+    // (Configure Workers / Update / About on the dashboard and VI Browser).
+    var secActions = buildSecondaryActions();
+    {
+      var dropdown = document.createElement('div');
+      dropdown.className = 'lvci-dropdown';
+      var moreBtn = document.createElement('button');
+      moreBtn.className = 'lvci-more';
+      moreBtn.setAttribute('aria-label', 'More options');
+      moreBtn.setAttribute('aria-haspopup', 'true');
+      moreBtn.setAttribute('aria-expanded', 'false');
+      moreBtn.innerHTML = ICON.more;
+      dropdown.appendChild(moreBtn);
+      var ddMenu = document.createElement('div');
+      ddMenu.className = 'lvci-dropdown-menu';
+      var closeDD = function () { ddMenu.classList.remove('open'); moreBtn.classList.remove('open'); moreBtn.setAttribute('aria-expanded', 'false'); };
+      secActions.forEach(function (a) {
+        var el;
+        if (a.href) {
+          el = document.createElement('a');
+          el.href = a.href;
+          if (a.newTab) { el.target = '_blank'; el.rel = 'noopener'; }
+          el.addEventListener('click', closeDD);
+        } else {
+          el = document.createElement('button');
+          el.type = 'button';
+          el.addEventListener('click', function () {
+            if (a.kind === 'configure' || a.kind === 'integrate') openPage(a.kind);
+            closeDD();
+          });
+        }
+        el.innerHTML = iconHtml(a) + esc(a.label);
+        ddMenu.appendChild(el);
+      });
+      // Appearance (theme) control — divided from the action items when present.
+      if (secActions.length) { var dsep = document.createElement('div'); dsep.className = 'lvci-sep'; ddMenu.appendChild(dsep); }
+      ddMenu.appendChild(themeControl());
+      dropdown.appendChild(ddMenu);
+      moreBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = ddMenu.classList.toggle('open');
+        moreBtn.classList.toggle('open', open);
+        moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      // Clicks inside the popover (e.g. the Appearance buttons) keep it open.
+      ddMenu.addEventListener('click', function (e) { e.stopPropagation(); });
+      document.addEventListener('click', closeDD);
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDD(); });
+      actions.appendChild(dropdown);
+    }
     // Version badge (always present)
     var ver = document.createElement('a');
     ver.className = 'lvci-ver';
@@ -587,6 +842,14 @@
       var sep = document.createElement('div'); sep.className = 'lvci-sep'; menu.appendChild(sep);
       acts.forEach(function (a) { menu.appendChild(actionEl(a, true)); });
     }
+    var secActs = buildSecondaryActions();
+    if (secActs.length) {
+      var sep = document.createElement('div'); sep.className = 'lvci-sep'; menu.appendChild(sep);
+      secActs.forEach(function (a) { menu.appendChild(actionEl(a, true)); });
+    }
+    // Appearance (theme) control in the mobile menu
+    var sepT = document.createElement('div'); sepT.className = 'lvci-sep'; menu.appendChild(sepT);
+    menu.appendChild(themeControl());
     var sep2 = document.createElement('div'); sep2.className = 'lvci-sep'; menu.appendChild(sep2);
     var wn = document.createElement('a'); wn.href = base + '/whats-new.html'; wn.id = 'lvci-ver-m';
     wn.textContent = "What\u2019s new"; menu.appendChild(wn);
@@ -604,6 +867,23 @@
     // Status + token panel (used by re-run)
     var status = document.createElement('div'); status.id = 'lvci-status'; status.className = 'lvci-status';
     var tokp = document.createElement('div'); tokp.id = 'lvci-tok'; tokp.className = 'lvci-tok';
+
+    // Rebuild banner (dashboard only) — hidden until the activity poll detects
+    // the page-rebuild/publish run, then shown with a live link to it.
+    var rebuild = null;
+    if (REBUILD_ON) {
+      rebuild = document.createElement('div');
+      rebuild.id = 'lvci-rebuild';
+      rebuild.className = 'lvci-rebuild';
+      rebuild.setAttribute('role', 'status');
+      rebuild.setAttribute('aria-live', 'polite');
+      rebuild.innerHTML =
+        '<span class="lvci-rb-spin" aria-hidden="true"></span>' +
+        '<span class="lvci-rb-txt"><strong>Updating this dashboard\u2026 </strong>' +
+        '<span class="lvci-rb-sub">A new version is being compiled by </span>' +
+        '<a target="_blank" rel="noopener" href="https://github.com/' + repo + '/actions">the build workflow \u2197</a>' +
+        '<span class="lvci-rb-sub">. This page refreshes automatically when it\u2019s done.</span></span>';
+    }
 
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container
@@ -638,6 +918,7 @@
     document.body.insertBefore(status, tokp);
     document.body.insertBefore(menu, status);
     document.body.insertBefore(hdr, menu);
+    if (rebuild) document.body.insertBefore(rebuild, menu);   // directly under the bar
   }
 
   // ── Badge state ───────────────────────────────────────────────────────────
@@ -650,6 +931,11 @@
   // and the version/update check never fight over the element.
   var verState = { v: '', behind: false, to: '' };
   var runState = { active: 0, names: [] };
+  // Page-rebuild banner: only the dashboard shows it (there "this page is being
+  // regenerated" is literally true). buildWas remembers the prior poll so we can
+  // auto-refresh exactly once when an in-flight rebuild finishes.
+  var REBUILD_ON = (ctx === 'dashboard');
+  var buildWas = false;
   function renderBadge() {
     var badge = document.getElementById('lvci-ver'), txt = document.getElementById('lvci-ver-txt');
     if (!badge || !txt) return;
@@ -714,6 +1000,53 @@
     return 0;
   }
 
+  // ── Page-rebuild banner (dashboard) ──────────────────────────────
+  // While the workflow that regenerates THIS dashboard (dashboard-pages.yml) —
+  // or the GitHub Pages publish that follows it — is in flight, the page on
+  // screen is stale. Surface a banner naming + linking the run, and refresh once
+  // it finishes so the freshly built version appears without a manual reload.
+  function isDashGen(w) { return (w.path || '').toLowerCase().indexOf('dashboard-pages.yml') >= 0; }
+  function isPagesPub(w) { return (w.name || '').toLowerCase() === 'pages build and deployment'; }
+  function pickRebuild(runs) {
+    var gen = null, pub = null;
+    for (var i = 0; i < runs.length; i++) {
+      if (isDashGen(runs[i])) { if (!gen) gen = runs[i]; }
+      else if (isPagesPub(runs[i])) { if (!pub) pub = runs[i]; }
+    }
+    return gen || pub;                          // prefer the generator over the bare publish
+  }
+  function renderRebuild(run) {
+    var card = document.getElementById('lvci-rebuild');
+    if (!card) return;
+    if (!run) { card.classList.remove('show'); return; }
+    var a = card.querySelector('a');
+    if (a) {
+      a.href = run.html_url || ('https://github.com/' + repo + '/actions');
+      a.textContent = (run.name || 'the build workflow') + ' \u2197';
+    }
+    card.classList.add('show');
+  }
+  var RELOAD_KEY = 'lvci_rebuild_reload';
+  function anyModalOpen() {
+    var ids = ['lvci-modal', 'cidash-run-modal', 'cidash-q-modal'];
+    for (var i = 0; i < ids.length; i++) {
+      var m = document.getElementById(ids[i]);
+      if (m && m.style && m.style.display && m.style.display !== 'none') return true;
+    }
+    return false;
+  }
+  function autoRefresh() {
+    // Don't reload out from under an open dialog; throttle so back-to-back
+    // builds can't spin the page (at most one auto-reload per 12 s).
+    if (anyModalOpen()) return;
+    var last = 0;
+    try { last = parseInt(sessionStorage.getItem(RELOAD_KEY) || '0', 10) || 0; } catch (e) {}
+    if (Date.now() - last < 12000) return;
+    try { sessionStorage.setItem(RELOAD_KEY, String(Date.now())); } catch (e) {}
+    // brief settle for the Pages CDN edge to serve the new deploy
+    setTimeout(function () { if (!anyModalOpen()) location.reload(); }, 4000);
+  }
+
   // ── CI activity: poll the Actions API for in-flight runs. While any are
   //    queued/running, the badge above shows "N running" (with a spinner) in
   //    place of the version — so the dashboard visibly reflects work in
@@ -748,6 +1081,12 @@
           if (runState.names.indexOf(n) < 0) runState.names.push(n);
         });
         renderBadge();
+        if (REBUILD_ON) {
+          var rb = pickRebuild(act);
+          renderRebuild(rb);
+          if (buildWas && !rb) autoRefresh();   // a rebuild we were showing just finished
+          buildWas = !!rb;
+        }
       }).catch(function () { /* network blip: keep prior badge state */ });
   }
   function startActivity() {
@@ -772,7 +1111,7 @@
   function updClear() { try { localStorage.removeItem(UPD_KEY); } catch (e) {} }
   window.lvciMarkUpdating = function (v) {
     if (!v) return;
-    try { localStorage.setItem(UPD_KEY, JSON.stringify({ v: v, ts: Date.now() })); } catch (e) {}
+    try { localStorage.setItem(UPD_KEY, JSON.stringify({ v: v, ts: Date.now(), repo: C.repo })); } catch (e) {}
     renderBadge();
   };
 
