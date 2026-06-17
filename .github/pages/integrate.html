@@ -11,6 +11,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Integrate LabVIEW CI</title>
+  <script>window.LVCI={context:'integrate'};</script>
+  <script src="lvci-header.js" defer></script>
   <style>
     :root{
       --bg:#0d1117;--surface:#161b22;--surface2:#0d1117;--border:#30363d;
@@ -96,6 +98,12 @@
     .insdone li{position:relative;padding:0 0 0 24px;margin:0 0 7px;font-size:.88em;color:var(--fg);line-height:1.5}
     .insdone li::before{content:"\2713";position:absolute;left:0;top:1px;color:var(--accent);font-weight:700}
     .insdone small{display:block;color:var(--fg-muted);font-size:.86em;margin-top:1px}
+    .reinstall{border-color:var(--warn)}
+    .reinstall h3{display:flex;align-items:center;gap:7px}
+    .stalewrap{margin-top:7px}
+    .stalewrap summary{cursor:pointer;font-size:.82em;color:var(--link);user-select:none}
+    .stalelist{margin:7px 0 0;padding-left:18px;font-size:.82em;color:var(--fg-muted);max-height:180px;overflow:auto}
+    .stalelist li{margin:0 0 2px;word-break:break-all}
     details.altinstall>summary{cursor:pointer;font-size:.86em;color:var(--link);user-select:none}
     details.altinstall>summary:hover{text-decoration:underline}
   </style>
@@ -140,7 +148,7 @@
 
     <section>
       <h2>3. Install</h2>
-      <p class="hint">Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a <strong>short-lived</strong> fine-grained token &mdash; it&rsquo;s used just once, right now, to open this pull request, so give it the shortest expiration you can. The panel walks you through creating it with the permissions pre-filled.</p>
+      <p class="hint">Let the configurator open a pull request that adds these files to your repository &mdash; and, if you like, link it from your README and switch on GitHub Pages so the dashboard publishes itself. Nothing to download, unzip, or commit by hand. The first time, you paste a fine-grained token; the panel walks you through creating it with the permissions pre-filled. It stays in this browser so you don&rsquo;t have to paste it again.</p>
 
       <div class="insopts">
         <label class="insopt"><input type="checkbox" id="optReadme" checked>
@@ -151,16 +159,34 @@
         </label>
       </div>
 
+      <div class="tokpanel reinstall" id="insReinstallPanel" style="display:none">
+        <h3>&#9888; This repository already has LabVIEW CI</h3>
+        <p class="note" id="insReinstallSummary"></p>
+        <div class="insopts">
+          <label class="insopt" id="optKeepWrap"><input type="checkbox" id="optKeep" checked>
+            <span><strong>Keep the existing settings</strong><small id="optKeepDesc"></small></span>
+          </label>
+          <label class="insopt" id="optDeleteWrap" style="display:none"><input type="checkbox" id="optDeleteStale" checked>
+            <span><strong>Remove old tooling files no longer used</strong><small id="optDeleteDesc"></small>
+              <details class="stalewrap"><summary>Show files</summary><ul class="stalelist" id="insStaleList"></ul></details>
+            </span>
+          </label>
+        </div>
+        <div class="tokrow">
+          <button type="button" class="primary" id="insReinstallGo">Continue &amp; install</button>
+          <button type="button" class="ghost" id="insReinstallCancel">Cancel</button>
+        </div>
+      </div>
+
       <div class="tokpanel" id="insTokPanel" style="display:none">
-        <h3>One-time setup &mdash; a short-lived token to open the install pull request</h3>
+        <h3>One-time setup &mdash; a token to open the install pull request</h3>
         <ol>
           <li><a id="insTokLink" target="_blank" rel="noopener">Create a fine-grained token &#8599;</a> &mdash; the required permissions are pre-filled.</li>
-          <li>Set <strong>Expiration</strong> to the shortest option (7 days, or a custom date as soon as tomorrow) &mdash; this token is used once, right now, so it never needs to outlive the install.</li>
           <li><strong>Repository access</strong> &rarr; Only select repositories &rarr; add <code class="inl" id="insTokRepo">your-org/your-repo</code>.</li>
           <li id="insTokPerms"></li>
           <li>Generate, then paste it below.</li>
         </ol>
-        <p class="note">Kept only in this browser tab (sessionStorage) and sent only to api.github.com &mdash; never to the page host or to CI. It is discarded automatically the moment the pull request opens; you can also revoke it on GitHub at any time &mdash; and a short expiration means it lapses on its own.</p>
+        <p class="note">Stored in this browser only (localStorage) and sent only to api.github.com &mdash; never to the page host or to CI, so it can never be used from another machine. It stays on this device so you can reuse it for more installs; <strong>Forget token</strong> (or revoking it on GitHub) removes it &mdash; do that on a shared computer.</p>
         <div class="tokrow">
           <input id="insTokInput" type="password" autocomplete="off" placeholder="github_pat_&hellip;">
           <button type="button" class="primary" id="insTokSave">Save &amp; install</button>
@@ -170,7 +196,7 @@
 
       <div class="actions">
         <button class="primary" id="installBtn">&#11014; Install into your repo</button>
-        <button class="ghost" id="insTokForget" style="display:none" title="Remove the token from this browser tab">Forget token</button>
+        <button class="ghost" id="insTokForget" style="display:none" title="Remove the saved token from this browser">Forget token</button>
         <span class="status" id="insStatus"></span>
       </div>
 
@@ -223,6 +249,7 @@
     let activeTab = "bash";
     const selected = new Set();   // capability ids the user checked
     const osSel = new Set(["windows","linux"]);
+    let priorState = null;        // set by detectPriorInstall when re-installing over an existing setup
 
     const $ = (id) => document.getElementById(id);
     const csv = (set) => [...set].join(",");
@@ -241,7 +268,18 @@
       throw new Error("Could not load catalog.json");
     }
 
-    function source() { return (catalog && catalog.source) || SOURCE_FALLBACK; }
+    function source() {
+      const s = (catalog && catalog.source) || SOURCE_FALLBACK;
+      // A consumer install/upgrade PINS to the exact published version (an
+      // immutable tag): the dashboard, the vendored workflows, and every file
+      // come from v<version>, and the installed pipeline only changes when the
+      // user runs "Update now". The source catalog's own ref ("main") is the
+      // source's live channel and must never leak into a consumer's config or
+      // its vendored files. (catalog.json itself is vendored verbatim and keeps
+      // source.ref="main" — that's the channel the update-check reads.)
+      const ver = catalog && catalog.version;
+      return ver ? Object.assign({}, s, { ref: "v" + ver }) : s;
+    }
 
     function rawUrl(path) {
       const s = source();
@@ -386,7 +424,7 @@
         const s = document.createElement("script");
         s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
         // Pin the third-party script so a compromised CDN can't run arbitrary JS in
-        // this origin (defense-in-depth: this page can hold a token in sessionStorage).
+        // this origin (defense-in-depth: this page can hold a saved token in localStorage).
         s.integrity = "sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==";
         s.crossOrigin = "anonymous";
         s.referrerPolicy = "no-referrer";
@@ -466,13 +504,14 @@
     // Workflows (write): the workflow files require the Workflows permission.
     const INSTALL_TOK_KEY = "lvci_install_token";
     const INSTALL_BRANCH = "ci/install-labview-ci";
-    // Ephemeral by design: the token lives in sessionStorage (scoped to this browser
-    // tab/device, never shared with other visitors) and is cleared the moment the
-    // install pull request opens (see installSuccess). It is only ever sent to
-    // api.github.com via gh() — never to the page host that serves this file.
-    const getInsTok = () => { try { return sessionStorage.getItem(INSTALL_TOK_KEY) || ""; } catch (_) { return ""; } };
-    const setInsTok = (v) => { try { sessionStorage.setItem(INSTALL_TOK_KEY, v); } catch (_) {} };
-    const clearInsTok = () => { try { sessionStorage.removeItem(INSTALL_TOK_KEY); } catch (_) {} };
+    // Persisted in this browser only (localStorage): scoped to this origin + browser
+    // profile + device, so it survives across installs but is never reachable by
+    // another machine or visitor. It is only ever sent to api.github.com via gh() —
+    // never to the page host that serves this file. "Forget token" or a GitHub revoke
+    // clears it (e.g. on a shared computer).
+    const getInsTok = () => { try { return localStorage.getItem(INSTALL_TOK_KEY) || ""; } catch (_) { return ""; } };
+    const setInsTok = (v) => { try { localStorage.setItem(INSTALL_TOK_KEY, v); } catch (_) {} };
+    const clearInsTok = () => { try { localStorage.removeItem(INSTALL_TOK_KEY); } catch (_) {} };
 
     // Pre-filled fine-grained token creation link (GitHub honours these query
     // params), so the user lands on the form with the right scopes selected.
@@ -501,6 +540,22 @@
     function showInsTokPanel() { const p = $("insTokPanel"); if (p) { p.style.display = ""; const i = $("insTokInput"); if (i) i.focus(); } }
     function hideInsTokPanel() { const p = $("insTokPanel"); if (p) p.style.display = "none"; }
 
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    // fetch() that retries ONLY transient network rejections (DNS blips, dropped
+    // connections, and — notably — the CORS-less responses GitHub's edge returns
+    // when a secondary rate limit kicks in, which surface in WebKit as a bare
+    // "Load failed" TypeError). HTTP error *statuses* are returned untouched so
+    // callers can inspect them; a persistent rejection re-throws after backoff.
+    async function fetchNet(url, init) {
+      let wait = 800, lastErr;
+      for (let i = 0; i < 4; i++) {
+        try { return await fetch(url, init); }
+        catch (e) { lastErr = e; if (i < 3) { await sleep(wait); wait *= 2; } }
+      }
+      throw lastErr;
+    }
+
     // Authenticated call to the target repo (token attached). Source-repo reads
     // stay unauthenticated on purpose: the install token is scoped to the target.
     function gh(path, opts) {
@@ -510,7 +565,7 @@
       if (tok) headers["Authorization"] = "Bearer " + tok;
       let body = opts.body;
       if (body && typeof body !== "string") { body = JSON.stringify(body); headers["Content-Type"] = "application/json"; }
-      return fetch("https://api.github.com" + path, { method: opts.method || "GET", headers, body, cache: "no-store" });
+      return fetchNet("https://api.github.com" + path, { method: opts.method || "GET", headers, body, cache: "no-store" });
     }
     async function ghJson(resp) {
       if (resp.ok) return resp.status === 204 ? null : resp.json();
@@ -518,6 +573,63 @@
       const err = new Error(msg || ("HTTP " + resp.status));
       err.status = resp.status; err.ghMessage = msg;
       throw err;
+    }
+
+    // Is a non-OK GitHub response *transient* (worth waiting + retrying)? Secondary
+    // / abuse rate limits come back as 403 or 429 with a tell-tale message; 5xx are
+    // server hiccups. A plain 403 (missing permission) is NOT transient — it must
+    // surface immediately so installError can tell the user to fix the token.
+    async function transientInfo(resp) {
+      if (resp.status >= 500) return { retry: true };
+      if (resp.status === 429) return { retry: true };
+      if (resp.status === 403) {
+        let msg = ""; try { msg = (await resp.clone().json()).message || ""; } catch (_) {}
+        if (/secondary rate limit|abuse|\brate limit\b/i.test(msg)) return { retry: true };
+      }
+      return { retry: false };
+    }
+
+    // Authenticated read/write with backoff. Retries network rejections and
+    // secondary-rate-limit / 5xx responses, honouring Retry-After; returns parsed
+    // JSON on success and throws the normal typed error (via ghJson) for real
+    // failures (401 / 403-permission / 404 / 422) so installError can map them.
+    // `label` describes the step for a friendly final message.
+    async function ghWrite(path, opts, label) {
+      let wait = 1200;
+      for (let attempt = 0; ; attempt++) {
+        let resp;
+        try { resp = await gh(path, opts); }
+        catch (e) {                                  // exhausted network retries inside gh()
+          if (attempt < 4) { await sleep(wait); wait *= 2; continue; }
+          const err = new Error("Couldn’t " + (label || "reach GitHub") + " — the network request kept failing (connection or a brief rate limit). Wait a minute and click Install again, or use the command-line install below.");
+          err.network = true; throw err;
+        }
+        if (resp.ok) return resp.status === 204 ? null : resp.json();
+        const t = await transientInfo(resp);
+        if (t.retry && attempt < 4) {
+          const ra = parseFloat(resp.headers.get("retry-after") || "");
+          await sleep(isFinite(ra) ? Math.max(ra * 1000, 1000) : wait); wait *= 2; continue;
+        }
+        return ghJson(resp);                         // real error → typed throw
+      }
+    }
+
+    // Resilient GET for the PUBLIC source reads (the recursive tree listing and the
+    // per-file raw downloads). Retries network rejections and 5xx and gives a clear
+    // message instead of a bare "Load failed"; definitive 4xx are returned as-is so
+    // the caller can branch (e.g. skip a 404 file).
+    async function getResilient(url, label) {
+      let wait = 700, lastErr;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+          const r = await fetch(url, { cache: "no-store" });
+          if (r.ok || (r.status >= 400 && r.status < 500)) return r;
+          lastErr = new Error("HTTP " + r.status);
+        } catch (e) { lastErr = e; }
+        if (attempt < 3) { await sleep(wait); wait *= 2; }
+      }
+      const err = new Error("Couldn’t " + (label || "fetch from the source repository") + " (network, CORS, or a GitHub rate limit). Check your connection and retry, or use the command-line install below.");
+      err.network = true; err.cause = lastErr; throw err;
     }
     function b64bytes(bytes) {
       let bin = ""; const CH = 0x8000;
@@ -703,9 +815,9 @@
       ib.innerHTML = b ? "Installing&hellip;" : "&#11014; Install into your repo";
     }
 
-    function installPrBody(acts, osList, ver, fileCount) {
+    function installPrBody(acts, osList, ver, fileCount, removed, kept) {
       const s = source();
-      return [
+      const lines = [
         "## LabVIEW CI pipeline", "",
         "Opened by the **LabVIEW CI configurator** to add a containerized CI pipeline to this repository.", "",
         "| | |", "|---|---|",
@@ -713,13 +825,20 @@
         "| Platforms | " + (osList.join(", ") || "windows, linux") + " |",
         "| Capabilities | " + (acts.join(", ") || "dashboard") + " |",
         "| Files added | " + fileCount + " |",
-        "| Tooling source | `" + s.repo + "@" + s.ref + "` |", "",
-        "### After you merge", "",
+        "| Tooling source | `" + s.repo + "@" + s.ref + "` |"
+      ];
+      if (kept) lines.push("", "\u267b\ufe0f **Kept the settings from the previous install** (capabilities, LabVIEW version, and platforms).");
+      if (removed && removed.length) {
+        lines.push("", "### Removed " + removed.length + " old tooling file" + (removed.length > 1 ? "s" : ""), "",
+          "These were left by an earlier install and are no longer used:", "");
+        removed.forEach(p => lines.push("- `" + p + "`"));
+      }
+      lines.push("", "### After you merge", "",
         "1. **Workflow permissions** must be *Read and write* (Settings \u203a Actions \u203a General) \u2014 the configurator may have already set this for you.",
         "2. **GitHub Pages** must be enabled on the `gh-pages` branch (Settings \u203a Pages) \u2014 the configurator may have already enabled this for you; otherwise turn it on after the first run creates the branch.",
         "3. Open a pull request that changes a VI \u2014 the pipeline runs and reports back on the dashboard.", "",
-        "Change any of these choices later from **\u2699 Configure Workers** on the dashboard.", ""
-      ].join("\n");
+        "Change any of these choices later from **\u2699 Configure Workers** on the dashboard.", "");
+      return lines.join("\n");
     }
 
     function installSuccess(pr, repo, setup) {
@@ -727,12 +846,9 @@
       setInsStatus(`&#10003; Done \u2014 opened pull request <a href="${esc(pr.html_url)}" target="_blank" rel="noopener">#${pr.number}</a> in <code class="inl">${esc(repo)}</code>.`, "ok");
       const url = dashboardUrl(repo);
 
-      // The token did its one job (opening the PR); discard it now so nothing
-      // sensitive lingers in this browser. The user re-pastes for any later install.
-      clearInsTok(); refreshInsForget();
-
       const done = [];
-      done.push(`Discarded your install token from this browser &mdash; it was used only to open this pull request.`);
+      if (setup.kept) done.push(`Kept your existing settings &mdash; <strong>${esc(setup.kept)}</strong>.`);
+      if (setup.removed && setup.removed.length) done.push(`Removed <strong>${setup.removed.length}</strong> old tooling file${setup.removed.length > 1 ? "s" : ""} no longer used (in the pull request).`);
       if (setup.readme) done.push(`Added a CI dashboard badge &amp; link to your README (in the pull request).`);
       if (setup.workflowPerms === "done") done.push(`Set <strong>Workflow permissions</strong> to read &amp; write.`);
       if (setup.pages === "done") done.push(`Enabled <strong>GitHub Pages</strong> &mdash; your dashboard will be at <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a><small>It goes live after the first CI run; until then it shows a &ldquo;publishing&hellip;&rdquo; placeholder.</small>`);
@@ -760,6 +876,11 @@
     function installError(e, repo) {
       const st = e && e.status;
       const gm = e && e.ghMessage ? ` <span style="opacity:.8">(${esc(e.ghMessage)})</span>` : "";
+      if (!st) {
+        const m = (e && e.message) || "";
+        if ((e && e.network) || /load failed|failed to fetch|networkerror|network request|the network connection was lost/i.test(m))
+          return (e && e.network && m ? esc(m) : "Couldn’t reach GitHub (network, CORS, or a brief secondary rate limit). Wait a minute and click Install again, or use the command-line install below.");
+      }
       if (st === 401) {
         clearInsTok(); refreshInsForget(); showInsTokPanel();
         return "That token was rejected (401). Create a new one above and paste it.";
@@ -770,24 +891,201 @@
       return (e && e.message ? esc(e.message) : "Install failed.") + gm;
     }
 
+    // ---- detecting + reconciling a previous installation -----------------
+    // Recognizes a LabVIEW-CI tooling workflow by content (survives branding
+    // substitution — these markers are never the source-repo string we rewrite),
+    // so stale-file detection never deletes a user's own unrelated workflow.
+    const LVCI_WF_SIG = /labview-ci|labview\s*ci|_lvci|peaceiris\/actions-gh-pages|LABVIEW_VERSION|ghcr\.io\/[^\s/]+\/labview/i;
+
+    function actLabel(id) { const c = byId(id); return (c && c.name) || id; }
+    function userConfigPaths() { return (catalog && catalog.userConfig && catalog.userConfig.files) || []; }
+    function isUserConfig(p) { return userConfigPaths().some(uc => uc.endsWith("/") ? p.startsWith(uc) : uc === p); }
+
+    // Every concrete tooling file the CURRENT catalog can install (base + all
+    // capabilities, all OS). Used to tell a current tooling workflow (keep) from
+    // an unknown one (scan its content) during stale detection.
+    function managedUniverse() {
+      const u = new Set([...((catalog.base && catalog.base.files) || [])]);
+      (catalog.capabilities || []).forEach(c => {
+        const f = c.files || {};
+        [].concat(f.any || [], f.windows || [], f.linux || []).forEach(x => { if (x && !x.endsWith("/")) u.add(x); });
+      });
+      return u;
+    }
+
+    // Parse our own simple manifest format (.github/labview-ci.yml) — mirrors
+    // install.py's read_manifest: activities list + config.labviewVersion/os + source.ref.
+    function parseManifest(text) {
+      const out = { activities: [], os: [], labviewVersion: "", sourceRef: "" };
+      let section = "";
+      String(text || "").split(/\r?\n/).forEach(raw => {
+        const line = raw.replace(/\t/g, "  ");
+        const li = line.match(/^\s*-\s+(.+?)\s*$/);
+        if (li && section === "activities") { out.activities.push(li[1].trim()); return; }
+        const m = line.match(/^(\s*)([\w.-]+):\s*(.*)$/);
+        if (!m) return;
+        const indent = m[1].length, key = m[2], val = m[3].trim();
+        if (key === "activities") { section = "activities"; return; }
+        if (indent === 0) section = key;
+        if (key === "labviewVersion") out.labviewVersion = val.replace(/^["']|["']$/g, "");
+        else if (key === "os") { const inner = val.replace(/^\[|\]$/g, ""); if (inner) out.os = inner.split(",").map(s => s.trim()).filter(Boolean); }
+        else if (key === "ref" && !out.sourceRef) out.sourceRef = val;
+      });
+      return out;
+    }
+
+    // The activities / OS / version the install will actually use: the previous
+    // manifest's choices when "keep settings" is on, else the configurator UI.
+    function effectiveValues(keepSettings) {
+      let activities = [...selected], osList = [...osSel], version = $("version").value;
+      if (keepSettings && priorState && priorState.manifest) {
+        const m = priorState.manifest;
+        const acts = (m.activities || []).filter(a => { const c = byId(a); return c && c.status !== "planned"; });
+        if (acts.length) activities = acts;
+        if (m.os && m.os.length) osList = m.os.slice();
+        if (m.labviewVersion) version = m.labviewVersion;
+      }
+      return { activities, osList, version };
+    }
+
+    // Tooling files the previous install left that THIS install won't write, so
+    // they can be removed. "Covered" uses prefix matching for the catalog's
+    // directory entries, so it's conservative (never flags a file the install
+    // might rewrite) and matches what proceedInstall actually deletes.
+    function staleFor(keepSettings) {
+      if (!priorState || !priorState.managedFiles) return [];
+      const { activities, osList } = effectiveValues(keepSettings);
+      const newEntries = resolveFiles(activities, osList).concat([".github/labview-ci.yml"]);
+      const covered = (p) => newEntries.some(e => e.endsWith("/") ? p.startsWith(e) : e === p);
+      return [...priorState.managedFiles].filter(p => !covered(p) && !isUserConfig(p)).sort();
+    }
+
+    // Read the target's existing manifest (if any) + inventory the tooling files
+    // it carries. Returns null for a fresh repo. Auth/permission errors propagate
+    // so installError can map them (same as the main install path).
+    async function detectPriorInstall(repo) {
+      const meta = await ghWrite(`/repos/${repo}`, null, "read your repository");
+      const branch = meta && meta.default_branch;
+      if (!branch) return null;
+      const r = await gh(`/repos/${repo}/contents/${encodeURIComponent(".github/labview-ci.yml")}?ref=${encodeURIComponent(branch)}`);
+      if (r.status === 404 || !r.ok) return null;
+      let manifest = null;
+      try { manifest = parseManifest(b64decodeText((await r.json()).content || "")); } catch (_) { return null; }
+      const canKeep = (manifest.activities && manifest.activities.length > 0) || !!manifest.labviewVersion || (manifest.os && manifest.os.length > 0);
+      let managedFiles = new Set();
+      try { managedFiles = await inventoryManagedFiles(repo, branch); } catch (_) { managedFiles = new Set(); }
+      return { manifest, branch, canKeep, managedFiles };
+    }
+
+    async function inventoryManagedFiles(repo, branch) {
+      const t = await ghWrite(`/repos/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`, null, "list your repository's files");
+      const paths = (t.tree || []).filter(x => x.type === "blob").map(x => x.path);
+      const universe = managedUniverse();
+      const managed = new Set();
+      const sigCandidates = [];
+      paths.forEach(p => {
+        if (p === ".github/labview-ci.yml" || isUserConfig(p)) return;
+        if (p.startsWith(".github/labview-ci/") || p.startsWith(".github/labview/")) { managed.add(p); return; }
+        if (/^\.github\/workflows\/[^/]+\.ya?ml$/.test(p)) {
+          if (universe.has(p)) managed.add(p);   // a current tooling workflow
+          else sigCandidates.push(p);            // unknown — scan its content
+        }
+      });
+      // Only unknown workflow names need a content fetch (renamed/retired tooling
+      // vs. the user's own workflows). Bounded so a huge repo can't fan out.
+      for (const p of sigCandidates.slice(0, 40)) {
+        try {
+          const c = await gh(`/repos/${repo}/contents/${encodeURIComponent(p)}?ref=${encodeURIComponent(branch)}`);
+          if (!c.ok) continue;
+          if (LVCI_WF_SIG.test(b64decodeText((await c.json()).content || ""))) managed.add(p);
+        } catch (_) { /* skip on error */ }
+      }
+      return managed;
+    }
+
+    function showReinstallPanel() { const p = $("insReinstallPanel"); if (p) p.style.display = ""; }
+    function hideReinstallPanel() { const p = $("insReinstallPanel"); if (p) p.style.display = "none"; }
+
+    function populateReinstallPanel(repo, prior) {
+      const m = prior.manifest || {};
+      const acts = (m.activities || []).map(actLabel).join(", ") || "(none recorded)";
+      const ver = m.labviewVersion || "(unspecified)";
+      const os = (m.os && m.os.length) ? m.os.join(", ") : "(unspecified)";
+      const sum = $("insReinstallSummary");
+      if (sum) sum.innerHTML = `It currently runs <strong>${esc(acts)}</strong> &middot; LabVIEW <strong>${esc(ver)}</strong> &middot; <strong>${esc(os)}</strong>. Choose how to reconcile this install &mdash; everything still lands in a reviewable pull request.`;
+      const keepWrap = $("optKeepWrap"), keep = $("optKeep"), keepDesc = $("optKeepDesc");
+      if (keepWrap) keepWrap.style.display = prior.canKeep ? "" : "none";
+      if (keep) keep.checked = !!prior.canKeep;
+      if (keepDesc) keepDesc.innerHTML = "Reuse the capabilities, LabVIEW version, and platforms shown above. Uncheck to apply what you picked in steps 1&ndash;2 instead.";
+      renderStalePreview();
+    }
+
+    function renderStalePreview() {
+      const keepWrap = $("optKeepWrap");
+      const keep = !!($("optKeep") && keepWrap && keepWrap.style.display !== "none" && $("optKeep").checked);
+      const stale = staleFor(keep);
+      const wrap = $("optDeleteWrap"), del = $("optDeleteStale"), desc = $("optDeleteDesc"), list = $("insStaleList");
+      if (!stale.length) {
+        if (wrap) wrap.style.display = "none";
+        if (del) del.checked = false;
+        if (list) list.innerHTML = "";
+        return;
+      }
+      if (wrap) wrap.style.display = "";
+      if (desc) desc.innerHTML = `Delete ${stale.length} tooling file${stale.length > 1 ? "s" : ""} this install no longer uses (e.g. workflows renamed or dropped in newer versions).`;
+      if (list) list.innerHTML = stale.map(p => `<li>${esc(p)}</li>`).join("");
+    }
+
+    async function confirmReinstall() {
+      const keepWrap = $("optKeepWrap"), delWrap = $("optDeleteWrap");
+      const keepSettings = !!($("optKeep") && keepWrap && keepWrap.style.display !== "none" && $("optKeep").checked);
+      const deleteStale = !!($("optDeleteStale") && delWrap && delWrap.style.display !== "none" && $("optDeleteStale").checked);
+      hideReinstallPanel();
+      await proceedInstall($("repo").value.trim(), { keepSettings, deleteStale });
+    }
+
     async function installToRepo() {
       const repo = $("repo").value.trim();
       if (!repo.includes("/")) { setInsStatus("Enter your target repository (owner/name) in step 1 first.", "err"); const r = $("repo"); if (r) r.focus(); return; }
       if (!getInsTok()) { showInsTokPanel(); return; }
+      installBusy(true);
+      setInsStatus("Checking your repository&hellip;", null);
+      try {
+        const prior = await detectPriorInstall(repo);
+        priorState = prior || null;
+        if (prior && (prior.canKeep || (prior.managedFiles && prior.managedFiles.size))) {
+          populateReinstallPanel(repo, prior);
+          showReinstallPanel();
+          installBusy(false);
+          return;
+        }
+        await proceedInstall(repo, { keepSettings: false, deleteStale: false });
+      } catch (e) {
+        setInsStatus(installError(e, repo), "err");
+        installBusy(false);
+      }
+    }
+
+    async function proceedInstall(repo, opts) {
       const owner = repo.split("/")[0];
       const s = source();
       installBusy(true);
       setInsStatus("Preparing&hellip;", null);
       try {
         const setup = {};
-        const osList = [...osSel];
-        const wanted = resolveFiles([...selected], osList);
+        const eff = effectiveValues(opts.keepSettings);
+        const activities = eff.activities, osList = eff.osList, version = eff.version;
+        if (opts.keepSettings && priorState && priorState.canKeep) {
+          setup.kept = activities.map(actLabel).join(", ") + " \u00b7 LabVIEW " + version + " \u00b7 " + osList.join(", ");
+        }
+        const wanted = resolveFiles(activities, osList);
         const subs = buildSubs();
 
         // Enumerate the source tree (public; unauthenticated) to expand dir entries.
         setInsStatus("Listing tooling files&hellip;", null);
-        const tree = await fetch(`https://api.github.com/repos/${s.repo}/git/trees/${s.ref}?recursive=1`, { cache: "no-store" })
-          .then(r => { if (!r.ok) throw new Error("Could not list the tooling files (GitHub API rate limit?). Try the command-line option below."); return r.json(); });
+        const treeResp = await getResilient(`https://api.github.com/repos/${s.repo}/git/trees/${s.ref}?recursive=1`, "list the tooling files");
+        if (!treeResp.ok) throw new Error("Could not list the tooling files — GitHub's unauthenticated API rate limit (60/hour per IP) looks exhausted. Wait a few minutes, or use the command-line install below.");
+        const tree = await treeResp.json();
         const allPaths = (tree.tree || []).filter(t => t.type === "blob").map(t => t.path);
         const paths = new Set();
         wanted.forEach(entry => {
@@ -801,12 +1099,26 @@
         let n = 0; const total = paths.size;
         for (const path of paths) {
           setInsStatus(`Fetching ${++n}/${total}: ${esc(path.split("/").pop())}`, null);
-          const resp = await fetch(rawUrl(path), { cache: "no-store" });
+          const resp = await getResilient(rawUrl(path), "fetch " + path.split("/").pop());
           if (!resp.ok) continue;
-          if (shouldSub(path)) files.push({ path, content: applySubs(await resp.text(), subs), isText: true });
-          else files.push({ path, bytes: new Uint8Array(await resp.arrayBuffer()), isText: false });
+          // Any UTF-8 text file (whether or not it gets branding substitutions) is
+          // kept as text so it can be inlined into the tree request; only true
+          // binaries (.vi/.lvclass/.vipc, etc.) are read as bytes for a blob upload.
+          if (TEXT_EXTS.has(ext(path))) {
+            const text = await resp.text();
+            files.push({ path, content: shouldSub(path) ? applySubs(text, subs) : text, isText: true });
+          } else {
+            files.push({ path, bytes: new Uint8Array(await resp.arrayBuffer()), isText: false });
+          }
         }
-        files.push({ path: ".github/labview-ci.yml", content: manifestYaml([...selected], osList, $("version").value), isText: true });
+        files.push({ path: ".github/labview-ci.yml", content: manifestYaml(activities, osList, version), isText: true });
+
+        // Files an earlier install left that this one no longer writes — removed
+        // (via tree delete entries below) only when the user opted in at the prompt.
+        setup.removed = [];
+        if (opts.deleteStale && priorState && priorState.managedFiles && priorState.managedFiles.size) {
+          setup.removed = staleFor(opts.keepSettings);
+        }
 
         // The dashboard link + auto-Pages only make sense when the dashboard is
         // part of this install (its publish workflow is in the resolved set).
@@ -820,12 +1132,12 @@
 
         // Resolve the target repo's default branch + base tree.
         setInsStatus("Reading your repository&hellip;", null);
-        const meta = await ghJson(await gh(`/repos/${repo}`));
+        const meta = await ghWrite(`/repos/${repo}`, null, "read your repository");
         const branch = meta && meta.default_branch;
         if (!branch) throw new Error("Your repository has no commits yet. Push an initial commit (e.g. a README) first, then install.");
-        const headRef = await ghJson(await gh(`/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`));
+        const headRef = await ghWrite(`/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`, null, "read the default branch");
         const headSha = headRef.object.sha;
-        const baseCommit = await ghJson(await gh(`/repos/${repo}/git/commits/${headSha}`));
+        const baseCommit = await ghWrite(`/repos/${repo}/git/commits/${headSha}`, null, "read the base commit");
         const baseTree = baseCommit.tree.sha;
 
         // Replace the vendored source dashboard workflow (which runs ./actions/
@@ -837,20 +1149,31 @@
           if (di >= 0) files[di] = { path: files[di].path, content: dashboardWorkflowYaml(branch), isText: true };
         }
 
-        // Upload every file as a blob, then assemble one tree + commit.
-        const treeItems = []; n = 0;
-        for (const f of files) {
-          setInsStatus(`Uploading ${++n}/${files.length}: ${esc(f.path.split("/").pop())}`, null);
-          const content = f.isText ? b64text(f.content) : b64bytes(f.bytes);
-          const blob = await ghJson(await gh(`/repos/${repo}/git/blobs`, { method: "POST", body: { content, encoding: "base64" } }));
+        // Assemble the new tree. Text files are inlined directly into the single
+        // git/trees request (GitHub creates the blobs server-side) instead of one
+        // blob POST each — a ~60-file install used to fire ~60 back-to-back POSTs,
+        // which trips GitHub's secondary rate limit (whose CORS-less 403 surfaces
+        // as "Load failed"). Only true binary files (.vi/.lvclass/.vipc) still need
+        // a base64 blob upload, and those go through ghWrite (backoff + retry).
+        const treeItems = [];
+        const binFiles = files.filter(f => !f.isText);
+        let bn = 0;
+        for (const f of binFiles) {
+          setInsStatus(`Uploading asset ${++bn}/${binFiles.length}: ${esc(f.path.split("/").pop())}`, null);
+          const blob = await ghWrite(`/repos/${repo}/git/blobs`, { method: "POST", body: { content: b64bytes(f.bytes), encoding: "base64" } }, "upload " + f.path.split("/").pop());
           treeItems.push({ path: f.path, mode: "100644", type: "blob", sha: blob.sha });
         }
+        files.filter(f => f.isText).forEach(f => {
+          treeItems.push({ path: f.path, mode: "100644", type: "blob", content: f.content });
+        });
+        // Remove stale tooling files (sha:null deletes the path from base_tree).
+        (setup.removed || []).forEach(p => treeItems.push({ path: p, mode: "100644", type: "blob", sha: null }));
 
         setInsStatus("Creating the commit&hellip;", null);
-        const newTree = await ghJson(await gh(`/repos/${repo}/git/trees`, { method: "POST", body: { base_tree: baseTree, tree: treeItems } }));
-        const acts = [...selected].filter(id => { const c = byId(id); return c && c.status !== "planned"; });
+        const newTree = await ghWrite(`/repos/${repo}/git/trees`, { method: "POST", body: { base_tree: baseTree, tree: treeItems } }, "create the file tree");
+        const acts = activities.filter(id => { const c = byId(id); return c && c.status !== "planned"; });
         const commitMsg = `ci: install LabVIEW CI pipeline (${acts.join(", ") || "dashboard"})\n\nAdded by the LabVIEW CI configurator from ${s.repo}@${s.ref}.`;
-        const commit = await ghJson(await gh(`/repos/${repo}/git/commits`, { method: "POST", body: { message: commitMsg, tree: newTree.sha, parents: [headSha] } }));
+        const commit = await ghWrite(`/repos/${repo}/git/commits`, { method: "POST", body: { message: commitMsg, tree: newTree.sha, parents: [headSha] } }, "create the commit");
 
         // Create the install branch, or fast-forward it if a prior attempt left one.
         setInsStatus("Pushing the install branch&hellip;", null);
@@ -868,7 +1191,7 @@
         setInsStatus("Opening the pull request&hellip;", null);
         const prResp = await gh(`/repos/${repo}/pulls`, { method: "POST", body: {
           title: "Add LabVIEW CI pipeline", head: INSTALL_BRANCH, base: branch,
-          body: installPrBody(acts, osList, $("version").value, files.length) } });
+          body: installPrBody(acts, osList, version, files.length, setup.removed, setup.kept) } });
         let pr;
         if (prResp.ok) { pr = await prResp.json(); }
         else {
@@ -931,6 +1254,9 @@
       $("insTokCancel").addEventListener("click", hideInsTokPanel);
       $("insTokForget").addEventListener("click", () => { clearInsTok(); refreshInsForget(); setInsStatus("Token removed from this browser.", null); });
       const _iti = $("insTokInput"); if (_iti) _iti.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveInsTokAndInstall(); } });
+      const _rg = $("insReinstallGo"); if (_rg) _rg.addEventListener("click", confirmReinstall);
+      const _rc = $("insReinstallCancel"); if (_rc) _rc.addEventListener("click", () => { hideReinstallPanel(); installBusy(false); setInsStatus("Install cancelled \u2014 nothing was changed.", null); });
+      const _ok = $("optKeep"); if (_ok) _ok.addEventListener("change", renderStalePreview);
     }
 
     (async function init() {

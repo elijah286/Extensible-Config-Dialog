@@ -273,7 +273,12 @@ def write_manifest(target_root: Path, catalog: dict, activities: list[str], os_l
         f"installedAt: {now}",
         "source:",
         f"  repo: {src.get('repo', '')}",
-        f"  ref: {src.get('ref', '')}",
+        # Pin to the EXACT published version (an immutable tag), never the source's
+        # own ref ("main"). The dashboard caller awk-reads this `ref` to check out
+        # the tooling at runtime, so a consumer's whole pipeline only changes when
+        # they run "Update now" (which rewrites this line) — not whenever the source
+        # repo's main advances.
+        f"  ref: v{catalog.get('version', '0.0.0')}",
         "config:",
         f"  labviewVersion: \"{labview_version}\"",
         f"  branch: {branch}",
@@ -495,7 +500,9 @@ def consumer_dashboard_workflow(catalog: dict, branch: str = "main") -> str:
     """
     src = catalog.get("source", {}) or {}
     src_repo = src.get("repo", "") or ""
-    ref = src.get("ref", "") or "main"
+    # Fallback ref for the generated workflow's awk (used only if labview-ci.yml
+    # can't be read): pin to this exact version, not the source's "main".
+    ref = f"v{catalog.get('version', '0.0.0')}"
     br = branch or "main"
     return (
         "# CI Dashboard \u2014 GitHub Pages. Thin caller installed by .github/labview-ci/install.py.\n"

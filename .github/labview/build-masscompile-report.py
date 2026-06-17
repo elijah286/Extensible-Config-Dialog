@@ -351,7 +351,29 @@ def build_data(args: argparse.Namespace) -> dict:
 def render(data: dict) -> str:
     blob = json.dumps(data, ensure_ascii=False)
     blob = blob.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
-    return _TEMPLATE.replace("__MC_DATA_JSON__", blob)
+    # The shared site header (lvci-header.js, deployed once at the Pages root) reads
+    # this config to render consistent nav + this report's context actions
+    # (Regenerate report, Raw log, This commit) and the revision picker. Built from
+    # meta so a rebuild from problems.json reproduces the header with no extra args.
+    m = data.get("meta", {}) or {}
+    pages = (m.get("pages_url") or "").rstrip("/")
+    # Linux reports live one level deeper (masscompile/<sha>/linux/), Windows at
+    # masscompile/<sha>/ — so the shared asset and the pagesUrl fallback differ.
+    is_linux = m.get("platform") == "linux"
+    hdr_src = "../../../lvci-header.js" if is_linux else "../../lvci-header.js"
+    hdr_cfg = {
+        "context": "masscompile-report",
+        "repo": m.get("repo", ""),
+        "pagesUrl": pages or ("../../.." if is_linux else "../.."),
+        "sha": m.get("sha", ""),
+        "short": m.get("short", ""),
+        "platform": m.get("platform", "windows"),
+        "rawUrl": "masscompile.log",
+    }
+    out = _TEMPLATE.replace("__MC_DATA_JSON__", blob)
+    out = out.replace("__MC_HEADER_CFG__", json.dumps(hdr_cfg, ensure_ascii=False))
+    out = out.replace("__LVCI_HEADER_SRC__", hdr_src)
+    return out
 
 
 def main() -> None:
@@ -396,6 +418,8 @@ _TEMPLATE = r"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Mass Compile Report — Extensible-Config-Dialog</title>
+<script>window.LVCI=__MC_HEADER_CFG__;</script>
+<script src="__LVCI_HEADER_SRC__" defer></script>
 <style>
 :root{
   --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;--row:#21262d;
@@ -565,12 +589,10 @@ async function fetchJson(u){ const r = await fetch(u,{cache:'no-store'}); if(!r.
     (commitMsg ? `&middot; ${commitMsg} ` : '') +
     (m.labview_version ? `&middot; LabVIEW ${esc(m.labview_version)} ` : '') +
     `&middot; generated ${esc(m.generated_utc||'')}`;
-  const dash = m.dash_url || '../../';
-  document.getElementById('nav').innerHTML =
-    `<a href="${dash}" target="_top">CI Dashboard</a>` +
-    `<a href="${SNAP_BASE}index.html${m.sha?`?sha=${m.sha}`:''}" target="_top">VI Browser</a>` +
-    `<a href="masscompile.log" target="_blank">Raw log ↗</a>` +
-    (m.repo ? `<a href="https://github.com/${m.repo}" target="_top">GitHub</a>` : '');
+  // Top nav + context actions (Regenerate, Raw log, This commit) + the revision
+  // picker are owned by the shared site header (lvci-header.js); this report only
+  // emits its window.LVCI config in <head>. (The header hides itself when this
+  // report is embedded in the report-viewer iframe, which has its own chrome.)
 })();
 
 // ── platform toggle ──────────────────────────────────────────────────────
