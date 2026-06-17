@@ -55,22 +55,6 @@ jobs:
     runs-on: windows-2022   # windows-latest = Server 2025, broken Docker daemon
 
     steps:
-      # GHCR rejects upper-case repository names. Mirror build-labview-image.yml's
-      # resolve step exactly (lowercase owner + name) so the tag pulled here matches
-      # the tag that build pushed; otherwise docker pull fails and no Win Worker
-      # status is posted for the revision.
-      - name: Resolve container image name (GHCR requires lowercase)
-        shell: bash
-        env:
-          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
-          IMAGE_TAG: ${{ vars.LABVIEW_VERSION || '2026' }}
-        run: |
-          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
-          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
-          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
-          echo "LABVIEW_CONTAINER_IMAGE=ghcr.io/${owner}/${name}:${IMAGE_TAG}" >> "$GITHUB_ENV"
-          echo "Resolved image: ghcr.io/${owner}/${name}:${IMAGE_TAG}"
-
       - name: Determine target SHA
         id: sha
         shell: bash
@@ -106,6 +90,39 @@ jobs:
         if: github.event.inputs.commit_sha != ''
         shell: bash
         run: git checkout origin/main -- .github/labview .github/workflows
+
+      # GHCR rejects upper-case repository names. The Configure dialog writes the
+      # selected container tag to config.container.use in .github/labview-ci.yml
+      # (default "latest"); when present, this revision is analyzed inside that tag
+      # of the project's custom worker image, so the project's baked VIPC
+      # dependencies are available. When absent we fall back to the version tag
+      # (the original behavior). Runs after checkout so it can read the revision's
+      # own config.
+      - name: Resolve container image name
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          IMAGE_TAG: ${{ vars.LABVIEW_VERSION || '2026' }}
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          custom="ghcr.io/${owner}/${name}"
+          use=""
+          if [ -f .github/labview-ci.yml ]; then
+            use=$(awk '
+              /^[[:space:]]*container:[[:space:]]*$/ {inc=1; next}
+              inc && /^    use:/ {sub(/^[[:space:]]*use:[[:space:]]*/,""); gsub(/"/,""); print; exit}
+              inc && /^[^[:space:]]/ {inc=0}
+            ' .github/labview-ci.yml | tr -d '[:space:]')
+          fi
+          if [ -n "$use" ]; then
+            if [ "$use" = "latest" ]; then img="${custom}:latest"; else img="${custom}:${use}"; fi
+          else
+            img="${custom}:${IMAGE_TAG}"
+          fi
+          echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
+          echo "Resolved container image: ${img}"
 
       - name: Ensure Docker daemon is running
         shell: powershell

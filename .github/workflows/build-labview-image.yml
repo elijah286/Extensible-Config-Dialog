@@ -17,9 +17,9 @@ on:
   workflow_dispatch:
     inputs:
       push_latest:
-        description: 'Also tag the image as :latest'
+        description: 'Deprecated — :latest is always published now (kept for compatibility)'
         type: boolean
-        default: false
+        default: true
 
 env:
   # IMAGE_NAME and PAGES_URL are populated at runtime by the resolve step below
@@ -41,7 +41,98 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Decide whether this push should actually rebuild the worker image. A push that
+  # ONLY changes .vipc files that are all flagged monitor:false in
+  # .github/labview-ci.yml is a deliberate "pin" (bake once, do not auto-update) and
+  # is skipped. Any other worker-affecting change (the Dockerfile, the VIPM assets,
+  # or a monitored .vipc) rebuilds, and non-push events (manual dispatch, the monthly
+  # cron) always rebuild. On ANY uncertainty or error the gate builds, so the
+  # container is never silently left stale.
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Decide whether to rebuild
+        id: decide
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess, pathlib
+          def emit(b):
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('build=%s\n' % ('true' if b else 'false'))
+              print('rebuild =', b)
+              raise SystemExit(0)
+          try:
+              if os.environ.get('EVENT_NAME', '') != 'push':
+                  emit(True)
+              before = os.environ.get('BEFORE', '') or ''
+              sha = os.environ.get('SHA', '') or 'HEAD'
+              if not before or set(before) == {'0'}:
+                  emit(True)                      # new branch / unknown base
+              diff = subprocess.run(['git', 'diff', '--name-only', before, sha],
+                                    capture_output=True, text=True)
+              if diff.returncode != 0:
+                  emit(True)
+              files = [f for f in diff.stdout.splitlines() if f.strip()]
+              if not files:
+                  emit(True)
+              is_vipc = lambda f: f.lower().endswith('.vipc')
+              # Worker-affecting change that is NOT a .vipc -> always build.
+              nonvipc = [f for f in files if not is_vipc(f) and (
+                  f == '.github/docker/labview-ci.Dockerfile' or
+                  f.startswith('.github/labview/vipm/') or
+                  f == '.github/workflows/build-labview-image.yml')]
+              if nonvipc:
+                  emit(True)
+              vipc_changed = [f for f in files if is_vipc(f)]
+              if not vipc_changed:
+                  emit(True)                      # nothing recognized -> safe build
+              # Read monitor flags from config.container.vipc (default: monitored).
+              monitor = {}
+              cfg = pathlib.Path('.github/labview-ci.yml')
+              if cfg.exists():
+                  in_c = in_v = False; cur = None
+                  for line in cfg.read_text(encoding='utf-8').splitlines():
+                      if re.match(r'^\s*container:\s*$', line):
+                          in_c = True; in_v = False; continue
+                      if in_c and re.match(r'^\s{4}vipc:\s*$', line):
+                          in_v = True; continue
+                      if in_v:
+                          m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
+                          if m:
+                              cur = os.path.basename(m.group(1).strip())
+                              monitor.setdefault(cur, True); continue
+                          m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
+                          if m and cur is not None:
+                              monitor[cur] = (m.group(1).strip().lower() == 'true'); continue
+                          if re.match(r'^\s{0,4}\S', line):
+                              in_v = False; in_c = False
+                      elif in_c and re.match(r'^\S', line):
+                          in_c = False
+              for f in vipc_changed:
+                  if monitor.get(os.path.basename(f), True):
+                      emit(True)                  # a monitored .vipc changed
+              emit(False)                         # all changed .vipc are monitor:false
+          except SystemExit:
+              raise
+          except Exception as e:
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('build=true\n')
+              print('gate error -> build=true:', e)
+          PY
+
   build-and-push:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
     # IMPORTANT: windows-latest resolves to Server 2025 which has a broken
     # Docker daemon. Always pin to windows-2022.
     runs-on: windows-2022
@@ -80,20 +171,46 @@ jobs:
       # VIPM installer so the Dockerfile's existing hook applies it at build time.
       # Globbing here (rather than COPY *.vipc in the Dockerfile) handles the
       # zero-or-more case gracefully and keeps spaces-in-filename safe.
+      # Stage the project VIPC files baked into the worker image. When
+      # .github/labview-ci.yml lists config.container.vipc entries, exactly those
+      # files are baked, so the Configure dialog can choose which dependencies apply
+      # and a VIPC can live anywhere in the repo (not just the root). With no list,
+      # every repo-root *.vipc is baked (the original behavior).
       - name: Stage repo VIPC files
-        shell: powershell
+        shell: bash
         run: |
-          $dest = '.github/labview/vipm'
-          New-Item -ItemType Directory -Force -Path $dest | Out-Null
-          $found = Get-ChildItem -Path . -Filter *.vipc -File -ErrorAction SilentlyContinue
-          if ($found) {
-            foreach ($f in $found) {
-              Copy-Item -LiteralPath $f.FullName -Destination $dest -Force
-              Write-Host "Staged VIPC: $($f.Name)"
-            }
-          } else {
-            Write-Host 'No repo-root .vipc found to stage.'
-          }
+          python - <<'PY'
+          import os, re, glob, shutil, pathlib
+          dest = pathlib.Path('.github/labview/vipm'); dest.mkdir(parents=True, exist_ok=True)
+          paths = []
+          cfg = pathlib.Path('.github/labview-ci.yml')
+          if cfg.exists():
+              in_c = in_v = False
+              for line in cfg.read_text(encoding='utf-8').splitlines():
+                  if re.match(r'^\s*container:\s*$', line):
+                      in_c = True; in_v = False; continue
+                  if in_c and re.match(r'^\s{4}vipc:\s*$', line):
+                      in_v = True; continue
+                  if in_v:
+                      m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
+                      if m:
+                          paths.append(m.group(1).strip()); continue
+                      if re.match(r'^\s{0,4}\S', line):
+                          in_v = False; in_c = False
+                  elif in_c and re.match(r'^\S', line):
+                      in_c = False
+          if not paths:
+              paths = sorted(glob.glob('*.vipc'))
+          staged = 0
+          for p in paths:
+              if os.path.isfile(p):
+                  shutil.copy2(p, dest / os.path.basename(p))
+                  print('Staged VIPC:', p); staged += 1
+              else:
+                  print('Configured VIPC not found (skipping):', p)
+          if not staged:
+              print('No VIPC files to stage.')
+          PY
 
       # Worker version = short SHA-256 over the build inputs (Dockerfile + VIPM
       # installer + every staged .vipc). Same inputs -> same version, so the tag
@@ -129,10 +246,9 @@ jobs:
           $date  = '${{ steps.date.outputs.date }}'
           $wv    = '${{ steps.ver.outputs.version }}'
           # The immutable per-content tag ($wv) sits alongside the moving tags.
-          $tags  = @("${base}:${ver}", "${base}:${ver}-${date}", "${base}:${wv}")
-          if ('${{ github.event.inputs.push_latest }}' -eq 'true') {
-            $tags += "${base}:latest"
-          }
+          # :latest is always published so the Configure dialog's default "Latest"
+          # container selection reliably resolves to the newest build.
+          $tags  = @("${base}:${ver}", "${base}:${ver}-${date}", "${base}:${wv}", "${base}:latest")
 
           # Build — context is repo root so Dockerfile can COPY vipm/ and .vipc
           $tagFlags = ($tags | ForEach-Object { "-t", $_ })

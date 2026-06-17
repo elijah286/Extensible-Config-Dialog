@@ -87,6 +87,38 @@ jobs:
         shell: bash
         run: git checkout origin/main -- .github/labview .github/workflows
 
+      # The Configure dialog writes the selected container tag to
+      # config.container.use in .github/labview-ci.yml. When set, Mass Compile runs
+      # inside that tag of the project's custom worker image (with its baked VIPC
+      # dependencies) so VIs that depend on add-ons still compile. When unset it
+      # stays on the bare NI base image (the original behavior). GHCR names must be
+      # lowercase.
+      - name: Resolve container image name
+        shell: bash
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          BASE_IMAGE: nationalinstruments/labview:latest-windows
+        run: |
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          custom="ghcr.io/${owner}/${name}"
+          use=""
+          if [ -f .github/labview-ci.yml ]; then
+            use=$(awk '
+              /^[[:space:]]*container:[[:space:]]*$/ {inc=1; next}
+              inc && /^    use:/ {sub(/^[[:space:]]*use:[[:space:]]*/,""); gsub(/"/,""); print; exit}
+              inc && /^[^[:space:]]/ {inc=0}
+            ' .github/labview-ci.yml | tr -d '[:space:]')
+          fi
+          if [ -n "$use" ]; then
+            if [ "$use" = "latest" ]; then img="${custom}:latest"; else img="${custom}:${use}"; fi
+          else
+            img="${BASE_IMAGE}"
+          fi
+          echo "LABVIEW_CONTAINER_IMAGE=${img}" >> "$GITHUB_ENV"
+          echo "Resolved container image: ${img}"
+
       - name: Ensure Docker daemon is running
         shell: powershell
         run: |
