@@ -1,1 +1,627 @@
-<!doctype html><meta charset="utf-8"><title>LabVIEW CI — setting up</title><meta http-equiv="refresh" content="30"><body style="font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;display:grid;place-items:center;min-height:100vh;margin:0"><div style="text-align:center"><h1>LabVIEW CI dashboard</h1><p>Publishing… this page appears after the first CI run completes.</p></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="refresh" content="900">
+  <title>CI Dashboard — Extensible-Config-Dialog</title>
+  <style>
+    :root{
+      --bg:#0d1117;--surface:#161b22;--border:#30363d;
+      --fg:#e6edf3;--fg-muted:#8b949e;--row-border:#21262d;
+      --hover:#1c2128;--link:#58a6ff;
+    }
+    @media(prefers-color-scheme:light){
+      :root{
+        --bg:#ffffff;--surface:#f6f8fa;--border:#d0d7de;
+        --fg:#1f2328;--fg-muted:#57606a;--row-border:#eaeef2;
+        --hover:#f3f4f6;--link:#0969da;
+      }
+    }
+    *{box-sizing:border-box}
+    body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg)}
+    .lvci-main{padding:20px}
+    .lvci-tablewrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    h1{font-size:1.4em;margin:0 0 4px}
+    .sub{color:var(--fg-muted);font-size:.85em;margin-bottom:20px}
+    @media(max-width:820px){.lvci-main{padding:14px}h1{font-size:1.2em}}
+    table{border-collapse:collapse;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+    th{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);color:var(--fg-muted);font-size:.8em;white-space:nowrap}
+    td{border-bottom:1px solid var(--row-border);vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    tr:hover{background:var(--hover)}
+    a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+    .nav{margin-bottom:16px;font-size:.9em}
+    .nav a{margin-right:16px;color:var(--link)}
+    .controls{margin:0 0 12px;display:flex;align-items:center;gap:8px;color:var(--fg-muted);font-size:.85em}
+    .controls input{margin:0;accent-color:var(--link)}
+    .run-badge{display:inline-flex;align-items:center;background:#1f6feb;color:#fff;padding:2px 8px;border-radius:4px;font-size:.75em;font-weight:600}
+    .run-badge a:hover{text-decoration:underline}
+    /* Optimistic "just queued from this browser" cue: a dashed ring distinguishes
+       a client-side queued badge from a server-confirmed running one. */
+    .run-badge.cidash-queued{outline:1px dashed rgba(255,255,255,.6);outline-offset:1px}
+    .run-spin{width:9px;height:9px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;animation:cidash-spin .7s linear infinite}
+    @keyframes cidash-spin{to{transform:rotate(360deg)}}
+    .cidash-run{display:inline-block;color:var(--fg-muted);font-size:.95em;line-height:1;text-decoration:none;opacity:.5;transition:opacity .12s,color .12s}.cidash-run:hover{opacity:1;color:var(--link);text-decoration:none}tr:hover .cidash-run{opacity:.85}.cidash-btn{border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-size:.85em;font-weight:600;cursor:pointer;font-family:inherit}.cidash-go{background:#238636;color:#fff;border-color:transparent}.cidash-go:hover{background:#2ea043}.cidash-go:disabled{opacity:.6;cursor:default}.cidash-ghost{background:var(--bg);color:var(--fg)}.cidash-ghost:hover{border-color:var(--link)}.cidash-danger{background:#da3633;color:#fff;border-color:transparent}.cidash-danger:hover{background:#f85149}.cidash-danger:disabled{opacity:.6;cursor:default}.cidash-queued{cursor:pointer}.cidash-queued:hover{filter:brightness(1.13)}.cidash-queued:focus-visible{outline:2px solid var(--link);outline-offset:1px}.cidash-qpos{margin-left:5px;font-weight:700;opacity:.92;font-variant-numeric:tabular-nums}.cidash-qpos:empty{display:none}
+  </style>
+</head>
+<body>
+  <script>window.LVCI={context:'dashboard',repo:'elijah286/Extensible-Config-Dialog',pagesUrl:'https://elijah286.github.io/Extensible-Config-Dialog'};</script>
+  <script src="lvci-header.js" defer></script>
+  <div id="lvci-modal" onclick="if(event.target===this)lvciClose()" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55)">
+    <div style="position:absolute;inset:24px;background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
+        <strong id="lvci-modal-title" style="font-size:.95em">Configure Workers</strong>
+        <button onclick="lvciClose()" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.82em">✕ Close</button>
+      </div>
+      <iframe id="lvci-frame" title="LabVIEW CI dialog" src="about:blank" style="border:0;width:100%;flex:1;min-height:0"></iframe>
+    </div>
+  </div>
+  <script>
+    function lvciOpen(src, title) {
+      document.getElementById('lvci-frame').src = src;
+      document.getElementById('lvci-modal-title').textContent = title;
+      document.getElementById('lvci-modal').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+    function lvciClose() {
+      document.getElementById('lvci-modal').style.display = 'none';
+      document.getElementById('lvci-frame').src = 'about:blank';
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lvciClose(); });
+  </script>
+
+  <div id="cidash-run-modal" onclick="if(event.target===this)cidashRunClose()" style="display:none;position:fixed;inset:0;z-index:310;background:rgba(0,0,0,.55)">
+    <div role="dialog" aria-modal="true" aria-labelledby="cidash-run-title" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));max-height:calc(100% - 48px);overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 48px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
+        <strong id="cidash-run-title" style="font-size:.95em">Run</strong>
+        <button onclick="cidashRunClose()" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.82em">&#10005; Close</button>
+      </div>
+      <div id="cidash-run-body" style="padding:16px"></div>
+    </div>
+  </div>
+  <div id="cidash-q-modal" onclick="if(event.target===this)cidashQClose()" style="display:none;position:fixed;inset:0;z-index:311;background:rgba(0,0,0,.55)">
+    <div role="dialog" aria-modal="true" aria-labelledby="cidash-q-title" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(480px,calc(100% - 32px));max-height:calc(100% - 48px);overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 48px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
+        <strong id="cidash-q-title" style="font-size:.95em">Queued run</strong>
+        <button onclick="cidashQClose()" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.82em">&#10005; Close</button>
+      </div>
+      <div id="cidash-q-body" style="padding:16px"></div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "run-vi-analyzer-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "head"}}}}};
+    var REPO = "elijah286/Extensible-Config-Dialog";
+    var BRANCH = "main";
+    var TOK_KEY = "lvci_dispatch_token";
+    var state = {cap:null, sha:'', parent:'', short:''};
+    function $(id){ return document.getElementById(id); }
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    function fill(t){ return String(t).replace(/\{sha\}/g, state.sha).replace(/\{parent\}/g, state.parent||''); }
+    function getTok(){ try{ return localStorage.getItem(TOK_KEY)||''; }catch(e){ return ''; } }
+    function setTok(v){ try{ localStorage.setItem(TOK_KEY, v); }catch(e){} }
+    function clearTok(){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} }
+    function ghCmd(wf, inputs){
+      var s = "gh workflow run " + wf + " --ref " + BRANCH;
+      Object.keys(inputs).forEach(function(k){ s += " -f " + k + "=" + fill(inputs[k]); });
+      return s;
+    }
+    function actionsUrl(wf){ return "https://github.com/" + REPO + "/actions/workflows/" + wf; }
+    // Pre-fill the fine-grained token form: name, resource owner, and the one
+    // permission a workflow_dispatch needs (Actions: write). GitHub provides no
+    // URL param to pre-select the specific repo, so "Repository access" stays a
+    // manual step. Same token (lvci_dispatch_token) the report header + What's New use.
+    function tokenSetupUrl(){
+      var owner = (REPO.split("/")[0]) || "";
+      var qp = "name=" + encodeURIComponent("LabVIEW CI dispatch")
+        + "&description=" + encodeURIComponent("Queue LabVIEW CI runs for " + REPO + " (Run now / Re-run / Update).")
+        + (owner ? "&target_name=" + encodeURIComponent(owner) : "")
+        + "&actions=write";
+      return "https://github.com/settings/personal-access-tokens/new?" + qp;
+    }
+    function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+    function selectedPlats(def){
+      var keys = Object.keys(def.platforms);
+      if (keys.length === 1) return keys;
+      var boxes = keys.map(function(k){ return $("cidash-plat-"+k); });
+      if (boxes.every(function(b){ return !b; })) return keys.slice();
+      return keys.filter(function(k){ var b = $("cidash-plat-"+k); return b && b.checked; });
+    }
+    function setStatus(html, kind){
+      var s = $("cidash-run-status"); if(!s) return;
+      var col = kind==='ok' ? '#3fb950' : (kind==='err' ? '#f85149' : (kind==='warn' ? '#d29922' : 'var(--fg-muted)'));
+      s.style.color = col; s.innerHTML = html || '';
+    }
+    function filledInputs(p){ var o={}; Object.keys(p.inputs).forEach(function(k){ o[k]=fill(p.inputs[k]); }); return o; }
+    function dispatchOne(wf, inputs){
+      return fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(wf)+'/dispatches', {
+        method:'POST',
+        headers:{ 'Authorization':'Bearer '+getTok(), 'Accept':'application/vnd.github+json',
+                  'X-GitHub-Api-Version':'2022-11-28', 'Content-Type':'application/json' },
+        body: JSON.stringify({ ref: BRANCH, inputs: inputs })
+      }).then(function(r){ return { wf:wf, ok:r.status===204, status:r.status }; })
+        .catch(function(e){ return { wf:wf, ok:false, status:0, err:String(e&&e.message||e) }; });
+    }
+    // ── Optimistic "queued" overlay ──────────────────────────────
+    // A successful dispatch returns 204 with no body, and the server-rendered
+    // "running" badge only appears once the run posts a pending commit status AND
+    // the Pages site rebuilds — minutes later. So the dispatched cell would keep
+    // showing its empty run-glyph, making it look like nothing happened. Paint the
+    // cell as "Queued" immediately and remember it per-browser (localStorage) so it
+    // survives the page's auto-refresh until the real status takes over. Entries
+    // self-expire so a run that never reports a status can't wedge a fake spinner.
+    var QKEY = "lvci_queued_runs";
+    var QTTL = 20*60*1000;   // forget an unconfirmed entry after 20 min
+    var QFAST = 60*1000;     // re-check this often while a queued run is unconfirmed
+    var qReloadArmed = false;
+    var qCapturing = {};     // key -> [callbacks] while a run-id lookup is in flight
+    function qLoad(){ try{ return JSON.parse(localStorage.getItem(QKEY)||"{}")||{}; }catch(e){ return {}; } }
+    function qSave(o){ try{ localStorage.setItem(QKEY, JSON.stringify(o)); }catch(e){} }
+    function qPaint(td, c, sha){
+      // Overlay the spinning "Queued" badge onto the cell, replacing its run glyph.
+      // The badge is now a BUTTON (not a link): clicking it opens the manage dialog
+      // where the run can be viewed on GitHub or cancelled. A "#N" chip (filled in
+      // by qRenumber) shows the run's place in the queue when several are waiting.
+      if(!td) return;
+      td.classList.add('cidash-queued-cell');
+      td.setAttribute('data-qcap', c); td.setAttribute('data-qsha', sha);
+      td.innerHTML = '<span class="run-badge cidash-queued" role="button" tabindex="0" '
+        + 'title="Queued from this browser \u2014 click to view it on GitHub or cancel it">'
+        + '<span class="run-spin"></span>Queued<span class="cidash-qpos"></span></span>';
+    }
+    function qArmReload(){
+      // While a queued run is still unconfirmed, reload sooner than the lazy
+      // meta-refresh so the real status surfaces promptly (mirrors the server's
+      // own faster cadence while CI is live).
+      if(qReloadArmed) return; qReloadArmed = true;
+      setTimeout(function(){ location.reload(); }, QFAST);
+    }
+    function qLiveEntries(o){
+      // The non-expired queued entries, oldest first — this IS the queue order.
+      var now = Date.now();
+      return Object.keys(o)
+        .filter(function(k){ var e=o[k]; return e && (now-(e.ts||0))<=QTTL; })
+        .map(function(k){ return { key:k, ts:o[k].ts||0 }; })
+        .sort(function(a,b){ return a.ts - b.ts; });
+    }
+    function qRenumber(){
+      // Number the optimistic queued cells by the order they were queued (oldest
+      // = #1) so the user can see each run's place in the line. The chip is hidden
+      // when only one run is queued (a position is only meaningful among several).
+      var o = qLoad(); var live = qLiveEntries(o); var show = live.length > 1;
+      live.forEach(function(en, idx){
+        var i = en.key.indexOf('|'); var c = en.key.slice(0,i); var sha = en.key.slice(i+1);
+        var td = document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
+        if(!td) return;
+        var pos = td.querySelector('.cidash-qpos');
+        if(pos) pos.textContent = show ? ('#'+(idx+1)) : '';
+      });
+    }
+    function markQueued(c, sha, plats, parent, ts){
+      var o = qLoad();
+      o[c+'|'+sha] = { ts: ts || Date.now(), plats: plats||[], parent: parent||'', short: (sha||'').slice(0,7), runs: [] };
+      qSave(o);
+      var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
+      var td = a ? (a.closest ? a.closest('td') : null)
+                 : document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
+      qPaint(td, c, sha);
+      qArmReload();
+      qRenumber();
+    }
+    function qForget(c, sha){
+      // Drop the optimistic entry and restore the cell's run glyph so the cell is
+      // immediately actionable again (re-run) without waiting for a reload.
+      var o = qLoad(); var entry = o[c+'|'+sha];
+      delete o[c+'|'+sha]; qSave(o);
+      var td = document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
+      if(td){
+        td.classList.remove('cidash-queued-cell');
+        td.removeAttribute('data-qcap'); td.removeAttribute('data-qsha');
+        if(entry && entry.orig){
+          // Result cell (re-run overlay) — restore its original status badge.
+          td.innerHTML = entry.orig;
+        } else {
+          var parent = (entry && entry.parent) || '';
+          var short = (entry && entry.short) || sha.slice(0,7);
+          var label = (RT[c] && RT[c].label) || c;
+          td.innerHTML = '<a href="#" class="cidash-run" data-cap="'+esc(c)+'" data-sha="'+esc(sha)+'" '
+            + 'data-parent="'+esc(parent)+'" data-short="'+esc(short)+'" '
+            + 'title="Run '+esc(label)+' for commit '+esc(short)+'">\u25B7</a>';
+        }
+      }
+      qRenumber();
+    }
+    function entryItems(c, entry){
+      // The (workflow, platform) pairs this queued entry dispatched.
+      var def = RT[c]; if(!def || !entry) return [];
+      return (entry.plats||[]).map(function(plat){
+        var p = def.platforms[plat]; return p ? { wf: p.wf, plat: plat } : null;
+      }).filter(function(x){ return x; });
+    }
+    function claimedRunIds(){
+      // Run ids already attributed to some queued cell, so a lookup never grabs a
+      // run that belongs to a different cell.
+      var o = qLoad(); var s = {};
+      Object.keys(o).forEach(function(k){ ((o[k]||{}).runs||[]).forEach(function(r){ if(r && r.id) s[r.id]=1; }); });
+      return s;
+    }
+    function captureRuns(c, sha, attempt, cb){
+      // A workflow_dispatch returns 204 with no run id, so to later CANCEL the run
+      // (and link straight to it) we look it up: poll the workflow's recent
+      // dispatch runs and claim the freshest active one we have not already
+      // attributed to another cell. Best-effort, non-blocking, and self-limiting.
+      // Concurrent lookups for the SAME cell (e.g. the manage dialog opening AND a
+      // Cancel click) are coalesced so they share one network pass and both get
+      // their callback when it resolves — no duplicate claims, no stalled retries.
+      var key = c+'|'+sha;
+      attempt = attempt || 1;
+      if(attempt === 1){
+        if(qCapturing[key]){ if(cb) qCapturing[key].push(cb); return; }
+        qCapturing[key] = cb ? [cb] : [];
+      }
+      function done(){ var cbs = qCapturing[key] || []; delete qCapturing[key]; cbs.forEach(function(fn){ try{ fn(); }catch(e){} }); }
+      var tok = getTok(); if(!tok){ done(); return; }
+      var entry = qLoad()[key];
+      if(!entry){ done(); return; }
+      var need = entryItems(c, entry).filter(function(it){
+        return !((entry.runs||[]).some(function(r){ return r.plat===it.plat; }));
+      });
+      if(!need.length){ done(); return; }
+      var t0 = entry.ts || Date.now();
+      var byWf = {}; need.forEach(function(it){ (byWf[it.wf]=byWf[it.wf]||[]).push(it.plat); });
+      Promise.all(Object.keys(byWf).map(function(wf){
+        return fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(wf)+'/runs?event=workflow_dispatch&per_page=20',
+          { headers:{ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' } })
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(j){ return { wf: wf, runs: (j&&j.workflow_runs)||[] }; })
+          .catch(function(){ return { wf: wf, runs: [] }; });
+      })).then(function(resps){
+        var claim = claimedRunIds();
+        var o = qLoad(); var e = o[key]; if(!e){ done(); return; }
+        e.runs = e.runs || [];
+        var have = {}; e.runs.forEach(function(r){ have[r.plat]=1; });
+        resps.forEach(function(rp){
+          var cands = rp.runs.filter(function(run){
+            var created = Date.parse(run.created_at || run.run_started_at || 0);
+            var active = ['queued','in_progress','requested','waiting','pending','action_required'].indexOf(run.status) >= 0;
+            return active && created >= (t0 - 12000) && !claim[run.id];
+          }).sort(function(a,b){ return Date.parse(b.created_at) - Date.parse(a.created_at); });
+          (byWf[rp.wf]||[]).forEach(function(plat){
+            if(have[plat]) return;
+            var run = cands.shift(); if(!run) return;
+            e.runs.push({ wf: rp.wf, plat: plat, id: run.id, url: run.html_url, status: run.status });
+            claim[run.id] = 1; have[plat] = 1;
+          });
+        });
+        o[key] = e; qSave(o);
+        var gotAll = entryItems(c, e).every(function(it){ return (e.runs||[]).some(function(r){ return r.plat===it.plat; }); });
+        if(!gotAll && attempt < 5){ setTimeout(function(){ captureRuns(c, sha, attempt+1, null); }, 2000); }
+        else { done(); }
+      });
+    }
+    function applyQueued(){
+      // Re-apply remembered queued badges after each (auto-)reload. An entry is
+      // dropped once the server renders a real status for that cell (its run glyph
+      // is gone) or once it ages out — so the overlay is a short, self-clearing
+      // bridge, never a permanent fake.
+      var o = qLoad(); var now = Date.now(); var changed = false; var live = 0;
+      Object.keys(o).forEach(function(key){
+        var e = o[key]; var i = key.indexOf('|'); var c = key.slice(0,i); var sha = key.slice(i+1);
+        if(!e || (now - (e.ts||0)) > QTTL){ delete o[key]; changed = true; return; }
+        var painted = document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
+        var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
+        if(painted){ live++; }
+        else if(a){ qPaint(a.closest('td'), c, sha); live++; }
+        else {
+          // The cell may already hold a RESULT (re-run from the report, not an
+          // empty cell). Overlay "Queued" on it until a NEWER result lands. A
+          // server-side running spinner has no data-cap, so it falls through to
+          // the delete branch below (the server has taken over).
+          var rc = document.querySelector('td.cidash-cap-cell[data-cap="'+c+'"][data-sha="'+sha+'"]');
+          if(rc){
+            var rts = Date.parse(rc.getAttribute('data-ts')||'') || 0;
+            if(rts && rts > (e.ts||0)){ delete o[key]; changed = true; }   // re-run finished
+            else { if(!e.orig){ e.orig = rc.innerHTML; changed = true; } qPaint(rc, c, sha); live++; }
+          }
+          else { delete o[key]; changed = true; }   // real status / spinner took over
+        }
+      });
+      if(changed) qSave(o);
+      if(live > 0) qArmReload();
+      qRenumber();
+    }
+    function runNow(){
+      var def = RT[state.cap]; if(!def) return;
+      var sel = selectedPlats(def);
+      if(!sel.length){ setStatus('Select at least one platform.', 'warn'); return; }
+      if(!getTok()){ showTokenPanel(); return; }
+      var go = $("cidash-run-go"); if(go){ go.disabled = true; }
+      setStatus('Queuing\u2026', null);
+      var t0 = Date.now();   // dispatch start — used to match the new run(s) for cancel
+      var jobs = sel.map(function(k){ var p=def.platforms[k];
+        return dispatchOne(p.wf, filledInputs(p)).then(function(res){ res.plat=k; return res; }); });
+      Promise.all(jobs).then(function(results){
+        if(go){ go.disabled = false; }
+        if(results.some(function(r){return r.status===401;})){
+          clearTok(); setStatus('That token was rejected (401). Paste a valid one.', 'err'); showTokenPanel(); return;
+        }
+        // Reflect any successful dispatch on the dashboard right away, before the
+        // server-side status/Pages rebuild catches up (covers partial success too).
+        var okPlats = results.filter(function(r){return r.ok;}).map(function(r){return r.plat;});
+        if(okPlats.length){ markQueued(state.cap, state.sha, okPlats, state.parent, t0); captureRuns(state.cap, state.sha); }
+        if(results.every(function(r){return r.ok;})){
+          var n=results.length;
+          setStatus('\u2713 Queued '+n+' run'+(n>1?'s':'')+'. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
+        } else {
+          var multi = Object.keys(RT[state.cap].platforms).length > 1;
+          var parts = results.map(function(r){ return (multi?cap(r.plat)+': ':'') + (r.ok?'queued':('HTTP '+r.status)); });
+          var has403 = results.some(function(r){return r.status===403;});
+          var has404 = results.some(function(r){return r.status===404;});
+          var hint;
+          if (has403) hint = ' \u2014 <strong>403</strong>: the token is missing the <strong>Actions: Read and write</strong> permission. On the token page open <strong>Permissions \u2192 Repository permissions \u2192 Actions \u2192 Read and write</strong> (selecting the repository is not enough), then <strong>Update</strong> and run again.';
+          else if (has404) hint = ' \u2014 <strong>404</strong>: the token cannot see <code>'+esc(REPO)+'</code>. Grant it <strong>Repository access</strong> to this repo AND the <strong>Actions: Read and write</strong> permission.';
+          else hint = ' \u2014 check the token has <strong>Actions: Read and write</strong> on this repository.';
+          setStatus(parts.join(' \u00b7 ') + hint + ' <a href="#" id="cidash-fixtok" style="color:var(--link);white-space:nowrap">Update token \u2192</a>', 'err');
+          var ft=$("cidash-fixtok"); if(ft) ft.addEventListener('click', function(e){ e.preventDefault(); showTokenPanel(); });
+        }
+      });
+    }
+    function showTokenPanel(){ var p=$("cidash-tok-panel"); if(p){ p.style.display='block'; var i=$("cidash-tok-input"); if(i) i.focus(); } }
+    function hideTokenPanel(){ var p=$("cidash-tok-panel"); if(p){ p.style.display='none'; } }
+    function saveTokAndRun(){ var i=$("cidash-tok-input"); var v=(i&&i.value||'').trim(); if(!v){ if(i) i.focus(); return; } setTok(v); hideTokenPanel(); runNow(); }
+    function render(){
+      var def = RT[state.cap]; if(!def) return;
+      var keys = Object.keys(def.platforms);
+      var multi = keys.length > 1;
+      var sel = selectedPlats(def);
+      var haveTok = !!getTok();
+      var h = '';
+      h += '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.85em">Run <strong>'+esc(def.label)+'</strong> for commit <code style="font-family:monospace">'+esc(state.short)+'</code>. Click <strong>Run now</strong> and it is queued on GitHub Actions \u2014 no terminal.</p>';
+      if (multi){
+        h += '<div style="display:flex;gap:18px;margin:0 0 14px;font-size:.9em">';
+        keys.forEach(function(k){
+          h += '<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" class="cidash-plat" id="cidash-plat-'+k+'" '+(sel.indexOf(k)>=0?'checked':'')+' style="accent-color:var(--link)">'+esc(cap(k))+'</label>';
+        });
+        h += '</div>';
+      }
+      // One-time token setup panel (hidden until needed).
+      h += '<div id="cidash-tok-panel" style="display:none;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);margin:0 0 12px">';
+      h += '<div style="font-size:.82em;color:var(--fg);font-weight:600;margin-bottom:6px">One-time setup \u2014 a token to queue runs</div>';
+      h += '<ol style="font-size:.8em;color:var(--fg-muted);margin:0 0 8px;padding-left:18px;line-height:1.6">';
+      h += '<li><a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create a fine-grained token \u2197</a> \u2014 opens with the name, owner, and <strong>Actions: Read and write</strong> already set.</li>';
+      h += '<li><strong>Repository access</strong> \u2192 Only select repositories \u2192 add <code>'+esc(REPO)+'</code>. <span style="opacity:.8">(the one step a link can\u2019t pre-fill)</span></li>';
+      h += '<li><strong>Permissions \u2192 Repository permissions \u2192 Actions \u2192 Read and write</strong>. Required \u2014 selecting the repo alone gives a 403.</li>';
+      h += '<li>Generate, then paste it below.</li>';
+      h += '</ol>';
+      h += '<div style="font-size:.76em;color:var(--fg-muted);margin-bottom:8px">Stored only in this browser (localStorage); sent only to api.github.com \u2014 never to the repo, the page, or CI.</div>';
+      h += '<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="cidash-tok-input" type="password" autocomplete="off" placeholder="github_pat_\u2026 or ghp_\u2026" style="flex:1 1 240px;min-width:180px;padding:7px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:.8em">';
+      h += '<button class="cidash-btn cidash-go" id="cidash-tok-save">Save &amp; run</button>';
+      h += '<button class="cidash-btn cidash-ghost" id="cidash-tok-cancel">Cancel</button></div></div>';
+      // Status line (dispatch result / hints).
+      h += '<div id="cidash-run-status" style="font-size:.82em;min-height:1.2em;margin:0 0 12px"></div>';
+      // Primary actions.
+      h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">';
+      h += '<button class="cidash-btn cidash-go" id="cidash-run-go">\u25B6 Run now</button>';
+      sel.forEach(function(k){
+        h += '<a class="cidash-btn cidash-ghost" style="text-decoration:none" href="'+actionsUrl(def.platforms[k].wf)+'" target="_blank" rel="noopener">Run '+esc(multi?cap(k):def.label)+' on GitHub \u2197</a>';
+      });
+      if (haveTok){ h += '<button class="cidash-btn cidash-ghost" id="cidash-tok-forget" title="Remove the token saved in this browser">Forget token</button>'; }
+      h += '</div>';
+      // CLI fallback, collapsed.
+      var cmds = sel.map(function(k){ return ghCmd(def.platforms[k].wf, def.platforms[k].inputs); });
+      h += '<details style="margin-top:14px"><summary style="cursor:pointer;color:var(--link);font-size:.82em">Prefer the command line?</summary>';
+      h += '<div style="position:relative;margin:10px 0 0"><pre id="cidash-run-cmd" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;white-space:pre-wrap;word-break:break-word">'+esc(cmds.join("\n"))+'</pre>';
+      h += '<button onclick="cidashRunCopy()" style="position:absolute;top:8px;right:8px;background:var(--bg);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:4px 10px;font-size:.74em;cursor:pointer">Copy</button></div>';
+      h += '<p style="color:var(--fg-muted);font-size:.76em;margin:8px 0 0">Run with the <a href="https://cli.github.com/" target="_blank" rel="noopener" style="color:var(--link)">GitHub CLI</a>, or use <strong>Run on GitHub</strong> above and paste the SHA into the form.</p></details>';
+      $("cidash-run-body").innerHTML = h;
+      Array.prototype.forEach.call(document.querySelectorAll('.cidash-plat'), function(b){ b.addEventListener('change', render); });
+      var go=$("cidash-run-go"); if(go) go.addEventListener('click', runNow);
+      var sv=$("cidash-tok-save"); if(sv) sv.addEventListener('click', saveTokAndRun);
+      var cn=$("cidash-tok-cancel"); if(cn) cn.addEventListener('click', hideTokenPanel);
+      var fg=$("cidash-tok-forget"); if(fg) fg.addEventListener('click', function(){ clearTok(); render(); setStatus('Token removed from this browser.', null); });
+      var ti=$("cidash-tok-input"); if(ti) ti.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); saveTokAndRun(); } });
+    }
+    window.cidashRunCopy = function(){
+      var pre = $("cidash-run-cmd"); if(!pre || !navigator.clipboard) return;
+      navigator.clipboard.writeText(pre.textContent);
+    };
+    window.cidashRunClose = function(){ var m=$("cidash-run-modal"); if(m){ m.style.display='none'; } if(!qModalOpen()){ document.body.style.overflow=''; } };
+    function openRun(c, sha, parent, short){
+      if(!RT[c]) return;
+      state = {cap:c, sha:sha||'', parent:parent||'', short:short||''};
+      $("cidash-run-title").textContent = "Run " + RT[c].label;
+      render();
+      $("cidash-run-modal").style.display='block';
+      document.body.style.overflow='hidden';
+    }
+    // ── Manage a queued run: view it on GitHub, or cancel it ──────
+    // Clicking a "Queued" badge opens this dialog (rather than jumping straight to
+    // the Actions tab) so the user can either follow the run or stop it. Cancel
+    // POSTs the runs/{id}/cancel REST API with the same browser token used to queue.
+    var qState = { cap:null, sha:'' };
+    function qModalOpen(){ var m=$("cidash-q-modal"); return !!(m && m.style.display==='block'); }
+    function runModalOpen(){ var m=$("cidash-run-modal"); return !!(m && m.style.display==='block'); }
+    window.cidashQClose = function(){ var m=$("cidash-q-modal"); if(m){ m.style.display='none'; } qState={cap:null,sha:''}; if(!runModalOpen()){ document.body.style.overflow=''; } };
+    function qSetStatus(html, kind){
+      var s = $("cidash-q-status"); if(!s) return;
+      var col = kind==='ok' ? '#3fb950' : (kind==='err' ? '#f85149' : (kind==='warn' ? '#d29922' : 'var(--fg-muted)'));
+      s.style.color = col; s.innerHTML = html || '';
+    }
+    function qViewLinks(c, entry){
+      // Prefer a direct link to each captured run; else the workflow's runs page
+      // (or the repo's Actions tab) so "view" always works even before capture.
+      var def = RT[c]; var runs = (entry && entry.runs) || []; var multi = Object.keys(def.platforms).length > 1;
+      var out = [];
+      if(runs.length){
+        runs.forEach(function(r){
+          var nm = multi ? cap(r.plat) : def.label;
+          out.push('<a class="cidash-btn cidash-ghost" style="text-decoration:none" href="'+esc(r.url||('https://github.com/'+REPO+'/actions'))+'" target="_blank" rel="noopener">View '+esc(nm)+' run \u2197</a>');
+        });
+      } else {
+        var seen = {};
+        (entry.plats||[]).forEach(function(plat){
+          var p = def.platforms[plat]; if(!p || seen[p.wf]) return; seen[p.wf]=1;
+          out.push('<a class="cidash-btn cidash-ghost" style="text-decoration:none" href="'+actionsUrl(p.wf)+'" target="_blank" rel="noopener">View '+esc(def.label)+' runs \u2197</a>');
+        });
+        if(!out.length){ out.push('<a class="cidash-btn cidash-ghost" style="text-decoration:none" href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener">View on GitHub Actions \u2197</a>'); }
+      }
+      return out.join('');
+    }
+    function renderQ(){
+      var c = qState.cap, sha = qState.sha; if(!c) return;
+      var o = qLoad(); var entry = o[c+'|'+sha]; var def = RT[c];
+      if(!entry || !def){ cidashQClose(); return; }
+      var plats = (entry.plats||[]).map(cap).join(', ');
+      var short = entry.short || sha.slice(0,7);
+      var live = qLiveEntries(o); var pos = 0;
+      live.forEach(function(en, idx){ if(en.key===c+'|'+sha) pos = idx+1; });
+      var h = '';
+      h += '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.85em"><strong>'+esc(def.label)+'</strong> for commit <code style="font-family:monospace">'+esc(short)+'</code>'+(plats?' \u00b7 '+esc(plats):'')+'.</p>';
+      if(live.length>1 && pos){ h += '<p style="margin:0 0 12px;font-size:.85em">Place in queue: <strong>#'+pos+'</strong> <span style="color:var(--fg-muted)">of '+live.length+' queued from this browser (oldest first).</span></p>'; }
+      h += '<div id="cidash-q-status" style="font-size:.82em;min-height:1.2em;margin:0 0 12px"></div>';
+      h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">';
+      h += qViewLinks(c, entry);
+      h += '<button class="cidash-btn cidash-danger" id="cidash-q-cancel">\u2715 Cancel run</button>';
+      h += '</div>';
+      h += '<p style="color:var(--fg-muted);font-size:.76em;margin:12px 0 0"><strong>Cancel run</strong> stops it on GitHub Actions (uses the same token you queued it with). <strong>View</strong> opens it on GitHub, where you can watch it or stop it manually.</p>';
+      $("cidash-q-body").innerHTML = h;
+      var cb=$("cidash-q-cancel"); if(cb) cb.addEventListener('click', function(){ cancelQueued(c, sha); });
+    }
+    function openQ(c, sha){
+      if(!RT[c]) return;
+      qState = { cap:c, sha:sha };
+      var entry = qLoad()[c+'|'+sha];
+      $("cidash-q-title").textContent = "Queued: " + RT[c].label;
+      renderQ();
+      $("cidash-q-modal").style.display='block';
+      document.body.style.overflow='hidden';
+      // Look up the run id(s) now (if not captured yet) so Cancel + the direct run
+      // links resolve; re-render when they arrive.
+      if(entry && !((entry.runs||[]).length)){
+        captureRuns(c, sha, 1, function(){ if(qState.cap===c && qState.sha===sha) renderQ(); });
+      }
+    }
+    function cancelQueued(c, sha){
+      var entry = qLoad()[c+'|'+sha]; if(!entry){ cidashQClose(); return; }
+      if(!getTok()){ qSetStatus('No token in this browser \u2014 use \u201cView on GitHub Actions\u201d to cancel it there.', 'warn'); return; }
+      var btn = $("cidash-q-cancel"); if(btn){ btn.disabled = true; }
+      var runs = (entry.runs||[]).filter(function(r){ return r && r.id; });
+      if(runs.length){ doCancel(c, sha, runs); return; }
+      // No run id captured yet — try one more lookup before giving up.
+      qSetStatus('Finding the run\u2026', null);
+      captureRuns(c, sha, 1, function(){
+        var r2 = ((qLoad()[c+'|'+sha]||{}).runs||[]).filter(function(r){ return r && r.id; });
+        if(!r2.length){ if(btn){ btn.disabled=false; } qSetStatus('Could not find the run automatically \u2014 use \u201cView on GitHub Actions\u201d to cancel it there.', 'err'); return; }
+        doCancel(c, sha, r2);
+      });
+    }
+    function doCancel(c, sha, runs){
+      var tok = getTok();
+      qSetStatus('Cancelling\u2026', null);
+      var jobs = runs.map(function(r){
+        return fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+r.id+'/cancel', {
+          method:'POST', headers:{ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' }
+        }).then(function(resp){ return { id:r.id, ok:(resp.status===202||resp.status===409), status:resp.status }; })
+          .catch(function(){ return { id:r.id, ok:false, status:0 }; });
+      });
+      Promise.all(jobs).then(function(res){
+        var btn = $("cidash-q-cancel");
+        if(res.some(function(r){return r.status===401;})){ clearTok(); if(btn){ btn.disabled=false; } qSetStatus('That token was rejected (401). Re-queue with a valid token, or cancel it on GitHub.', 'err'); return; }
+        if(res.every(function(r){return r.ok;})){
+          qForget(c, sha);
+          qSetStatus('\u2713 Cancelled \u2014 the run is stopping on GitHub.', 'ok');
+          setTimeout(cidashQClose, 1100);
+        } else {
+          if(btn){ btn.disabled=false; }
+          var has403 = res.some(function(r){return r.status===403;});
+          var hint = has403 ? ' The token needs <strong>Actions: Read and write</strong> on this repo.' : '';
+          qSetStatus('Could not cancel ('+res.map(function(r){return 'HTTP '+r.status;}).join(', ')+').'+hint+' Use \u201cView on GitHub Actions\u201d to stop it there.', 'err');
+        }
+      });
+    }
+    document.addEventListener('click', function(e){
+      var a = e.target.closest ? e.target.closest('a.cidash-run') : null;
+      if(!a) return;
+      e.preventDefault();
+      openRun(a.getAttribute('data-cap'), a.getAttribute('data-sha'), a.getAttribute('data-parent'), a.getAttribute('data-short'));
+    });
+    document.addEventListener('click', function(e){
+      var b = e.target.closest ? e.target.closest('.cidash-queued') : null;
+      if(!b) return;
+      e.preventDefault();
+      var td = b.closest ? b.closest('td') : null; if(!td) return;
+      openQ(td.getAttribute('data-qcap'), td.getAttribute('data-qsha'));
+    });
+    document.addEventListener('keydown', function(e){
+      if((e.key==='Enter' || e.key===' ') && e.target && e.target.classList && e.target.classList.contains('cidash-queued')){
+        e.preventDefault();
+        var td = e.target.closest ? e.target.closest('td') : null;
+        if(td) openQ(td.getAttribute('data-qcap'), td.getAttribute('data-qsha'));
+      }
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(qModalOpen()) cidashQClose(); else cidashRunClose(); } });
+    // Re-apply optimistic "Queued" badges once the table exists (this script runs
+    // before the table is parsed), and after every auto-refresh thereafter.
+    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', applyQueued); }
+    else { applyQueued(); }
+  })();
+  </script>
+  <main class="lvci-main">
+  <h1>CI Dashboard — Extensible-Config-Dialog</h1>
+  <div class="sub">Last updated: 2026-06-17 02:12 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="nav">
+    <a href="https://github.com/elijah286/Extensible-Config-Dialog">GitHub</a>
+    <a href="https://github.com/elijah286/Extensible-Config-Dialog/actions">Actions</a>
+  </div>
+  <label class="controls" for="show-nonproject">
+    <input type="checkbox" id="show-nonproject">
+    Include CI-only revisions
+  </label>
+  <div class="lvci-tablewrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Commit</th><th>Message</th><th>Author</th><th>Date</th>
+        <th style="text-align:center">Mass Compile</th>
+        <th style="text-align:center">VI Analyzer</th>
+        <th style="text-align:center">VIDiff</th>
+        <th style="text-align:center">Snapshots</th>
+        <th style="text-align:center">Win Worker</th>
+        <th style="text-align:center">Linux Worker</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <div id="empty-state" style="display:none;padding:18px;text-align:center;color:var(--fg-muted);font-size:.9em">
+    No project revisions in the recent window. <a href="#" onclick="document.getElementById('show-nonproject').click();return false" style="color:var(--link)">Include CI-only revisions</a> to see CI&nbsp;/&nbsp;tooling commits.
+  </div>
+  </main>
+  <script>
+    (() => {
+      const checkbox = document.getElementById('show-nonproject');
+      const rows = document.querySelectorAll('tbody tr[data-project]');
+      const emptyState = document.getElementById('empty-state');
+      // Honor the toggle strictly: while "Include CI-only revisions" is
+      // unchecked, only project revisions show. If that hides every row,
+      // reveal an inline prompt (rather than silently showing CI-only rows
+      // or leaving a blank table) inviting the user to enable the toggle.
+      const applyFilter = () => {
+        const showNonProject = checkbox.checked;
+        let visible = 0;
+        rows.forEach((row) => {
+          const isProject = row.getAttribute('data-project') === 'true';
+          const show = isProject || showNonProject;
+          row.style.display = show ? '' : 'none';
+          if (show) visible++;
+        });
+        if (emptyState) emptyState.style.display = visible ? 'none' : '';
+      };
+      checkbox.addEventListener('change', applyFilter);
+      applyFilter();
+    })();
+  </script>
+</body>
+</html>
