@@ -3,7 +3,7 @@ schemaVersion: 1
 installedAt: 2026-06-17T03:49:28Z
 source:
   repo: elijah286/LabVIEW-CI-with-Containers
-  ref: v2.1.0
+  ref: v2.1.1
 config:
   labviewVersion: "2026"
   os: [windows, linux]
