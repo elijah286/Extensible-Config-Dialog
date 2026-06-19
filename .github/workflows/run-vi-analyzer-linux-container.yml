@@ -8,6 +8,7 @@ on:
       - '**.lvproj'
       - '**.lvlib'
       - '**.lvclass'
+      - '!.github/**'
   push:
     branches: [main]
     paths:
@@ -16,6 +17,7 @@ on:
       - '**.lvproj'
       - '**.lvlib'
       - '**.lvclass'
+      - '!.github/**'
   workflow_dispatch:
     inputs:
       commit_sha:
@@ -70,7 +72,9 @@ jobs:
 
       - name: Restore CI scripts from main
         if: github.event.inputs.commit_sha != ''
-        run: git checkout origin/main -- .github/labview .github/workflows
+        run: |
+          git fetch --no-tags origin main
+          git checkout FETCH_HEAD -- .github/labview .github/workflows
 
       - name: Pull LabVIEW Linux container
         run: docker pull ${{ env.LABVIEW_CONTAINER_IMAGE }}

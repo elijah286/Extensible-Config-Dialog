@@ -71,6 +71,26 @@ jobs:
           MAXPAR=$(awk '/^[[:space:]]*maxParallel:[[:space:]]/{print $2; exit}' "$CFG")
           echo "source repo: $SRC_REPO  installed: ${INSTALLED:-unknown}"
 
+          # Relocation pointer. The single place that lets the whole tooling move
+          # to a new official home (e.g. an NI-owned repo): .github/labview-ci/source.json
+          # in the source repo names where the tooling officially lives. If it names a
+          # DIFFERENT repo than the one we pull from, the tooling has relocated, so follow
+          # it and pull this update from the new home. install.py records the FETCHED
+          # catalog's source.repo into .github/labview-ci.yml, so after this one redirected
+          # update the client polls the new home directly (no more hops). Probe the source's
+          # live channel (its default branch via HEAD); a pinned source_ref is honored as-is.
+          # NOTE: keep this python one-liner on a SINGLE line. A multi-line inline
+          # `python3 -c '...'` would sit at column 0 and break out of this YAML
+          # `run: |` block scalar (invalid-workflow-file error). The surrounding
+          # `2>/dev/null || echo ""` already yields "" on empty/invalid JSON, so no
+          # in-python try/except is needed.
+          SUCC=$(curl -fsSL "https://raw.githubusercontent.com/${SRC_REPO}/HEAD/.github/labview-ci/source.json" 2>/dev/null \
+            | python3 -c 'import sys,json; print((json.load(sys.stdin).get("repo") or "").strip())' 2>/dev/null || echo "")
+          if [ -n "$SUCC" ] && [ "$(printf %s "$SUCC" | tr A-Z a-z)" != "$(printf %s "$SRC_REPO" | tr A-Z a-z)" ]; then
+            echo "::notice::LabVIEW CI tooling has relocated: ${SRC_REPO} -> ${SUCC}. Pulling the update from the new home."
+            SRC_REPO="$SUCC"
+          fi
+
           REF="$INPUT_REF"
           if [ -z "$REF" ]; then
             REF=$(gh api "repos/$SRC_REPO" --jq '.default_branch' 2>/dev/null || echo main)
@@ -200,20 +220,31 @@ jobs:
               # Re-commit WITHOUT the workflow YAMLs so the default token can push.
               DEFERRED_WF=$(git diff --name-only HEAD~1 HEAD -- '.github/workflows' | grep -c . || true)
               git reset --soft HEAD~1
-              git checkout HEAD -- '.github/workflows' 2>/dev/null || true
+              # Strip EVERY workflow change from the commit -- modified, deleted, AND
+              # newly added. `git checkout HEAD -- <path>` only reverts files that
+              # already exist in HEAD, so a brand-new YAML (e.g. a new capability's
+              # workflow) would survive and the re-push is refused again. Unstage the
+              # paths, restore the tracked ones, then delete the now-untracked new
+              # files so the following `git add -A` cannot re-stage them.
+              git reset -q HEAD -- '.github/workflows' 2>/dev/null || true
+              git checkout -q -- '.github/workflows' 2>/dev/null || true
+              git clean -fdq -- '.github/workflows' 2>/dev/null || true
               git add -A
               if [ -z "$(git diff --cached --name-only)" ]; then
                 {
                   echo "## ⚠️ This update only changes workflow files — add a one-time token"
                   echo ""
                   echo "Everything new in **v${LATEST}** lives in GitHub **workflow files**, which the built-in"
-                  echo "token cannot push. To finish automatically:"
+                  echo "token cannot push. Two ways to finish:"
                   echo ""
-                  echo "1. Create a token with **repo + workflow** scope (classic PAT: \`repo\` + \`workflow\`; or fine-grained: **Contents** + **Workflows** = Read and write)."
+                  echo "**Easiest — from the dashboard, no settings trip.** Open **What's New ▸ Update now**. When no pull request appears it now shows an **\"add a one-time workflow token\"** field with a ready-made token link (Contents + Workflows + Pull requests + Secrets = Read and write). Paste the token there; the page seals it in your browser, stores it as this repo's \`TOOLING_UPDATE_TOKEN\` secret, and restarts the update."
+                  echo ""
+                  echo "**Or add the secret yourself:**"
+                  echo "1. Create a token — classic PAT: \`repo\` + \`workflow\`; or fine-grained: **Contents + Workflows + Pull requests** = Read and write."
                   echo "2. Add it as the repository secret **TOOLING_UPDATE_TOKEN** (Settings ▸ Secrets and variables ▸ Actions)."
                   echo "3. Re-run **Update now**."
                 } >> "$GITHUB_STEP_SUMMARY"
-                echo "::warning title=Token needed::This update only changes workflow files; pushing them needs a PAT (TOOLING_UPDATE_TOKEN) with workflow scope."
+                echo "::warning title=Token needed::This update only changes workflow files; pushing them needs a one-time TOOLING_UPDATE_TOKEN. Add it inline from the What's New > Update now page, or as a repo secret."
                 git push origin --delete "$BRANCH" >/dev/null 2>&1 || true
                 exit 0
               fi

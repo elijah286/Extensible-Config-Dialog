@@ -10,7 +10,7 @@
 .EXAMPLE
     From the root of the repo you want to add CI to:
 
-    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/elijah286/challenge-of-champions/main/.github/labview-ci/install.ps1))) `
+    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/elijah286/LabVIEW-CI-with-Containers/main/.github/labview-ci/install.ps1))) `
         --activities masscompile,vi-analyzer,vidiff,dashboard --os windows,linux --labview-version 2026
 
 .NOTES
@@ -26,14 +26,15 @@ param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest)
 
 $ErrorActionPreference = 'Stop'
 
-$SourceRepo = 'elijah286/challenge-of-champions'
-$SourceRef  = 'main'
-$SrcDir     = $null
-$Pass       = @()
+$SourceRepo   = 'elijah286/LabVIEW-CI-with-Containers'
+$SourceRef    = 'main'
+$SrcDir       = $null
+$ExplicitRepo = $false
+$Pass         = @()
 
 for ($i = 0; $i -lt $Rest.Count; $i++) {
     switch ($Rest[$i]) {
-        '--source-repo' { $SourceRepo = $Rest[++$i] }
+        '--source-repo' { $SourceRepo = $Rest[++$i]; $ExplicitRepo = $true }
         '--source-ref'  { $SourceRef  = $Rest[++$i] }
         '--source'      { $SrcDir     = $Rest[++$i] }
         default         { $Pass      += $Rest[$i] }
@@ -51,6 +52,21 @@ if (-not $SrcDir) {
         $SrcDir = $PWD.Path
     }
     else {
+        # Relocation pointer: if the source repo names a different official home in
+        # .github/labview-ci/source.json, follow it (unless --source-repo was given)
+        # so installs land on the current repo. install.py records the FETCHED
+        # catalog's source.repo, so the new client polls the new home from then on.
+        if (-not $ExplicitRepo) {
+            try {
+                $ptr = (Invoke-WebRequest -Uri "https://raw.githubusercontent.com/$SourceRepo/$SourceRef/.github/labview-ci/source.json" -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
+                $moved = "$($ptr.repo)".Trim()
+                if ($moved -and ($moved.ToLower() -ne $SourceRepo.ToLower())) {
+                    Write-Host "LabVIEW CI tooling has moved to $moved; installing from there ..."
+                    $SourceRepo = $moved
+                }
+            }
+            catch { }
+        }
         $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('lvci-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
         New-Item -ItemType Directory -Force -Path $tmp | Out-Null
         $archive = Join-Path $tmp 'tooling.tar.gz'

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "name": "Tooling-managed VIPM defaults (pushed by LabVIEW CI)",
+  "description": "TOOLING-OWNED, version-locked. Unlike ci-tooling.packages.json (which is in the catalog's userConfig.files and is therefore PRESERVED per repo), this file is REPLACED by `install.py --update`, so packages added here are PUSHED to every consumer when they take a new tooling version. build-tooling-vipc.py merges these UNDER each repo's own ci-tooling.packages.json: a package the repo also lists wins (a consumer pin is never overridden - the difference is surfaced as a notice), and a package only here is added to the worker image additively the next time the repo regenerates its VIPC (Reconfigure / Update). To ship a new baked-in tool to everyone transparently: add it here AND bump the catalog version + add a release note, so the change is visible and consumers choose to adopt it. Starts empty on purpose - the current defaults stay consumer-owned in each repo's ci-tooling.packages.json; new tooling packages flow through this channel.",
+  "target": {
+    "name": "LabVIEW",
+    "labviewVersion": "2026",
+    "comment": "Fallback target if a consumer's ci-tooling.packages.json omits one. Must match the LabVIEW in the NI base image."
+  },
+  "vipmPackages": {
+    "comment": "Same entry shape as ci-tooling.packages.json (name, optional pinned version, include). Merged UNDER the consumer's packages (consumer wins on a name collision). Pin `version` for reproducible images; null = latest.",
+    "packages": []
+  }
+}

@@ -42,6 +42,7 @@ from xml.sax.saxutils import escape
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_MANIFEST = HERE / "ci-tooling.packages.json"
+DEFAULT_DEFAULTS = HERE / "ci-tooling.defaults.json"
 DEFAULT_OUT = HERE / "ci-tooling.vipc"
 
 # Fixed ZIP member timestamp (the DOS epoch) keeps the archive byte-stable across
@@ -78,6 +79,46 @@ def selected_packages(manifest: dict) -> list[dict]:
         if name:
             out.append(p)
     return out
+
+
+def _norm_version(pkg: dict) -> str:
+    """Pinned version string, normalised ('' for null/latest)."""
+    v = pkg.get("version")
+    return str(v).strip() if v not in (None, "") else ""
+
+
+def merge_packages(defaults_pkgs: list[dict], consumer_pkgs: list[dict]) -> list[dict]:
+    """Merge tooling-pushed defaults (base) with the consumer's packages (over).
+
+    The consumer WINS on a name collision: a repo never loses a pin it set in its
+    own ci-tooling.packages.json. A package present only in the defaults is ADDED
+    (this is how the tooling ships new baked-in packages additively); a package
+    only in the consumer file is kept. A differing pinned version is surfaced as a
+    notice (not an error) so the consumer can choose to align. Deterministic order:
+    defaults first, then consumer-only additions.
+    """
+    by_name: dict[str, dict] = {}
+    order: list[str] = []
+    for p in defaults_pkgs:
+        n = (p.get("name") or "").strip().lower()
+        if not n:
+            continue
+        if n not in by_name:
+            order.append(n)
+        by_name[n] = p
+    for p in consumer_pkgs:
+        n = (p.get("name") or "").strip().lower()
+        if not n:
+            continue
+        if n in by_name:
+            dv, cv = _norm_version(by_name[n]), _norm_version(p)
+            if dv and cv and dv != cv:
+                print(f"  note: '{p.get('name')}' - tooling default pins {dv}, this repo "
+                      f"pins {cv}; using the repo's {cv}.", file=sys.stderr)
+        else:
+            order.append(n)
+        by_name[n] = p  # consumer wins
+    return [by_name[n] for n in order]
 
 
 def package_id(packages: list[dict]) -> str:
@@ -134,6 +175,9 @@ def write_vipc(out_path: Path, config_xml: str) -> None:
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="Generate ci-tooling.vipc from the package manifest.")
     ap.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    ap.add_argument("--defaults", type=Path, default=DEFAULT_DEFAULTS,
+                    help="Tooling-pushed base packages merged UNDER --manifest (consumer wins). "
+                         "Skipped if the file is absent.")
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     ap.add_argument("--labview-version", default=None,
                     help="Override the LabVIEW year (default: manifest target.labviewVersion).")
@@ -149,10 +193,20 @@ def main(argv: list[str]) -> int:
         print(f"ERROR: manifest is not valid JSON: {exc}", file=sys.stderr)
         return 1
 
+    defaults: dict = {}
+    if args.defaults and args.defaults.exists():
+        try:
+            defaults = json.loads(args.defaults.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            print(f"ERROR: defaults manifest is not valid JSON: {exc}", file=sys.stderr)
+            return 1
+
     labview_version = args.labview_version or str(
-        (manifest.get("target") or {}).get("labviewVersion") or "2026"
+        (manifest.get("target") or {}).get("labviewVersion")
+        or (defaults.get("target") or {}).get("labviewVersion")
+        or "2026"
     )
-    packages = selected_packages(manifest)
+    packages = merge_packages(selected_packages(defaults), selected_packages(manifest))
     if not packages:
         print("ERROR: no included packages in manifest; nothing to generate.", file=sys.stderr)
         return 1
