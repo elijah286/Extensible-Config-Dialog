@@ -41,6 +41,10 @@ on:
         description: 'Per-action container overrides as id::tag pairs separated by ; (e.g. masscompile::latest;vidiff::base; blank = keep current)'
         required: false
         default: ''
+      action_triggers:
+        description: 'Per-activity submission triggers as id::sources pairs separated by ; (sources joined by +, e.g. snapshots::push-default+pr-branch; use "none" to disable an activity; blank = keep current)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -72,6 +76,7 @@ jobs:
           IN_CONTAINER_USE: ${{ inputs.container_use }}
           IN_CONTAINER_VIPC: ${{ inputs.container_vipc }}
           IN_CONTAINER_ACTIONS: ${{ inputs.container_actions }}
+          IN_ACTION_TRIGGERS: ${{ inputs.action_triggers }}
         run: |
           python3 - <<'PY'
           import os, re, json, datetime, pathlib
@@ -84,22 +89,36 @@ jobs:
           container_use_in = os.environ.get('IN_CONTAINER_USE', '').strip()
           container_vipc_in = os.environ.get('IN_CONTAINER_VIPC', '').strip()
           container_actions_in = os.environ.get('IN_CONTAINER_ACTIONS', '').strip()
+          action_triggers_in = os.environ.get('IN_ACTION_TRIGGERS', '').strip()
 
           # Preserve provenance fields from any existing manifest.
           mpath = pathlib.Path('.github/labview-ci.yml')
           prev = {'activities': [], 'installedVersion': '', 'repo': '', 'ref': 'main',
-                  'container_use': '', 'vipc': [], 'actions': {}}
+                  'container_use': '', 'vipc': [], 'actions': {}, 'triggers': {}, 'unitTests_block': []}
           if mpath.exists():
-              in_acts = False; in_container = False; in_vipc = False; in_actions = False; cur_vipc = None
+              in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_ut = False; cur_vipc = None
               for line in mpath.read_text(encoding='utf-8').splitlines():
                   if re.match(r'^\s*activities:\s*$', line):
-                      in_acts = True; in_container = False; in_vipc = False; in_actions = False; continue
+                      in_acts = True; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; continue
                   if re.match(r'^\s*container:\s*$', line):
-                      in_container = True; in_acts = False; in_vipc = False; in_actions = False; continue
+                      in_container = True; in_acts = False; in_vipc = False; in_actions = False; in_triggers = False; continue
+                  if re.match(r'^\s*triggers:\s*$', line):
+                      in_triggers = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; continue
+                  if re.match(r'^unitTests:\s*$', line):
+                      in_ut = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False
+                      prev['unitTests_block'] = [line]; continue
+                  if in_ut:
+                      if re.match(r'^\s+\S', line):
+                          prev['unitTests_block'].append(line); continue
+                      in_ut = False
                   if in_acts:
                       m = re.match(r'^\s*-\s*(\S+)', line)
                       if m: prev['activities'].append(m.group(1)); continue
                       in_acts = False
+                  if in_triggers:
+                      m = re.match(r'^\s{4}([A-Za-z0-9_.\-]+):\s*(\S+)', line)
+                      if m: prev['triggers'][m.group(1)] = m.group(2); continue
+                      if re.match(r'^\s{0,3}\S', line): in_triggers = False
                   if in_container:
                       m = re.match(r'^\s{4}use:\s*"?([^"\s]+)"?', line)
                       if m: prev['container_use'] = m.group(1); in_vipc = False; in_actions = False; continue
@@ -156,6 +175,20 @@ jobs:
               return out
           container_actions = _parse_actions(container_actions_in) if container_actions_in else prev['actions']
 
+          # Per-activity submission triggers: explicit input wins; blank keeps the
+          # manifest's. Each entry is "<activity-id>::<sources>" where sources are
+          # joined by + (push-default, pr-branch, pr-fork) or the literal "none".
+          def _parse_triggers(s):
+              out = {}
+              for entry in s.split(';'):
+                  entry = entry.strip()
+                  if not entry or '::' not in entry: continue
+                  k, v = entry.split('::', 1)
+                  k = k.strip(); v = v.strip()
+                  if k and v: out[k] = v
+              return out
+          triggers = _parse_triggers(action_triggers_in) if action_triggers_in else prev['triggers']
+
           lines = [
               '# .github/labview-ci.yml - LabVIEW CI configuration',
               '# Updated by the Reconfigure workflow.',
@@ -184,7 +217,15 @@ jobs:
               lines.append('    actions:')
               for _id in sorted(container_actions):
                   lines.append(f'      {_id}: {container_actions[_id]}')
+          if triggers:
+              lines.append('  triggers:')
+              for _id in sorted(triggers):
+                  lines.append(f'    {_id}: {triggers[_id]}')
           lines += ['activities:'] + [f'  - {a}' for a in acts] + ['']
+          # Preserve the unit-test tool config (written by the Unit Testing page);
+          # reconfigure manages activities/container only, so keep it verbatim.
+          if prev.get('unitTests_block'):
+              lines += prev['unitTests_block'] + ['']
           mpath.parent.mkdir(parents=True, exist_ok=True)
           mpath.write_text('\n'.join(lines), encoding='utf-8')
           print('Wrote', mpath)
@@ -249,6 +290,7 @@ jobs:
           | Activities | ${{ inputs.activities }} |
           | Container | ${{ inputs.container_use }} |
           | Per-action containers | ${{ inputs.container_actions }} |
+          | Activity triggers | ${{ inputs.action_triggers }} |
 
           Review and merge to apply. Container-dependency and LabVIEW-version changes
           take effect on the next image build; OS/runner settings apply where the

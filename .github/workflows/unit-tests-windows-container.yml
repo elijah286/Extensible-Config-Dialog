@@ -1,38 +1,42 @@
-name: Run VI Analyzer — Windows Container
+name: Run Unit Tests — Windows Container
+
+# Runs the configured LabVIEW unit-test frameworks (Caraya / VI Tester / UTF)
+# headlessly inside the project's CI worker image, normalises their JUnit XML into
+# one friendly report (build-unittest-report.py), deploys it under
+# unit-tests/<sha>/, and posts the "CI / Unit Tests" commit status the dashboard
+# column reads. Mirrors run-vi-analyzer-windows-container.yml so the two activities
+# behave identically (per-action container selection, Run-now dispatch, framed
+# report). Manual runs come through workflow_dispatch (the dashboard's Run-now).
 
 on:
+  # Auto-runs only on real LabVIEW source changes — never on the tooling files an
+  # install/deploy adds (e.g. .github/labview-ci.yml), so deploying the pipeline or
+  # changing the config never kicks off a unit-test run. Use the dashboard's "Run
+  # all history" prompt or workflow_dispatch to run on demand.
   pull_request:
     paths:
       - '**.vi'
-      - '**.ctl'
+      - '**.lvclass'
       - '**.lvproj'
       - '**.lvlib'
-      - '**.lvclass'
-      - '!.github/**'
   push:
     branches: [main]
     paths:
       - '**.vi'
-      - '**.ctl'
+      - '**.lvclass'
       - '**.lvproj'
       - '**.lvlib'
-      - '**.lvclass'
-      - '!.github/**'
   workflow_dispatch:
     inputs:
       commit_sha:
-        description: 'Commit SHA to analyze (leave blank for current HEAD)'
+        description: 'Commit SHA to test (leave blank for current HEAD)'
         required: false
         default: ''
 
 env:
-  # Custom CI image (built by build-labview-image.yml). GHCR repository names MUST be
-  # lowercase, but github.event.repository.name preserves the repo's original case
-  # (e.g. "Extensible-Config-Dialog"), which `docker pull` rejects ("repository name
-  # must be lowercase") — so no worker ever ran and the dashboard's Win Worker column
-  # stayed empty. The image ref is therefore resolved + lowercased at runtime by the
-  # "Resolve container image name" step below (-> $GITHUB_ENV); declared empty here so
-  # it is always a defined key. Override with vars.LABVIEW_IMAGE_NAME / LABVIEW_VERSION.
+  # Resolved + lowercased at runtime (GHCR rejects upper-case names); declared
+  # empty so it is always a defined key. Override with vars.LABVIEW_IMAGE_NAME /
+  # LABVIEW_VERSION.
   LABVIEW_CONTAINER_IMAGE: ''
   PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
 
@@ -42,18 +46,15 @@ permissions:
   statuses: write
   packages: read
 
-# Serialize report deploys to gh-pages. peaceiris/actions-gh-pages clones, commits,
-# and pushes the branch; two report jobs pushing at once make the loser's push bounce
-# with "! [rejected] (fetch first)", so its report never deploys (dashboard 404).
-# A shared group across the report-deploy workflows (mass compile + VI Analyzer)
-# makes them queue instead of racing. cancel-in-progress:false so a queued run still
-# publishes rather than being dropped.
+# Share the report-deploy concurrency group with the other report workflows so
+# gh-pages pushes queue instead of racing (a loser's push bounces with
+# "fetch first" and its report never deploys).
 concurrency:
   group: report-pages-deploy
   cancel-in-progress: false
 
 jobs:
-  vi-analyzer:
+  unit-tests:
     runs-on: windows-2022   # windows-latest = Server 2025, broken Docker daemon
 
     steps:
@@ -80,7 +81,7 @@ jobs:
             -H "Authorization: token $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
-            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"VI Analyzer in progress\",\"context\":\"CI / VI Analyzer\"}"
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"Unit tests in progress\",\"context\":\"CI / Unit Tests\"}"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -95,13 +96,11 @@ jobs:
           git fetch --no-tags origin main
           git checkout FETCH_HEAD -- .github/labview .github/workflows
 
-      # GHCR rejects upper-case repository names. The Configure dialog writes the
-      # selected container tag to config.container.use in .github/labview-ci.yml
-      # (default "latest"); when present, this revision is analyzed inside that tag
-      # of the project's custom worker image, so the project's baked VIPC
-      # dependencies are available. When absent we fall back to the version tag
-      # (the original behavior). Runs after checkout so it can read the revision's
-      # own config.
+      # Per-action container selection: config.container.actions.unit-tests wins,
+      # then config.container.use. With neither set, default to the custom worker
+      # image at the version tag (its baked Caraya/VI Tester/UTF are required to
+      # run the tests). "base" forces the bare NI image; "latest"/"<tag>" select
+      # that tag of the custom worker image.
       - name: Resolve container image name
         shell: bash
         env:
@@ -113,12 +112,7 @@ jobs:
           name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
           name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
           custom="ghcr.io/${owner}/${name}"
-          # Per-action container selection. config.container.actions.<id> wins, then
-          # the project-wide config.container.use. With neither set VI Analyzer keeps
-          # its default (the custom image at the version tag) since the full test set
-          # needs the custom image. "base" forces the bare NI image for this action;
-          # "latest"/"<tag>" select that tag of the custom worker image.
-          ACTION_ID="vi-analyzer"
+          ACTION_ID="unit-tests"
           CFG=.github/labview-ci.yml
           sel=""
           if [ -f "$CFG" ]; then
@@ -158,12 +152,8 @@ jobs:
         shell: powershell
         run: |
           $svc = Get-Service -Name docker -ErrorAction SilentlyContinue
-          if ($null -eq $svc) {
-            throw 'Docker service not found on this runner.'
-          }
-          if ($svc.Status -ne 'Running') {
-            Start-Service docker
-          }
+          if ($null -eq $svc) { throw 'Docker service not found on this runner.' }
+          if ($svc.Status -ne 'Running') { Start-Service docker }
           docker version
 
       - name: Log in to GHCR
@@ -173,12 +163,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Ordering: if this push changed the worker image inputs (a .vipc, the
-      # Dockerfile, or the VIPM assets) then "Build LabVIEW CI Image" is
-      # rebuilding the worker for this same commit. Wait for that build to finish
-      # before pulling, so analysis runs on the freshly-built worker instead of a
-      # stale one. Bounded and best-effort — it never blocks CI indefinitely, and
-      # does nothing when no worker-affecting file changed.
+      # If this push changed the worker image inputs, wait for "Build LabVIEW CI
+      # Image" to finish so tests run on the freshly-built worker. Bounded /
+      # best-effort; does nothing when no worker-affecting file changed.
       - name: Wait for worker image build
         shell: bash
         env:
@@ -222,19 +209,11 @@ jobs:
         run: docker pull $Env:LABVIEW_CONTAINER_IMAGE
         continue-on-error: true
 
-      # Read the worker version stamped into the pulled image so the dashboard can
-      # link this revision to exactly the worker that analyzed it.
       - name: Read worker version
         id: worker
         if: steps.pull.outcome == 'success'
         shell: powershell
         run: |
-          # Best-effort telemetry: read the worker-version label baked into the image
-          # so the dashboard can link this revision to its worker manifest. Parse the
-          # inspect JSON with PowerShell instead of a `docker inspect --format` Go
-          # template -- Windows PowerShell 5.1 mangles the template's embedded double
-          # quotes, which made the command fail (empty result + non-zero exit) and took
-          # the whole job down with it. This step must NEVER fail CI, hence `exit 0`.
           $img = $Env:LABVIEW_CONTAINER_IMAGE
           $wv = ''
           try {
@@ -246,70 +225,59 @@ jobs:
           Write-Host "Worker version: $wv"
           exit 0
 
-      - name: Run VI Analyzer inside container
+      - name: Run unit tests inside container
         if: steps.pull.outcome == 'success'
         shell: powershell
-        id: analyze
+        id: run
         run: |
           docker run --rm `
             -e "GITHUB_REPOSITORY=${{ github.repository }}" `
             -v "${{ github.workspace }}:C:\workspace" `
             $Env:LABVIEW_CONTAINER_IMAGE `
             powershell -NonInteractive -ExecutionPolicy Bypass `
-              -File "C:\workspace\.github\labview\run-vi-analyzer.ps1" `
+              -File "C:\workspace\.github\labview\run-unit-tests.ps1" `
               -WorkspaceRoot  "C:\workspace" `
-              -ReportDir      "C:\workspace\ci-out\vi-analyzer" `
+              -ResultsDir     "C:\workspace\ci-out\unit-tests\results" `
+              -LabVIEWVersion "${{ vars.LABVIEW_VERSION || '2026' }}" `
               -LabVIEWPath    "C:\Program Files\National Instruments\LabVIEW ${{ vars.LABVIEW_VERSION || '2026' }}\LabVIEW.exe"
         continue-on-error: true
 
-      - name: Check report directory
+      - name: Build friendly report (merge JUnit + join snapshots)
         id: report
+        if: steps.pull.outcome == 'success'
         shell: bash
+        continue-on-error: true
         run: |
-          if [ -f "${{ github.workspace }}/ci-out/vi-analyzer/index.html" ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Build friendly report (parse native HTML + join snapshots)
-        if: steps.report.outputs.exists == 'true'
-        shell: bash
-        continue-on-error: true   # a formatting hiccup must never block deploying the native report
-        run: |
-          # Transform the dense native VI Analyzer report into a navigable one:
-          # keeps the original as raw.html, writes summary.json, and replaces
-          # index.html with a grouped/filterable report whose per-VI snapshots are
-          # resolved client-side from the VI Browser gallery (vi-snapshots/<sha>/).
-          REPORT_DIR="${{ github.workspace }}/ci-out/vi-analyzer"
-          python .github/labview/build-analyzer-report.py \
-            --in        "$REPORT_DIR/index.html" \
-            --out       "$REPORT_DIR" \
+          # Merge every per-tool JUnit XML into one navigable report whose failing
+          # tests deep-link the VI under test into the VI Browser. Always runs
+          # (even with zero results: it renders an explicit "no tests found" page).
+          OUT="${{ github.workspace }}/ci-out/unit-tests"
+          python .github/labview/build-unittest-report.py \
+            --results   "$OUT/results" \
+            --out       "$OUT" \
+            --workspace "${{ github.workspace }}" \
             --sha       "${{ steps.sha.outputs.sha }}" \
             --platform  windows \
             --repo      "${{ github.repository }}" \
             --pages-url "${{ env.PAGES_URL }}" \
+            --labview-version "${{ vars.LABVIEW_VERSION || '2026' }}" \
             --commit-msg "$(git log -1 --pretty=%s   ${{ steps.sha.outputs.sha }})" \
             --author     "$(git log -1 --pretty=%an  ${{ steps.sha.outputs.sha }})" \
             --date       "$(git log -1 --pretty=%cI  ${{ steps.sha.outputs.sha }})"
+          if [ -f "$OUT/index.html" ]; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
 
       - name: Upload report artifact
         if: steps.report.outputs.exists == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: vi-analyzer-report-${{ steps.sha.outputs.sha }}
-          path: ${{ github.workspace }}/ci-out/vi-analyzer/
+          name: unit-tests-report-${{ steps.sha.outputs.sha }}
+          path: ${{ github.workspace }}/ci-out/unit-tests/
           if-no-files-found: warn
 
       - name: Enable Git long paths (Windows MAX_PATH workaround)
         if: steps.report.outputs.exists == 'true'
         shell: bash
         run: |
-          # peaceiris/actions-gh-pages clones the whole gh-pages branch on the
-          # Windows runner. That tree now holds deeply-nested VIDiff report paths
-          # that exceed Windows' 260-char MAX_PATH, so the clone checkout dies with
-          # "Filename too long" and the report never deploys (dashboard 404).
-          # Long-path support lets Git use extended-length paths and succeed.
           git config --global core.longpaths true
           git config --system core.longpaths true || true
 
@@ -318,8 +286,8 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ${{ github.workspace }}/ci-out/vi-analyzer
-          destination_dir: vi-analyzer/${{ steps.sha.outputs.sha }}
+          publish_dir: ${{ github.workspace }}/ci-out/unit-tests
+          destination_dir: unit-tests/${{ steps.sha.outputs.sha }}
           keep_files: true
 
       - name: Post commit status
@@ -328,24 +296,33 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ steps.report.outputs.exists }}" = "true" ]; then
-            REPORT_URL="${{ env.PAGES_URL }}/vi-analyzer/${{ steps.sha.outputs.sha }}/index.html"
+          OUT="${{ github.workspace }}/ci-out/unit-tests"
+          STATE="failure"; DESC="Unit tests did not run"
+          if [ "${{ steps.report.outputs.exists }}" = "true" ] && [ -f "$OUT/results.json" ]; then
+            REPORT_URL="${{ env.PAGES_URL }}/unit-tests/${{ steps.sha.outputs.sha }}/index.html"
+            # Derive pass/fail from the report's own summary (results.json) so the
+            # status matches exactly what the report shows (mirrors Mass Compile).
+            tests=$(jq -r '.summary.tests // 0'   "$OUT/results.json")
+            passed=$(jq -r '.summary.passed // 0' "$OUT/results.json")
+            failed=$(jq -r '((.summary.failed // 0) + (.summary.errored // 0))' "$OUT/results.json")
+            if [ "${tests:-0}" -eq 0 ]; then
+              STATE="success"; DESC="No unit tests found"
+            elif [ "${failed:-0}" -eq 0 ]; then
+              STATE="success"; DESC="${passed} passed"
+            else
+              STATE="failure"; DESC="${failed} failed, ${passed} passed"
+            fi
+          elif [ "${{ steps.report.outputs.exists }}" = "true" ]; then
+            REPORT_URL="${{ env.PAGES_URL }}/unit-tests/${{ steps.sha.outputs.sha }}/index.html"
           else
             REPORT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          fi
-          if [ "${{ steps.pull.outcome }}" = "success" ] && [ "${{ steps.analyze.outcome }}" = "success" ]; then
-            STATE="success"
-          else
-            STATE="failure"
           fi
           curl -s -X POST \
             -H "Authorization: token $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
-            -d "{\"state\":\"$STATE\",\"target_url\":\"$REPORT_URL\",\"description\":\"VI Analyzer $STATE\",\"context\":\"CI / VI Analyzer\"}"
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$REPORT_URL\",\"description\":\"$DESC\",\"context\":\"CI / Unit Tests\"}"
 
-      # Surface which worker ran this revision as its own commit status; the
-      # dashboard renders it as the "Win Worker" column linking to the manifest.
       - name: Post worker version status
         if: always() && steps.pull.outcome == 'success' && steps.worker.outputs.version != ''
         shell: bash
@@ -359,7 +336,3 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
             -d "{\"state\":\"success\",\"target_url\":\"$URL\",\"description\":\"$WV\",\"context\":\"CI / Worker (windows)\"}"
-
-      - name: Fail the job if analysis failed
-        if: always() && (steps.pull.outcome != 'success' || steps.analyze.outcome != 'success')
-        run: exit 1

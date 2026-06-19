@@ -1,14 +1,16 @@
-name: Run VI Analyzer — Windows Container
+name: Run Antidoc — Windows Container
+
+# Generates project documentation with Antidoc (Wovalab) inside the custom CI
+# worker image, publishes it to the caller's Pages, and posts the "CI / Antidoc"
+# commit status so the dashboard's Antidoc column shows the result.
+#
+# Antidoc is baked into the worker image as a VIPM package (Configure ->
+# "Use Antidoc"); it runs through g-cli headlessly. Doc generation is heavier than
+# the per-VI checks and renders diagrams via a Kroki server at run time, so this
+# does NOT auto-run on every pull request: it runs on pushes to the default branch
+# and on demand (the dashboard's per-commit "Run" button, or workflow_dispatch).
 
 on:
-  pull_request:
-    paths:
-      - '**.vi'
-      - '**.ctl'
-      - '**.lvproj'
-      - '**.lvlib'
-      - '**.lvclass'
-      - '!.github/**'
   push:
     branches: [main]
     paths:
@@ -17,22 +19,18 @@ on:
       - '**.lvproj'
       - '**.lvlib'
       - '**.lvclass'
-      - '!.github/**'
   workflow_dispatch:
     inputs:
       commit_sha:
-        description: 'Commit SHA to analyze (leave blank for current HEAD)'
+        description: 'Commit SHA to document (leave blank for current HEAD)'
         required: false
         default: ''
 
 env:
   # Custom CI image (built by build-labview-image.yml). GHCR repository names MUST be
-  # lowercase, but github.event.repository.name preserves the repo's original case
-  # (e.g. "Extensible-Config-Dialog"), which `docker pull` rejects ("repository name
-  # must be lowercase") — so no worker ever ran and the dashboard's Win Worker column
-  # stayed empty. The image ref is therefore resolved + lowercased at runtime by the
-  # "Resolve container image name" step below (-> $GITHUB_ENV); declared empty here so
-  # it is always a defined key. Override with vars.LABVIEW_IMAGE_NAME / LABVIEW_VERSION.
+  # lowercase, but github.event.repository.name preserves the repo's original case,
+  # which docker pull rejects — so the image ref is resolved + lowercased at runtime
+  # by "Resolve container image name". Declared empty here so the key always exists.
   LABVIEW_CONTAINER_IMAGE: ''
   PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
 
@@ -42,18 +40,15 @@ permissions:
   statuses: write
   packages: read
 
-# Serialize report deploys to gh-pages. peaceiris/actions-gh-pages clones, commits,
-# and pushes the branch; two report jobs pushing at once make the loser's push bounce
-# with "! [rejected] (fetch first)", so its report never deploys (dashboard 404).
-# A shared group across the report-deploy workflows (mass compile + VI Analyzer)
-# makes them queue instead of racing. cancel-in-progress:false so a queued run still
-# publishes rather than being dropped.
+# Serialize report deploys to gh-pages with the other report-deploy workflows
+# (mass compile + VI Analyzer) so concurrent pushes queue instead of racing and
+# bouncing each other's deploy.
 concurrency:
   group: report-pages-deploy
   cancel-in-progress: false
 
 jobs:
-  vi-analyzer:
+  antidoc:
     runs-on: windows-2022   # windows-latest = Server 2025, broken Docker daemon
 
     steps:
@@ -80,7 +75,7 @@ jobs:
             -H "Authorization: token $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
-            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"VI Analyzer in progress\",\"context\":\"CI / VI Analyzer\"}"
+            -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"Antidoc in progress\",\"context\":\"CI / Antidoc\"}"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -95,13 +90,11 @@ jobs:
           git fetch --no-tags origin main
           git checkout FETCH_HEAD -- .github/labview .github/workflows
 
-      # GHCR rejects upper-case repository names. The Configure dialog writes the
-      # selected container tag to config.container.use in .github/labview-ci.yml
-      # (default "latest"); when present, this revision is analyzed inside that tag
-      # of the project's custom worker image, so the project's baked VIPC
-      # dependencies are available. When absent we fall back to the version tag
-      # (the original behavior). Runs after checkout so it can read the revision's
-      # own config.
+      # GHCR rejects upper-case repository names. config.container.actions.antidoc
+      # wins, then the project-wide config.container.use; with neither set Antidoc
+      # defaults to the custom worker image at the version tag (it needs the baked
+      # Antidoc VIPC). "base" forces the bare NI image; "latest"/"<tag>" select that
+      # tag of the custom worker image.
       - name: Resolve container image name
         shell: bash
         env:
@@ -113,12 +106,7 @@ jobs:
           name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
           name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
           custom="ghcr.io/${owner}/${name}"
-          # Per-action container selection. config.container.actions.<id> wins, then
-          # the project-wide config.container.use. With neither set VI Analyzer keeps
-          # its default (the custom image at the version tag) since the full test set
-          # needs the custom image. "base" forces the bare NI image for this action;
-          # "latest"/"<tag>" select that tag of the custom worker image.
-          ACTION_ID="vi-analyzer"
+          ACTION_ID="antidoc"
           CFG=.github/labview-ci.yml
           sel=""
           if [ -f "$CFG" ]; then
@@ -173,12 +161,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Ordering: if this push changed the worker image inputs (a .vipc, the
-      # Dockerfile, or the VIPM assets) then "Build LabVIEW CI Image" is
-      # rebuilding the worker for this same commit. Wait for that build to finish
-      # before pulling, so analysis runs on the freshly-built worker instead of a
-      # stale one. Bounded and best-effort — it never blocks CI indefinitely, and
-      # does nothing when no worker-affecting file changed.
+      # If this push changed the worker image inputs (a .vipc, the Dockerfile, or
+      # the VIPM assets — e.g. enabling Antidoc), wait for "Build LabVIEW CI Image"
+      # to finish for this commit so docs are generated on the freshly-built worker
+      # that actually contains Antidoc. Bounded and best-effort.
       - name: Wait for worker image build
         shell: bash
         env:
@@ -222,43 +208,20 @@ jobs:
         run: docker pull $Env:LABVIEW_CONTAINER_IMAGE
         continue-on-error: true
 
-      # Read the worker version stamped into the pulled image so the dashboard can
-      # link this revision to exactly the worker that analyzed it.
-      - name: Read worker version
-        id: worker
+      - name: Generate documentation inside container
         if: steps.pull.outcome == 'success'
         shell: powershell
-        run: |
-          # Best-effort telemetry: read the worker-version label baked into the image
-          # so the dashboard can link this revision to its worker manifest. Parse the
-          # inspect JSON with PowerShell instead of a `docker inspect --format` Go
-          # template -- Windows PowerShell 5.1 mangles the template's embedded double
-          # quotes, which made the command fail (empty result + non-zero exit) and took
-          # the whole job down with it. This step must NEVER fail CI, hence `exit 0`.
-          $img = $Env:LABVIEW_CONTAINER_IMAGE
-          $wv = ''
-          try {
-            $info = docker inspect $img 2>$null | ConvertFrom-Json
-            if ($info) { $wv = [string]$info[0].Config.Labels.'com.cotc.ci-worker.version' }
-          } catch {}
-          if (-not $wv -or $wv -eq '<no value>') { $wv = '' }
-          "version=$wv" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          Write-Host "Worker version: $wv"
-          exit 0
-
-      - name: Run VI Analyzer inside container
-        if: steps.pull.outcome == 'success'
-        shell: powershell
-        id: analyze
+        id: antidoc
         run: |
           docker run --rm `
             -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+            -e "GITHUB_SHA=${{ steps.sha.outputs.sha }}" `
             -v "${{ github.workspace }}:C:\workspace" `
             $Env:LABVIEW_CONTAINER_IMAGE `
             powershell -NonInteractive -ExecutionPolicy Bypass `
-              -File "C:\workspace\.github\labview\run-vi-analyzer.ps1" `
+              -File "C:\workspace\.github\labview\run-antidoc.ps1" `
               -WorkspaceRoot  "C:\workspace" `
-              -ReportDir      "C:\workspace\ci-out\vi-analyzer" `
+              -ReportDir      "C:\workspace\ci-out\antidoc" `
               -LabVIEWPath    "C:\Program Files\National Instruments\LabVIEW ${{ vars.LABVIEW_VERSION || '2026' }}\LabVIEW.exe"
         continue-on-error: true
 
@@ -266,27 +229,23 @@ jobs:
         id: report
         shell: bash
         run: |
-          if [ -f "${{ github.workspace }}/ci-out/vi-analyzer/index.html" ]; then
+          if [ -f "${{ github.workspace }}/ci-out/antidoc/index.html" ]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build friendly report (parse native HTML + join snapshots)
+      - name: Build friendly Antidoc report
         if: steps.report.outputs.exists == 'true'
         shell: bash
-        continue-on-error: true   # a formatting hiccup must never block deploying the native report
+        continue-on-error: true   # a formatting hiccup must never block deploying the raw docs
         run: |
-          # Transform the dense native VI Analyzer report into a navigable one:
-          # keeps the original as raw.html, writes summary.json, and replaces
-          # index.html with a grouped/filterable report whose per-VI snapshots are
-          # resolved client-side from the VI Browser gallery (vi-snapshots/<sha>/).
-          REPORT_DIR="${{ github.workspace }}/ci-out/vi-analyzer"
-          python .github/labview/build-analyzer-report.py \
-            --in        "$REPORT_DIR/index.html" \
+          REPORT_DIR="${{ github.workspace }}/ci-out/antidoc"
+          python .github/labview/build-antidoc-report.py \
+            --in        "$REPORT_DIR" \
             --out       "$REPORT_DIR" \
-            --sha       "${{ steps.sha.outputs.sha }}" \
             --platform  windows \
+            --sha       "${{ steps.sha.outputs.sha }}" \
             --repo      "${{ github.repository }}" \
             --pages-url "${{ env.PAGES_URL }}" \
             --commit-msg "$(git log -1 --pretty=%s   ${{ steps.sha.outputs.sha }})" \
@@ -297,19 +256,14 @@ jobs:
         if: steps.report.outputs.exists == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: vi-analyzer-report-${{ steps.sha.outputs.sha }}
-          path: ${{ github.workspace }}/ci-out/vi-analyzer/
+          name: antidoc-report-${{ steps.sha.outputs.sha }}
+          path: ${{ github.workspace }}/ci-out/antidoc/
           if-no-files-found: warn
 
       - name: Enable Git long paths (Windows MAX_PATH workaround)
         if: steps.report.outputs.exists == 'true'
         shell: bash
         run: |
-          # peaceiris/actions-gh-pages clones the whole gh-pages branch on the
-          # Windows runner. That tree now holds deeply-nested VIDiff report paths
-          # that exceed Windows' 260-char MAX_PATH, so the clone checkout dies with
-          # "Filename too long" and the report never deploys (dashboard 404).
-          # Long-path support lets Git use extended-length paths and succeed.
           git config --global core.longpaths true
           git config --system core.longpaths true || true
 
@@ -318,8 +272,8 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ${{ github.workspace }}/ci-out/vi-analyzer
-          destination_dir: vi-analyzer/${{ steps.sha.outputs.sha }}
+          publish_dir: ${{ github.workspace }}/ci-out/antidoc
+          destination_dir: antidoc/${{ steps.sha.outputs.sha }}
           keep_files: true
 
       - name: Post commit status
@@ -329,11 +283,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ steps.report.outputs.exists }}" = "true" ]; then
-            REPORT_URL="${{ env.PAGES_URL }}/vi-analyzer/${{ steps.sha.outputs.sha }}/index.html"
+            URL="${{ env.PAGES_URL }}/antidoc/${{ steps.sha.outputs.sha }}/index.html"
           else
-            REPORT_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           fi
-          if [ "${{ steps.pull.outcome }}" = "success" ] && [ "${{ steps.analyze.outcome }}" = "success" ]; then
+          if [ "${{ steps.pull.outcome }}" = "success" ] && [ "${{ steps.antidoc.outcome }}" = "success" ]; then
             STATE="success"
           else
             STATE="failure"
@@ -342,24 +296,4 @@ jobs:
             -H "Authorization: token $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
-            -d "{\"state\":\"$STATE\",\"target_url\":\"$REPORT_URL\",\"description\":\"VI Analyzer $STATE\",\"context\":\"CI / VI Analyzer\"}"
-
-      # Surface which worker ran this revision as its own commit status; the
-      # dashboard renders it as the "Win Worker" column linking to the manifest.
-      - name: Post worker version status
-        if: always() && steps.pull.outcome == 'success' && steps.worker.outputs.version != ''
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          WV="${{ steps.worker.outputs.version }}"
-          URL="${{ env.PAGES_URL }}/workers/windows/${WV}/manifest.html"
-          curl -s -X POST \
-            -H "Authorization: token $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ steps.sha.outputs.sha }}" \
-            -d "{\"state\":\"success\",\"target_url\":\"$URL\",\"description\":\"$WV\",\"context\":\"CI / Worker (windows)\"}"
-
-      - name: Fail the job if analysis failed
-        if: always() && (steps.pull.outcome != 'success' || steps.analyze.outcome != 'success')
-        run: exit 1
+            -d "{\"state\":\"$STATE\",\"target_url\":\"$URL\",\"description\":\"Antidoc $STATE\",\"context\":\"CI / Antidoc\"}"

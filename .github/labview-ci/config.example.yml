@@ -15,7 +15,7 @@ schemaVersion: 1
 
 # Where the tooling was installed from. Used by `install.py` for re-runs/upgrades.
 source:
-  repo: elijah286/challenge-of-champions
+  repo: elijah286/LabVIEW-CI-with-Containers
   ref: main
 
 config:
