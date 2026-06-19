@@ -33,20 +33,40 @@
     a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
     .nav{margin-bottom:16px;font-size:.9em}
     .nav a{margin-right:16px;color:var(--link)}
-    .controls{margin:0 0 12px;display:flex;align-items:center;gap:8px;color:var(--fg-muted);font-size:.85em}
+    .controls{margin:0 0 12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:var(--fg-muted);font-size:.85em}
     .controls input{margin:0;accent-color:var(--link)}
+    .cidash-check{display:inline-flex;align-items:center;gap:6px}
+    /* Column-visibility menu (standard "Columns" dropdown of checkboxes). */
+    .cidash-colmenu{position:relative;display:inline-block}
+    .cidash-colbtn{background:var(--surface);border:1px solid var(--border);color:var(--fg);padding:5px 11px;border-radius:6px;cursor:pointer;font-size:1em;line-height:1.2;display:inline-flex;align-items:center;gap:6px}
+    .cidash-colbtn:hover{background:var(--hover)}
+    .cidash-colpanel{position:absolute;top:calc(100% + 6px);left:0;z-index:120;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:6px}
+    .cidash-colpanel[hidden]{display:none}
+    .cidash-colpanel .hd{font-size:.72em;color:var(--fg-muted);padding:4px 8px 6px;text-transform:uppercase;letter-spacing:.05em}
+    .cidash-colopt{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;cursor:pointer;color:var(--fg);white-space:nowrap;font-size:.95em}
+    .cidash-colopt:hover{background:var(--hover)}
+    .cidash-colopt input{margin:0;accent-color:var(--link)}
     .run-badge{display:inline-flex;align-items:center;background:#1f6feb;color:#fff;padding:2px 8px;border-radius:4px;font-size:.75em;font-weight:600}
     .run-badge a:hover{text-decoration:underline}
     /* Optimistic "just queued from this browser" cue: a dashed ring distinguishes
        a client-side queued badge from a server-confirmed running one. */
     .run-badge.cidash-queued{outline:1px dashed rgba(255,255,255,.6);outline-offset:1px}
+    /* A run confirmed FAILED on GitHub: a sticky red badge (no spinner, no dashed
+       "optimistic" ring) so an error shows instead of the cell silently reverting. */
+    .run-badge.cidash-failed{background:#da3633;outline:none}
+    /* The red "bang" inside a failed badge: a bold white exclamation on the red
+       field, so a failed cell reads as a clickable error at a glance. */
+    .run-badge.cidash-failed .cidash-bang{font-weight:800;font-size:1.15em;line-height:1;margin-right:5px}
     .run-spin{width:9px;height:9px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;animation:cidash-spin .7s linear infinite}
+    /* The Queued badge places the spinner directly before its label (no flex gap),
+       so give the spinner a small right margin to keep the icon off the "Q". */
+    .run-badge.cidash-queued .run-spin{margin-right:5px}
     @keyframes cidash-spin{to{transform:rotate(360deg)}}
-    .cidash-run{display:inline-block;color:var(--fg-muted);font-size:.95em;line-height:1;text-decoration:none;opacity:.5;transition:opacity .12s,color .12s}.cidash-run:hover{opacity:1;color:var(--link);text-decoration:none}tr:hover .cidash-run{opacity:.85}.cidash-btn{border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-size:.85em;font-weight:600;cursor:pointer;font-family:inherit}.cidash-go{background:#238636;color:#fff;border-color:transparent}.cidash-go:hover{background:#2ea043}.cidash-go:disabled{opacity:.6;cursor:default}.cidash-ghost{background:var(--bg);color:var(--fg)}.cidash-ghost:hover{border-color:var(--link)}.cidash-danger{background:#da3633;color:#fff;border-color:transparent}.cidash-danger:hover{background:#f85149}.cidash-danger:disabled{opacity:.6;cursor:default}.cidash-queued{cursor:pointer}.cidash-queued:hover{filter:brightness(1.13)}.cidash-queued:focus-visible{outline:2px solid var(--link);outline-offset:1px}.cidash-qpos{margin-left:5px;font-weight:700;opacity:.92;font-variant-numeric:tabular-nums}.cidash-qpos:empty{display:none}.lvci-backfill{border:1px solid var(--border);border-left:3px solid #1f6feb;background:var(--surface);border-radius:10px;padding:14px 16px;margin:0 0 18px}.lvci-bf-main{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.lvci-bf-icon{font-size:1.5em;line-height:1}.lvci-bf-text{flex:1 1 320px;min-width:240px;font-size:.9em;line-height:1.5}.lvci-bf-text strong{display:block;font-size:1.03em;margin-bottom:2px}.lvci-bf-text span{color:var(--fg-muted)}.lvci-bf-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.lvci-bf-tok{margin-top:12px;border-top:1px solid var(--border);padding-top:12px;font-size:.84em;color:var(--fg-muted)}.lvci-bf-status{font-size:.82em;margin-top:10px}.lvci-bf-status:empty{display:none}
+    .cidash-run{display:inline-block;color:var(--fg-muted);font-size:.95em;line-height:1;text-decoration:none;opacity:.5;transition:opacity .12s,color .12s}.cidash-run:hover{opacity:1;color:var(--link);text-decoration:none}tr:hover .cidash-run{opacity:.85}.snap-glyph{display:inline-flex;align-items:center;color:var(--fg-muted);opacity:.6;text-decoration:none;flex:0 0 auto;transition:opacity .12s,color .12s}.snap-glyph:hover{opacity:1;color:var(--link)}tr:hover .snap-glyph{opacity:.85}.cidash-btn{border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-size:.85em;font-weight:600;cursor:pointer;font-family:inherit}.cidash-go{background:#238636;color:#fff;border-color:transparent}.cidash-go:hover{background:#2ea043}.cidash-go:disabled{opacity:.6;cursor:default}.cidash-ghost{background:var(--bg);color:var(--fg)}.cidash-ghost:hover{border-color:var(--link)}.cidash-danger{background:#da3633;color:#fff;border-color:transparent}.cidash-danger:hover{background:#f85149}.cidash-danger:disabled{opacity:.6;cursor:default}.cidash-queued{cursor:pointer}.cidash-queued:hover{filter:brightness(1.13)}.cidash-queued:focus-visible{outline:2px solid var(--link);outline-offset:1px}.cidash-qpos{margin-left:5px;font-weight:700;opacity:.92;font-variant-numeric:tabular-nums}.cidash-qpos:empty{display:none}.lvci-backfill{border:1px solid var(--border);border-left:3px solid #1f6feb;background:var(--surface);border-radius:10px;padding:14px 16px;margin:0 0 18px}.lvci-bf-main{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.lvci-bf-icon{font-size:1.5em;line-height:1}.lvci-bf-text{flex:1 1 320px;min-width:240px;font-size:.9em;line-height:1.5}.lvci-bf-text strong{display:block;font-size:1.03em;margin-bottom:2px}.lvci-bf-text span{color:var(--fg-muted)}.lvci-bf-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.lvci-bf-tok{margin-top:12px;border-top:1px solid var(--border);padding-top:12px;font-size:.84em;color:var(--fg-muted)}.lvci-bf-status{font-size:.82em;margin-top:10px}.lvci-bf-status:empty{display:none}.lvci-bf-note{display:block;margin-top:8px}.lvci-bf-info{margin-top:8px;font-size:.92em}.lvci-bf-info>summary{display:inline-block;cursor:pointer;color:var(--link);list-style:none;font-weight:600}.lvci-bf-info>summary::-webkit-details-marker{display:none}.lvci-bf-info>summary:hover{text-decoration:underline}.lvci-bf-info[open]>summary{margin-bottom:8px}.lvci-bf-infobody{color:var(--fg-muted);line-height:1.55;border-left:2px solid #1f6feb;padding-left:12px}.lvci-bf-cfg{display:inline-block;margin-top:8px;color:var(--link);font-weight:600}.cidash-hist-sec{margin:0 0 16px}.cidash-hist-lbl{display:block;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--fg-muted);margin:0 0 7px}.cidash-hist-scope{display:flex;flex-direction:column;gap:9px}.cidash-hist-radio{display:flex;align-items:center;gap:9px;font-size:.9em;cursor:pointer;user-select:none}.cidash-hist-radio input{accent-color:var(--link);width:15px;height:15px;margin:0;flex:0 0 auto}.cidash-hist-radio .sub{color:var(--fg-muted);font-size:.88em}.cidash-hist-rangerow{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:2px 0 4px 25px}.cidash-hist-rangerow label{display:flex;align-items:center;gap:7px;font-size:.84em;color:var(--fg-muted)}#cidash-hist-from,#cidash-hist-to{padding:7px 9px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.85em;font-family:inherit;max-width:248px}.cidash-hist-spectools{display:flex;gap:14px;margin:2px 0 6px 25px;font-size:.8em}.cidash-hist-spectools a{color:var(--link);cursor:pointer}.cidash-hist-spectools a:hover{text-decoration:underline}.cidash-hist-speclist{display:flex;flex-direction:column;gap:1px;max-height:210px;overflow:auto;margin-left:25px;padding:5px;border:1px solid var(--border);border-radius:7px;background:var(--bg)}.cidash-hist-specitem{display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:5px;font-size:.84em;cursor:pointer;min-width:0}.cidash-hist-specitem:hover{background:var(--surface)}.cidash-hist-specitem input{accent-color:var(--link);width:14px;height:14px;margin:0;flex:0 0 auto}.cidash-hist-specitem .sh{font-family:ui-monospace,Menlo,monospace;color:var(--fg-muted);flex:0 0 auto}.cidash-hist-specitem .ms{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}.cidash-hist-acts{display:flex;flex-direction:column;gap:7px}.cidash-hist-act{display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid var(--border);border-radius:7px;background:var(--bg);cursor:pointer;font-size:.88em;user-select:none}.cidash-hist-act:hover{border-color:var(--link)}.cidash-hist-act input{accent-color:var(--link);width:15px;height:15px;margin:0;flex:0 0 auto}.cidash-hist-act .cidash-hist-actsub{color:var(--fg-muted);font-size:.85em;margin-left:auto;text-align:right}.cidash-hist-act.disabled{opacity:.45;cursor:default}.cidash-hist-act.disabled:hover{border-color:var(--border)}.cidash-hist-toggle{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1px solid var(--border);border-left:3px solid #1f6feb;border-radius:8px;background:var(--surface);cursor:pointer;font-size:.88em;user-select:none}.cidash-hist-toggle input{accent-color:var(--link);width:15px;height:15px;margin:2px 0 0;flex:0 0 auto}.cidash-hist-toggle .cidash-hist-tmain{font-weight:600}.cidash-hist-toggle .cidash-hist-tsub{color:var(--fg-muted);font-size:.9em;margin-top:2px;font-weight:400}.cidash-hist-summary{font-size:.84em;color:var(--fg-muted);margin:0 0 12px}.cidash-hist-summary b{color:var(--fg)}
   </style>
 </head>
 <body>
-  <script>window.LVCI={context:'dashboard',repo:'elijah286/Extensible-Config-Dialog',pagesUrl:'https://elijah286.github.io/Extensible-Config-Dialog'};</script>
+  <script>window.LVCI={context:'dashboard',repo:'elijah286/Extensible-Config-Dialog',pagesUrl:'https://elijah286.github.io/Extensible-Config-Dialog',isSource:false};</script>
   <script src="lvci-header.js" defer></script>
   <div id="lvci-modal" onclick="if(event.target===this)lvciClose()" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55)">
     <div style="position:absolute;inset:24px;background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,.5)">
@@ -90,9 +110,18 @@
       <div id="cidash-q-body" style="padding:16px"></div>
     </div>
   </div>
+  <div id="cidash-hist-modal" onclick="if(event.target===this)cidashHistClose()" style="display:none;position:fixed;inset:0;z-index:310;background:rgba(0,0,0,.55)">
+    <div role="dialog" aria-modal="true" aria-labelledby="cidash-hist-title" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(600px,calc(100% - 32px));max-height:calc(100% - 48px);overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 48px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
+        <strong id="cidash-hist-title" style="font-size:.95em">Populate dashboard history</strong>
+        <button onclick="cidashHistClose()" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.82em">&#10005; Close</button>
+      </div>
+      <div id="cidash-hist-body" style="padding:16px"></div>
+    </div>
+  </div>
   <script>
   (function(){
-    var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "run-vi-analyzer-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "head"}}}}};
+    var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "run-vi-analyzer-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "backfill"}}}}, "unit-tests": {"label": "Unit Tests", "platforms": {"windows": {"wf": "unit-tests-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "antidoc": {"label": "Antidoc", "platforms": {"windows": {"wf": "run-antidoc-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}}}};
     var REPO = "elijah286/Extensible-Config-Dialog";
     var BRANCH = "master";
     var TOK_KEY = "lvci_dispatch_token";
@@ -158,7 +187,8 @@
     // survives the page's auto-refresh until the real status takes over. Entries
     // self-expire so a run that never reports a status can't wedge a fake spinner.
     var QKEY = "lvci_queued_runs";
-    var QTTL = 20*60*1000;   // forget an unconfirmed entry after 20 min
+    var QTTL = 20*60*1000;   // anti-phantom: drop an entry we could NEVER tie to a real run (no run id) after 20 min
+    var QDONE = 5*60*1000;   // after a run finishes OK, keep the cell up to this long while the server result rebuilds
     var QFAST = 60*1000;     // re-check this often while a queued run is unconfirmed
     var qReloadArmed = false;
     var qCapturing = {};     // key -> [callbacks] while a run-id lookup is in flight
@@ -176,6 +206,17 @@
         + 'title="Queued from this browser \u2014 click to view it on GitHub or cancel it">'
         + '<span class="run-spin"></span>Queued<span class="cidash-qpos"></span></span>';
     }
+    function qPaintFailed(td, c, sha){
+      // A run we CONFIRMED failed on GitHub: replace the spinner with a sticky red
+      // "bang" badge (same button affordance as Queued, so clicking opens the
+      // manage dialog to view the failed run or dismiss it). Never reverts on its own.
+      if(!td) return;
+      td.classList.add('cidash-queued-cell');
+      td.setAttribute('data-qcap', c); td.setAttribute('data-qsha', sha);
+      td.innerHTML = '<span class="run-badge cidash-queued cidash-failed" role="button" tabindex="0" '
+        + 'title="This run failed \u2014 click to see the error on GitHub or dismiss it">'
+        + '<span class="cidash-bang" aria-hidden="true">!</span>Failed</span>';
+    }
     function qArmReload(){
       // While a queued run is still unconfirmed, reload sooner than the lazy
       // meta-refresh so the real status surfaces promptly (mirrors the server's
@@ -184,10 +225,16 @@
       setTimeout(function(){ location.reload(); }, QFAST);
     }
     function qLiveEntries(o){
-      // The non-expired queued entries, oldest first — this IS the queue order.
-      var now = Date.now();
+      // The still-queued entries, oldest first - this IS the queue order. A failed
+      // or finished entry is terminal so it is no longer "in line". An entry stays
+      // while we can still reconcile its real run (a captured run id + a token),
+      // while inside the optimistic window, OR while qSync still sees a run active
+      // (e.activeAt), so a run held behind GitHub's concurrency cap keeps its place.
+      var now = Date.now(); var tok = getTok();
       return Object.keys(o)
-        .filter(function(k){ var e=o[k]; return e && (now-(e.ts||0))<=QTTL; })
+        .filter(function(k){ var e=o[k]; if(!e || e.failed || e.done) return false;
+          var hasRun = (e.runs||[]).some(function(r){ return r && r.id; });
+          return (hasRun && tok) || (now-(e.ts||0))<=QTTL || (e.activeAt && (now-e.activeAt)<=QTTL); })
         .map(function(k){ return { key:k, ts:o[k].ts||0 }; })
         .sort(function(a,b){ return a.ts - b.ts; });
     }
@@ -205,15 +252,22 @@
       });
     }
     function markQueued(c, sha, plats, parent, ts){
-      var o = qLoad();
-      o[c+'|'+sha] = { ts: ts || Date.now(), plats: plats||[], parent: parent||'', short: (sha||'').slice(0,7), runs: [] };
-      qSave(o);
-      var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
-      var td = a ? (a.closest ? a.closest('td') : null)
-                 : document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
-      qPaint(td, c, sha);
-      qArmReload();
-      qRenumber();
+      try {
+        var o = qLoad(); var key = c+'|'+sha; var prev = o[key] || {};
+        // Re-marking a cell (e.g. once its dispatch confirms which platforms took)
+        // must NOT wipe a run id already captured for it, so carry runs/ts forward.
+        o[key] = { ts: ts || prev.ts || Date.now(), plats: plats || prev.plats || [], parent: parent || prev.parent || '',
+                   short: (sha||'').slice(0,7), runs: prev.runs || [] };
+        qSave(o);
+      } catch(e){}
+      try {
+        var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
+        var td = a ? (a.closest ? a.closest('td') : null)
+                   : document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
+        qPaint(td, c, sha);
+        qArmReload();
+        qRenumber();
+      } catch(e){}
     }
     function qForget(c, sha){
       // Drop the optimistic entry and restore the cell's run glyph so the cell is
@@ -306,32 +360,139 @@
         else { done(); }
       });
     }
+    function captureSnapshotRun(t0, attempt){
+      // The "Populate history" backfill is ONE snapshots run that walks the whole
+      // history, so every "snapshots|<sha>" entry shares it. captureRuns' per-cell
+      // claim would hand the single run to just the first sha, so look it up once
+      // and write it into EVERY snapshot entry still missing a run id.
+      var tok = getTok(); if(!tok) return;
+      t0 = t0 || Date.now(); attempt = attempt || 1;
+      fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent('vi-snapshots.yml')+'/runs?event=workflow_dispatch&per_page=20',
+        { headers:{ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' } })
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(j){
+          var runs = (j && j.workflow_runs) || [];
+          var run = runs.filter(function(rn){
+            return Date.parse(rn.created_at || rn.run_started_at || 0) >= (t0 - 12000);
+          }).sort(function(a,b){ return Date.parse(b.created_at) - Date.parse(a.created_at); })[0];
+          if(!run){ if(attempt < 4){ setTimeout(function(){ captureSnapshotRun(t0, attempt+1); }, 2500); } return; }
+          var o = qLoad(); var changed = false;
+          Object.keys(o).forEach(function(key){
+            if(key.indexOf('snapshots|') !== 0) return;
+            var e = o[key]; if(!e || (e.runs||[]).length) return;
+            e.runs = [{ wf:'vi-snapshots.yml', plat:'all', id:run.id, url:run.html_url, status:run.status }];
+            changed = true;
+          });
+          if(changed) qSave(o);
+        }).catch(function(){});
+    }
+    function qSync(){
+      // Reconcile the optimistic "Queued" overlays against the REAL run status on
+      // GitHub so a cell never silently reverts to its run glyph: a run still
+      // queued/running keeps its badge alive (so a run held behind GitHub's
+      // concurrency cap keeps its badge for as long as it takes), a run that
+      // FAILED becomes a sticky red "bang" badge (an early failure may never post
+      // a commit status for the server to render), and a finished-OK run is marked
+      // done so the server result can take over. Runs are matched by their captured
+      // id and looked up directly when too old to appear in the recent activity
+      // list, so this still works when you come back to the dashboard much later.
+      var tok = getTok(); if(!tok) return;
+      var o = qLoad();
+      var live = Object.keys(o).filter(function(k){ return o[k] && !o[k].failed && !o[k].done; });
+      if(!live.length) return;
+      var snapTs = 0, snapNeedsId = false;
+      live.forEach(function(k){
+        if(k.indexOf('snapshots|')===0){ var ts=o[k].ts||0; if(!snapTs||ts<snapTs) snapTs=ts; if(!((o[k].runs||[]).length)) snapNeedsId=true; }
+      });
+      if(snapNeedsId) captureSnapshotRun(snapTs);
+      live.forEach(function(k){
+        var c = k.slice(0, k.indexOf('|')); var sha = k.slice(k.indexOf('|')+1);
+        if(c!=='snapshots' && !((o[k].runs||[]).length)) captureRuns(c, sha);
+      });
+      // Every run id we still need a verdict on, across all non-terminal entries.
+      var wantIds = {};
+      live.forEach(function(k){ ((o[k]||{}).runs||[]).forEach(function(r){ if(r && r.id) wantIds[r.id]=1; }); });
+      fetch('https://api.github.com/repos/'+REPO+'/actions/runs?per_page=100',
+        { headers:{ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' } })
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(j){
+          var byId = {}; if(j && j.workflow_runs){ j.workflow_runs.forEach(function(run){ byId[run.id] = run; }); }
+          // A run from an earlier session can be too old for the recent list; fetch
+          // those directly by id so a long-finished (or still-queued) run is still
+          // reconciled. Capped so a big backlog can't fan out into many requests.
+          var miss = Object.keys(wantIds).filter(function(id){ return !byId[id]; }).slice(0, 12);
+          return Promise.all(miss.map(function(id){
+            return fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+id,
+              { headers:{ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' } })
+              .then(function(r){ return r.ok ? r.json() : null; })
+              .then(function(run){ if(run && run.id) byId[run.id] = run; })
+              .catch(function(){});
+          })).then(function(){ return byId; });
+        })
+        .then(function(byId){
+          if(!byId) return;
+          var o2 = qLoad(); var changed = false; var now = Date.now();
+          var FAIL = ['failure','timed_out','startup_failure','cancelled'];
+          var ACTIVE = ['queued','in_progress','requested','waiting','pending','action_required'];
+          Object.keys(o2).forEach(function(key){
+            var e = o2[key]; if(!e || e.failed || e.done) return;
+            var ids = (e.runs||[]).map(function(r){ return r.id; }).filter(Boolean);
+            if(!ids.length) return;
+            var anyActive = false, anyFail = false, allKnown = true, allDone = true, failUrl = '';
+            ids.forEach(function(id){
+              var run = byId[id]; if(!run){ allKnown = false; allDone = false; return; }
+              if(ACTIVE.indexOf(run.status) >= 0){ anyActive = true; allDone = false; }
+              else if(run.status === 'completed'){ if(FAIL.indexOf(run.conclusion) >= 0){ anyFail = true; failUrl = failUrl || run.html_url || ''; } }
+              else { allDone = false; }
+            });
+            if(anyActive){ e.activeAt = now; changed = true; }
+            else if(anyFail && allKnown){ e.failed = { url: failUrl }; changed = true; }
+            else if(allKnown && allDone){ e.done = now; changed = true; }
+          });
+          if(changed){ qSave(o2); applyQueued(); }
+        }).catch(function(){});
+    }
     function applyQueued(){
-      // Re-apply remembered queued badges after each (auto-)reload. An entry is
-      // dropped once the server renders a real status for that cell (its run glyph
-      // is gone) or once it ages out — so the overlay is a short, self-clearing
-      // bridge, never a permanent fake.
-      var o = qLoad(); var now = Date.now(); var changed = false; var live = 0;
+      // Re-apply remembered queued badges after each (auto-)reload. A confirmed
+      // failure stays a sticky red "bang" badge; a confirmed-finished run hands off
+      // to the server result; an entry whose run we can still reconcile (a captured
+      // run id + a token) is kept alive until it actually finishes, even past the
+      // optimistic window, so a run queued behind GitHub's concurrency cap never
+      // silently vanishes. Entries we could never tie to a real run still age out.
+      var o = qLoad(); var now = Date.now(); var changed = false; var live = 0; var tok = getTok();
       Object.keys(o).forEach(function(key){
         var e = o[key]; var i = key.indexOf('|'); var c = key.slice(0,i); var sha = key.slice(i+1);
-        if(!e || (now - (e.ts||0)) > QTTL){ delete o[key]; changed = true; return; }
+        if(!e){ delete o[key]; changed = true; return; }
         var painted = document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
         var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
+        var rc = document.querySelector('td.cidash-cap-cell[data-cap="'+c+'"][data-sha="'+sha+'"]');
+        if(e.failed){
+          if(rc){
+            var frts = Date.parse(rc.getAttribute('data-ts')||'') || 0;
+            if(frts && frts > (e.ts||0)){ delete o[key]; changed = true; return; }
+          }
+          var ftd = painted || (a ? a.closest('td') : null) || rc;
+          if(ftd){ if(rc && !e.orig){ e.orig = rc.innerHTML; changed = true; } qPaintFailed(ftd, c, sha); }
+          return;
+        }
+        if(e.done){
+          // The run finished OK - hand off to the server-rendered result: forget as
+          // soon as a real result cell is present, or after a short grace for the
+          // Pages site to rebuild; until then it keeps showing the spinner below.
+          if(rc){ delete o[key]; changed = true; return; }
+          if((now - (e.done||0)) > QDONE){ delete o[key]; changed = true; return; }
+        }
+        var hasRun = (e.runs||[]).some(function(r){ return r && r.id; });
+        var alive = (hasRun && tok) || (now - (e.ts||0)) <= QTTL || (e.activeAt && (now - e.activeAt) <= QTTL);
+        if(!alive){ delete o[key]; changed = true; return; }
         if(painted){ live++; }
         else if(a){ qPaint(a.closest('td'), c, sha); live++; }
-        else {
-          // The cell may already hold a RESULT (re-run from the report, not an
-          // empty cell). Overlay "Queued" on it until a NEWER result lands. A
-          // server-side running spinner has no data-cap, so it falls through to
-          // the delete branch below (the server has taken over).
-          var rc = document.querySelector('td.cidash-cap-cell[data-cap="'+c+'"][data-sha="'+sha+'"]');
-          if(rc){
-            var rts = Date.parse(rc.getAttribute('data-ts')||'') || 0;
-            if(rts && rts > (e.ts||0)){ delete o[key]; changed = true; }   // re-run finished
-            else { if(!e.orig){ e.orig = rc.innerHTML; changed = true; } qPaint(rc, c, sha); live++; }
-          }
-          else { delete o[key]; changed = true; }   // real status / spinner took over
+        else if(rc){
+          var rts = Date.parse(rc.getAttribute('data-ts')||'') || 0;
+          if(rts && rts > (e.ts||0)){ delete o[key]; changed = true; }
+          else { if(!e.orig){ e.orig = rc.innerHTML; changed = true; } qPaint(rc, c, sha); live++; }
         }
+        else { delete o[key]; changed = true; }
       });
       if(changed) qSave(o);
       if(live > 0) qArmReload();
@@ -478,27 +639,31 @@
       var c = qState.cap, sha = qState.sha; if(!c) return;
       var o = qLoad(); var entry = o[c+'|'+sha]; var def = RT[c];
       if(!entry || !def){ cidashQClose(); return; }
+      var failed = !!entry.failed;
       var plats = (entry.plats||[]).map(cap).join(', ');
       var short = entry.short || sha.slice(0,7);
       var live = qLiveEntries(o); var pos = 0;
       live.forEach(function(en, idx){ if(en.key===c+'|'+sha) pos = idx+1; });
       var h = '';
-      h += '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.85em"><strong>'+esc(def.label)+'</strong> for commit <code style="font-family:monospace">'+esc(short)+'</code>'+(plats?' \u00b7 '+esc(plats):'')+'.</p>';
-      if(live.length>1 && pos){ h += '<p style="margin:0 0 12px;font-size:.85em">Place in queue: <strong>#'+pos+'</strong> <span style="color:var(--fg-muted)">of '+live.length+' queued from this browser (oldest first).</span></p>'; }
+      h += '<p style="margin:0 0 12px;color:var(--fg-muted);font-size:.85em"><strong>'+esc(def.label)+'</strong> for commit <code style="font-family:monospace">'+esc(short)+'</code>'+(plats?' \u00b7 '+esc(plats):'')+(failed?' \u2014 <span style="color:#f85149">this run failed</span>.':'.')+'</p>';
+      if(!failed && live.length>1 && pos){ h += '<p style="margin:0 0 12px;font-size:.85em">Place in queue: <strong>#'+pos+'</strong> <span style="color:var(--fg-muted)">of '+live.length+' queued from this browser (oldest first).</span></p>'; }
       h += '<div id="cidash-q-status" style="font-size:.82em;min-height:1.2em;margin:0 0 12px"></div>';
       h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">';
       h += qViewLinks(c, entry);
-      h += '<button class="cidash-btn cidash-danger" id="cidash-q-cancel">\u2715 Cancel run</button>';
+      if(failed){ h += '<button class="cidash-btn cidash-ghost" id="cidash-q-dismiss">Dismiss</button>'; }
+      else { h += '<button class="cidash-btn cidash-danger" id="cidash-q-cancel">\u2715 Cancel run</button>'; }
       h += '</div>';
-      h += '<p style="color:var(--fg-muted);font-size:.76em;margin:12px 0 0"><strong>Cancel run</strong> stops it on GitHub Actions (uses the same token you queued it with). <strong>View</strong> opens it on GitHub, where you can watch it or stop it manually.</p>';
+      if(failed){ h += '<p style="color:var(--fg-muted);font-size:.76em;margin:12px 0 0"><strong>View</strong> opens the failed run on GitHub to see what went wrong. <strong>Dismiss</strong> clears this badge so you can run it again from the dashboard.</p>'; }
+      else { h += '<p style="color:var(--fg-muted);font-size:.76em;margin:12px 0 0"><strong>Cancel run</strong> stops it on GitHub Actions (uses the same token you queued it with). <strong>View</strong> opens it on GitHub, where you can watch it or stop it manually.</p>'; }
       $("cidash-q-body").innerHTML = h;
       var cb=$("cidash-q-cancel"); if(cb) cb.addEventListener('click', function(){ cancelQueued(c, sha); });
+      var db=$("cidash-q-dismiss"); if(db) db.addEventListener('click', function(){ qForget(c, sha); cidashQClose(); });
     }
     function openQ(c, sha){
       if(!RT[c]) return;
       qState = { cap:c, sha:sha };
       var entry = qLoad()[c+'|'+sha];
-      $("cidash-q-title").textContent = "Queued: " + RT[c].label;
+      $("cidash-q-title").textContent = (entry && entry.failed ? "Failed: " : "Queued: ") + RT[c].label;
       renderQ();
       $("cidash-q-modal").style.display='block';
       document.body.style.overflow='hidden';
@@ -614,13 +779,13 @@
     }
     function bfFill(t, sha, parent){ return String(t).replace(/\{sha\}/g, sha).replace(/\{parent\}/g, parent||''); }
     function bfInputs(p, sha, parent){ var o={}; Object.keys(p.inputs).forEach(function(k){ o[k]=bfFill(p.inputs[k], sha, parent); }); return o; }
-    function bfRunAll(){
-      var cells=bfCells();
-      if(!cells.length){ bfStatus('Nothing left to run \u2014 every revision is queued or already has results.', 'ok'); return; }
-      if(!getTok()){ bfTokPanel(true); bfStatus('Add a token (Actions: Read and write) to queue runs.', 'warn'); var i=document.getElementById('lvci-bf-tok-input'); if(i) i.focus(); return; }
-      bfTokPanel(false);
-      var runBtn=document.getElementById('lvci-bf-run'); var disBtn=document.getElementById('lvci-bf-dismiss');
-      if(runBtn) runBtn.disabled=true; if(disBtn) disBtn.disabled=true;
+    // Shared dispatch engine for BOTH the fresh-install backfill card and the
+    // Populate-history dialog: queue a set of empty run-cells, snapshots as ONE
+    // backfill run (the workflow walks the whole history oldest->newest and dedupes)
+    // and the per-revision activities oldest-first, gently throttled so a long
+    // history doesn't trip GitHub's secondary rate limits. Resolves with an
+    // {ok, err, total} tally; the caller owns its own status line + buttons.
+    function dispatchCells(cells, statusFn){
       var perRev=[]; var snapShas=[]; var sawSnap=false;
       cells.forEach(function(x){
         if(x.cap==='snapshots'){ sawSnap=true; snapShas.push(x.sha); }
@@ -629,21 +794,26 @@
       perRev.sort(function(a,b){ return b.order - a.order; });   // oldest first
       var total=perRev.length + (sawSnap?1:0);
       var t0=Date.now(); var ok=0, err=0, done=0;
-      bfStatus('Queuing '+total+' workflow'+(total>1?'s':'')+'\u2026', null);
+      // Paint EVERY targeted cell as "Queued" up front, in one synchronous pass, so
+      // the whole batch lights up the instant you click - independent of the throttled
+      // dispatch chain below. A dispatch that truly fails then reverts just its own
+      // cell, and a thrown error mid-chain can no longer leave the earlier cells un-queued.
+      if(sawSnap){ snapShas.forEach(function(sha){ markQueued('snapshots', sha, ['all'], '', t0); }); }
+      perRev.forEach(function(x){ var d=RT[x.cap]; if(d) markQueued(x.cap, x.sha, Object.keys(d.platforms), x.parent, t0); });
+      statusFn('Queuing '+total+' workflow'+(total>1?'s':'')+'\u2026', null);
       var chain=Promise.resolve();
       // 1) Snapshots — one backfill run for the whole history (oldest→newest, deduped).
       if(sawSnap){
         chain=chain.then(function(){
           return dispatchOne('vi-snapshots.yml', { mode:'backfill' }).then(function(r){
             done++;
-            if(r.ok){ ok++; snapShas.forEach(function(sha){ markQueued('snapshots', sha, ['all'], '', t0); }); }
-            else { err++; if(r.status===401) clearTok(); }
-            bfStatus('Queuing\u2026 '+done+'/'+total, null);
-          });
+            if(r.ok){ ok++; captureSnapshotRun(t0); }
+            else { err++; if(r.status===401) clearTok(); snapShas.forEach(function(sha){ qForget('snapshots', sha); }); }
+            statusFn('Queuing\u2026 '+done+'/'+total, null);
+          }).catch(function(){ err++; });
         });
       }
-      // 2) Per-revision capabilities, oldest first, gently throttled so a long
-      //    history doesn't trip GitHub's secondary rate limits.
+      // 2) Per-revision capabilities, oldest first, gently throttled.
       perRev.forEach(function(x){
         chain=chain.then(function(){
           var def=RT[x.cap]; if(!def){ return; }
@@ -653,19 +823,29 @@
             done++;
             if(results.some(function(r){return r.status===401;})) clearTok();
             var okPlats=results.filter(function(r){return r.ok;}).map(function(r){return r.plat;});
-            if(okPlats.length){ ok++; markQueued(x.cap, x.sha, okPlats, x.parent, Date.now()); captureRuns(x.cap, x.sha); }
-            else { err++; }
-            bfStatus('Queuing\u2026 '+done+'/'+total, null);
-          }).then(function(){ return new Promise(function(res){ setTimeout(res, 650); }); });
-        });
+            if(okPlats.length){ ok++; markQueued(x.cap, x.sha, okPlats, x.parent, t0); captureRuns(x.cap, x.sha); }
+            else { err++; qForget(x.cap, x.sha); }
+            statusFn('Queuing\u2026 '+done+'/'+total, null);
+          });
+        }).catch(function(){ /* one cell's error never aborts the rest */ })
+          .then(function(){ return new Promise(function(res){ setTimeout(res, 650); }); });
       });
-      chain.then(function(){
+      return chain.then(function(){ return { ok:ok, err:err, total:total }; });
+    }
+    function bfRunAll(){
+      var cells=bfCells();
+      if(!cells.length){ bfStatus('Nothing left to run \u2014 every revision is queued or already has results.', 'ok'); return; }
+      if(!getTok()){ bfTokPanel(true); bfStatus('Add a token (Actions: Read and write) to queue runs.', 'warn'); var i=document.getElementById('lvci-bf-tok-input'); if(i) i.focus(); return; }
+      bfTokPanel(false);
+      var runBtn=document.getElementById('lvci-bf-run'); var disBtn=document.getElementById('lvci-bf-dismiss');
+      if(runBtn) runBtn.disabled=true; if(disBtn) disBtn.disabled=true;
+      dispatchCells(cells, bfStatus).then(function(res){
         if(runBtn) runBtn.disabled=false; if(disBtn) disBtn.disabled=false;
-        if(ok && !err){
-          bfStatus('\u2713 Queued '+ok+' workflow'+(ok>1?'s':'')+', oldest first \u2014 results appear as they finish. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
+        if(res.ok && !res.err){
+          bfStatus('\u2713 Queued '+res.ok+' workflow'+(res.ok>1?'s':'')+', oldest first \u2014 results appear as they finish. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
           bfDismiss();
-        } else if(ok && err){
-          bfStatus('Queued '+ok+', but '+err+' could not be dispatched \u2014 check the token has <strong>Actions: Read and write</strong> on this repo. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'warn');
+        } else if(res.ok && res.err){
+          bfStatus('Queued '+res.ok+', but '+res.err+' could not be dispatched \u2014 check the token has <strong>Actions: Read and write</strong> on this repo. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'warn');
         } else {
           bfStatus('Could not queue runs. The token needs <strong>Actions: Read and write</strong> on <code>'+esc(REPO)+'</code> (runs dispatch on <code>'+esc(BRANCH)+'</code>). <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create or update a token \u2197</a>', 'err');
           bfTokPanel(true);
@@ -674,34 +854,253 @@
     }
     function bfInit(){
       var c=bfCard(); if(!c) return;
-      var run=document.getElementById('lvci-bf-run'); if(run) run.addEventListener('click', bfRunAll);
+      var run=document.getElementById('lvci-bf-run'); if(run) run.addEventListener('click', function(){ histOpen(); });
       var dis=document.getElementById('lvci-bf-dismiss'); if(dis) dis.addEventListener('click', function(){ bfDismiss(); });
       var save=document.getElementById('lvci-bf-tok-save'); if(save) save.addEventListener('click', function(){ var i=document.getElementById('lvci-bf-tok-input'); var v=(i&&i.value||'').trim(); if(!v){ if(i) i.focus(); return; } setTok(v); bfRunAll(); });
       var inp=document.getElementById('lvci-bf-tok-input'); if(inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); var v=(inp.value||'').trim(); if(v){ setTok(v); bfRunAll(); } } });
       var link=document.getElementById('lvci-bf-tok-link'); if(link) link.href=tokenSetupUrl();
+      var cust=document.getElementById('lvci-bf-custom'); if(cust) cust.addEventListener('click', function(e){ e.preventDefault(); histOpen(); });
       bfShow();
     }
+    // ── "Populate dashboard history" dialog ──────────────────────────────
+    // Opened from the header's More menu (window.lvciRunHistory) and the fresh
+    // install card's "Customize…" link. The user chooses where in history to
+    // start, whether to run the lean diff-based pass (VI Snapshots + VIDiff only —
+    // the modified-file visual history) or every activity, and exactly which
+    // activities to queue. Reuses dispatchCells (oldest-first, snapshots as one
+    // backfill) + the same token and optimistic-queued bridge as every other
+    // dispatch on the dashboard.
+    var HIST = [{"sha": "5d92203dcb9e26e63d3f61a123c313cb14d49ebe", "short": "5d92203", "msg": "package spec"}, {"sha": "688fa810950414efe8e44f6be11ed31d33589e5c", "short": "688fa81", "msg": "changed  access scope of get path"}, {"sha": "dc16184ff0f53055cca00b6c644f2c69a9a6f12c", "short": "dc16184", "msg": "Better support for an API"}, {"sha": "f284f1ee1de37bbbde515d887b07b7e56f0bc334", "short": "f284f1e", "msg": "minor improvements"}, {"sha": "4e8d2e03d9d528d354e03833a49998f94411cb38", "short": "4e8d2e0", "msg": "Moving over from SVN"}];                        // [{sha, short, msg}] newest-first (project revisions)
+    var RAN = {"masscompile": 1, "snapshots": 1, "vi-analyzer": 1};                     // {cap:1} caps with a result/active run somewhere in history
+    var CAP_META = {                            // label + sub for each known capability
+      'snapshots':   ['VI Snapshots', 'Renders every changed VI (one backfill pass)'],
+      'vidiff':      ['VIDiff',       'Visual diff of the VIs each revision changed'],
+      'masscompile': ['Mass Compile', 'Compiles the whole project, each revision'],
+      'vi-analyzer': ['VI Analyzer',  'Runs the VI Analyzer suite, each revision'],
+      'unit-tests':  ['Unit Tests',   'Runs the unit-test suite, each revision'],
+      'antidoc':     ['Antidoc',      'Generates project documentation, each revision']
+    };
+    var CAP_ORDER = ['snapshots','vidiff','masscompile','vi-analyzer','unit-tests','antidoc'];
+    var DIFF_CAPS = { snapshots:1, vidiff:1 };  // the lean "diff-based" subset
+    // The activities offered are exactly the workers THIS repo actually has: any
+    // capability with at least one empty (never-run) cell to fill, plus any that
+    // already has results (shown so the picture is complete - queuing only ever
+    // fills empty cells). Driven by the live table, so a worker that isn't
+    // installed never appears and a newly-added one (e.g. Unit Tests) always does.
+    function histInstalledCaps(){
+      var seen={}; bfCells().forEach(function(x){ seen[x.cap]=1; });
+      return CAP_ORDER.filter(function(c){ return seen[c] || RAN[c]; });
+    }
+    function histModal(){ return document.getElementById('cidash-hist-modal'); }
+    function cidashHistClose(){ var m=histModal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
+    function histStatus(html, kind){
+      var s=document.getElementById('cidash-hist-status'); if(!s) return;
+      var col = kind==='ok' ? '#3fb950' : (kind==='err' ? '#f85149' : (kind==='warn' ? '#d29922' : 'var(--fg-muted)'));
+      s.style.color=col; s.innerHTML=html||'';
+    }
+    function histTokPanel(show){ var p=document.getElementById('cidash-hist-tok'); if(p) p.style.display = show ? 'block' : 'none'; }
+    function histSelectedCaps(){
+      var caps={};
+      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-actbox'), function(b){
+        if(b.checked && !b.disabled) caps[b.getAttribute('data-cap')]=1;
+      });
+      return caps;
+    }
+    function histScopeMode(){ var r=document.querySelector('input[name="cidash-hist-scope"]:checked'); return r ? r.value : 'all'; }
+    function histIdx(sha){ for(var i=0;i<HIST.length;i++){ if(HIST[i].sha===sha) return i; } return -1; }
+    function histIncludedShas(){
+      // Three scopes drive which revisions are queued (HIST is newest-first):
+      //   all      -> every revision
+      //   range    -> Start (older bound) .. Stop (newer bound), inclusive; a blank
+      //               Start = oldest and a blank Stop = newest, and a reversed pair
+      //               is swapped so the range is always valid
+      //   specific -> exactly the ticked revisions (one or many)
+      var mode=histScopeMode(); var inc={};
+      if(mode==='specific'){
+        Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec:checked'), function(b){ inc[b.value]=1; });
+        return inc;
+      }
+      if(mode==='range'){
+        var f=document.getElementById('cidash-hist-from'); var t=document.getElementById('cidash-hist-to');
+        var iFrom = (f && f.value) ? histIdx(f.value) : HIST.length-1;   // '' = oldest
+        var iTo   = (t && t.value) ? histIdx(t.value) : 0;               // '' = newest
+        if(iFrom<0) iFrom=HIST.length-1; if(iTo<0) iTo=0;
+        var lo=Math.min(iFrom,iTo), hi=Math.max(iFrom,iTo);
+        for(var j=lo;j<=hi;j++){ if(HIST[j]) inc[HIST[j].sha]=1; }
+        return inc;
+      }
+      HIST.forEach(function(r){ inc[r.sha]=1; });
+      return inc;
+    }
+    function histScopeApply(){
+      // Reveal only the sub-control for the chosen scope.
+      var mode=histScopeMode();
+      var rr=document.getElementById('cidash-hist-rangerow'); if(rr) rr.style.display = (mode==='range') ? '' : 'none';
+      var sw=document.getElementById('cidash-hist-specwrap'); if(sw) sw.style.display = (mode==='specific') ? '' : 'none';
+    }
+    function histCells(){
+      var caps=histSelectedCaps(); var inc=histIncludedShas();
+      return bfCells().filter(function(x){ return caps[x.cap] && inc[x.sha] && !(x.cap==='vidiff' && !x.parent); });
+    }
+    function histRefresh(){
+      // Live summary of what will be queued from the current selection.
+      var cells=histCells();
+      var shas={}; var snaps=0; var perRev=0;
+      cells.forEach(function(x){ shas[x.sha]=1; if(x.cap==='snapshots') snaps=1; else perRev++; });
+      var runs=perRev + snaps;   // snapshots collapse into one backfill run
+      var nrev=Object.keys(shas).length;
+      var sum=document.getElementById('cidash-hist-summary');
+      if(sum){
+        if(!HIST.length){ sum.innerHTML='No project revisions to populate yet \u2014 commit some VIs first.'; }
+        else if(!runs){ sum.innerHTML='Nothing to queue \u2014 the selected revisions already have results for those activities.'; }
+        else { sum.innerHTML='Will queue <b>'+runs+'</b> run'+(runs>1?'s':'')+' across <b>'+nrev+'</b> revision'+(nrev>1?'s':'')+', oldest first.'; }
+      }
+      var go=document.getElementById('cidash-hist-go'); if(go) go.disabled = !runs;
+    }
+    function histApplyActivities(){
+      // Recompute every activity checkbox from the two optional presets. Invoked
+      // ONLY when a preset toggles (not on every box change) so a hand-tick is
+      // never clobbered by a summary refresh.
+      //  - "Diff-based" limits the selection to Snapshots + VIDiff. It is a pure
+      //    preset: it only (un)checks boxes, never disables them, so any worker can
+      //    still be re-ticked by hand (this is what the original "greyed out"
+      //    report was about — nothing is disabled here any more).
+      //  - "Only workers that haven't run yet" excludes the workers that already
+      //    have results somewhere in history, leaving just the brand-new ones;
+      //    those are unchecked AND disabled because excluding them is the whole
+      //    point of the option.
+      var diffOn  = !!(document.getElementById('cidash-hist-diff')   ||{}).checked;
+      var newOnly = !!(document.getElementById('cidash-hist-newonly')||{}).checked;
+      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-actbox'), function(b){
+        var cap=b.getAttribute('data-cap');
+        var row=document.getElementById('cidash-hist-actrow-'+cap);
+        if(newOnly && RAN[cap]){ b.disabled=true; b.checked=false; }
+        else { b.disabled=false; b.checked = !(diffOn && !DIFF_CAPS[cap]); }
+        if(row) row.classList.toggle('disabled', b.disabled);
+      });
+    }
+    function histRender(){
+      var body=document.getElementById('cidash-hist-body'); if(!body) return;
+      var h='';
+      h += '<p style="margin:0 0 16px;color:var(--fg-muted);font-size:.86em;line-height:1.55">Queue CI for revisions that already exist so the dashboard fills in. Runs <strong>oldest \u2192 newest</strong>; only activities that haven\u2019t run yet are queued, and VI Snapshots backfills the whole history in one incremental pass.</p>';
+      var optsHtml = HIST.map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc((r.short||'')+(r.msg?(' \u2014 '+r.msg):''))+'</option>'; }).join('');
+      h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl">Which revisions</label><div class="cidash-hist-scope">';
+      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="all" checked> All '+HIST.length+' revision'+(HIST.length===1?'':'s')+' <span class="sub">\u2014 the full history</span></label>';
+      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="range"> A range of history</label>';
+      h += '<div class="cidash-hist-rangerow" id="cidash-hist-rangerow" style="display:none">';
+      h += '<label>Start at <select id="cidash-hist-from"><option value="">Oldest (beginning)</option>'+optsHtml+'</select></label>';
+      h += '<label>stop at <select id="cidash-hist-to"><option value="">Newest (latest)</option>'+optsHtml+'</select></label>';
+      h += '</div>';
+      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="specific"> Specific revision(s)</label>';
+      h += '<div id="cidash-hist-specwrap" style="display:none">';
+      h += '<div class="cidash-hist-spectools"><a href="#" id="cidash-hist-spec-all">Select all</a><a href="#" id="cidash-hist-spec-none">Clear</a></div>';
+      h += '<div class="cidash-hist-speclist" id="cidash-hist-speclist">';
+      HIST.forEach(function(r){ h += '<label class="cidash-hist-specitem"><input type="checkbox" class="cidash-hist-spec" value="'+esc(r.sha)+'"><span class="sh">'+esc(r.short||'')+'</span><span class="ms">'+esc(r.msg||'')+'</span></label>'; });
+      h += '</div></div>';
+      h += '</div></div>';
+      h += '<div class="cidash-hist-sec"><label class="cidash-hist-toggle"><input type="checkbox" id="cidash-hist-diff">'
+        + '<span><span class="cidash-hist-tmain">Diff-based \u2014 modified files only</span>'
+        + '<span class="cidash-hist-tsub">Narrows the run to VI Snapshots and VIDiff (the visual history of what each revision changed). Leave it off to also run Mass Compile, VI Analyzer and the rest on every revision.</span></span></label>';
+      h += '<label class="cidash-hist-toggle" style="margin-top:8px"><input type="checkbox" id="cidash-hist-newonly">'
+        + '<span><span class="cidash-hist-tmain">Only workers that haven\u2019t run yet</span>'
+        + '<span class="cidash-hist-tsub">Skips any activity that already has results somewhere in history, so only brand-new workers \u2014 ones never run before \u2014 are queued.</span></span></label></div>';
+      var instCaps=histInstalledCaps();
+      h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl">Activities</label><div class="cidash-hist-acts">';
+      if(!instCaps.length){
+        h += '<div style="color:var(--fg-muted);font-size:.85em;padding:4px 2px">No runnable activities found for this repository.</div>';
+      } else instCaps.forEach(function(cap){
+        var m=CAP_META[cap]||[cap,''];
+        h += '<label class="cidash-hist-act" id="cidash-hist-actrow-'+cap+'"><input type="checkbox" class="cidash-hist-actbox" id="cidash-hist-act-'+cap+'" data-cap="'+cap+'" checked>'
+          + '<span>'+esc(m[0])+'</span><span class="cidash-hist-actsub">'+esc(m[1])+'</span></label>';
+      });
+      h += '</div></div>';
+      h += '<div id="cidash-hist-tok" style="display:none;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);margin:0 0 12px">';
+      h += '<div style="font-size:.82em;color:var(--fg);font-weight:600;margin-bottom:6px">One-time setup \u2014 a token to queue runs</div>';
+      h += '<ol style="font-size:.8em;color:var(--fg-muted);margin:0 0 8px;padding-left:18px;line-height:1.6">';
+      h += '<li><a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create a fine-grained token \u2197</a> \u2014 opens with the name, owner, and <strong>Actions: Read and write</strong> already set.</li>';
+      h += '<li><strong>Repository access</strong> \u2192 Only select repositories \u2192 add <code>'+esc(REPO)+'</code>.</li>';
+      h += '<li><strong>Permissions \u2192 Repository permissions \u2192 Actions \u2192 Read and write</strong>.</li>';
+      h += '<li>Generate, then paste it below.</li></ol>';
+      h += '<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="cidash-hist-tok-input" type="password" autocomplete="off" placeholder="github_pat_\u2026 or ghp_\u2026" style="flex:1 1 240px;min-width:180px;padding:7px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,Menlo,monospace;font-size:.8em">';
+      h += '<button class="cidash-btn cidash-go" id="cidash-hist-tok-save">Save &amp; queue</button></div></div>';
+      h += '<div id="cidash-hist-summary" class="cidash-hist-summary"></div>';
+      h += '<div id="cidash-hist-status" style="font-size:.82em;min-height:1.2em;margin:0 0 12px"></div>';
+      h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">';
+      h += '<button class="cidash-btn cidash-go" id="cidash-hist-go">\u25B6 Queue runs</button>';
+      h += '<button class="cidash-btn cidash-ghost" id="cidash-hist-cancel">Cancel</button></div>';
+      body.innerHTML=h;
+      var diff=document.getElementById('cidash-hist-diff'); if(diff) diff.addEventListener('change', function(){ histApplyActivities(); histRefresh(); });
+      var newonly=document.getElementById('cidash-hist-newonly'); if(newonly) newonly.addEventListener('change', function(){ histApplyActivities(); histRefresh(); });
+      Array.prototype.forEach.call(document.querySelectorAll('input[name="cidash-hist-scope"]'), function(r){ r.addEventListener('change', function(){ histScopeApply(); histRefresh(); }); });
+      var hf=document.getElementById('cidash-hist-from'); if(hf) hf.addEventListener('change', histRefresh);
+      var ht=document.getElementById('cidash-hist-to'); if(ht) ht.addEventListener('change', histRefresh);
+      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.addEventListener('change', histRefresh); });
+      var spa=document.getElementById('cidash-hist-spec-all'); if(spa) spa.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=true; }); histRefresh(); });
+      var spn=document.getElementById('cidash-hist-spec-none'); if(spn) spn.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=false; }); histRefresh(); });
+      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-actbox'), function(b){ b.addEventListener('change', histRefresh); });
+      var go=document.getElementById('cidash-hist-go'); if(go) go.addEventListener('click', histRun);
+      var cancel=document.getElementById('cidash-hist-cancel'); if(cancel) cancel.addEventListener('click', cidashHistClose);
+      var save=document.getElementById('cidash-hist-tok-save'); if(save) save.addEventListener('click', function(){ var i=document.getElementById('cidash-hist-tok-input'); var v=(i&&i.value||'').trim(); if(!v){ if(i) i.focus(); return; } setTok(v); histTokPanel(false); histRun(); });
+      var tin=document.getElementById('cidash-hist-tok-input'); if(tin) tin.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); var v=(tin.value||'').trim(); if(v){ setTok(v); histTokPanel(false); histRun(); } } });
+      histScopeApply(); histApplyActivities(); histRefresh();
+    }
+    function histOpen(){
+      var m=histModal(); if(!m) return;
+      histRender();
+      m.style.display='block'; document.body.style.overflow='hidden';
+    }
+    function histRun(){
+      var cells=histCells();
+      if(!cells.length){ histStatus('Nothing to queue \u2014 the selected revisions already have results for those activities.', 'warn'); return; }
+      if(!getTok()){ histTokPanel(true); histStatus('Add a token (Actions: Read and write) to queue runs.', 'warn'); var i=document.getElementById('cidash-hist-tok-input'); if(i) i.focus(); return; }
+      histTokPanel(false);
+      var go=document.getElementById('cidash-hist-go'); var cancel=document.getElementById('cidash-hist-cancel');
+      if(go) go.disabled=true; if(cancel) cancel.disabled=true;
+      dispatchCells(cells, histStatus).then(function(res){
+        if(cancel) cancel.disabled=false;
+        if(res.ok && !res.err){
+          histStatus('\u2713 Queued '+res.ok+' run'+(res.ok>1?'s':'')+', oldest first \u2014 results appear on the dashboard as they finish. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'ok');
+          bfDismiss();   // the fresh-install nudge has served its purpose
+        } else if(res.ok && res.err){
+          if(go) go.disabled=false;
+          histStatus('Queued '+res.ok+', but '+res.err+' could not be dispatched \u2014 check the token has <strong>Actions: Read and write</strong> on this repo. <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View runs \u2197</a>', 'warn');
+        } else {
+          if(go) go.disabled=false;
+          histStatus('Could not queue runs. The token needs <strong>Actions: Read and write</strong> on <code>'+esc(REPO)+'</code> (runs dispatch on <code>'+esc(BRANCH)+'</code>). <a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener" style="color:var(--link)">Create or update a token \u2197</a>', 'err');
+          histTokPanel(true);
+        }
+      });
+    }
+    // Exposed for the shared header's "Populate history" menu item.
+    window.lvciRunHistory = histOpen;
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var m=histModal(); if(m && m.style.display==='block') cidashHistClose(); } });
     // Re-apply optimistic "Queued" badges once the table exists (this script runs
     // before the table is parsed), and after every auto-refresh thereafter; wire
     // the backfill card the same way.
-    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', function(){ applyQueued(); bfInit(); }); }
-    else { applyQueued(); bfInit(); }
+    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', function(){ applyQueued(); qSync(); bfInit(); }); }
+    else { applyQueued(); qSync(); bfInit(); }
   })();
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — Extensible-Config-Dialog</h1>
-  <div class="sub">Last updated: 2026-06-19 00:31 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-06-19 00:46 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://github.com/elijah286/Extensible-Config-Dialog">GitHub</a>
     <a href="https://github.com/elijah286/Extensible-Config-Dialog/actions">Actions</a>
   </div>
 
-  <label class="controls" for="show-nonproject">
-    <input type="checkbox" id="show-nonproject">
-    Include CI-only revisions
-  </label>
+  <div class="controls">
+    <label class="cidash-check" for="show-nonproject">
+      <input type="checkbox" id="show-nonproject">
+      Include CI-only revisions
+    </label>
+    <div class="cidash-colmenu">
+      <button type="button" id="cidash-colbtn" class="cidash-colbtn" aria-haspopup="true" aria-expanded="false">&#9783; Columns &#9662;</button>
+      <div id="cidash-colpanel" class="cidash-colpanel" role="menu" hidden></div>
+    </div>
+  </div>
   <div class="lvci-tablewrap">
-  <table>
+  <table id="cidash-table">
     <thead>
       <tr>
         <th>Commit</th><th>Message</th><th>Author</th><th>Date</th>
@@ -709,16 +1108,31 @@
         <th style="text-align:center">VI Analyzer</th>
         <th style="text-align:center">VIDiff</th>
         <th style="text-align:center">Snapshots</th>
-        <th style="text-align:center">Win Worker</th>
-        <th style="text-align:center">Linux Worker</th>
+        <th style="text-align:center">Unit Tests</th>
+        <th style="text-align:center">Antidoc</th>
       </tr>
     </thead>
     <tbody>
     <tr data-project="false">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
+        <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=473795b812528d019744c922a7508245b6825856" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">473795b</a>
+      </td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Add LabVIEW CI pipeline"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=473795b812528d019744c922a7508245b6825856" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Add LabVIEW CI pipeline</a></span></td>
+      <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
+      <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-19</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
+    <tr data-project="false">
+      <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=2050eb42b65f7702864d7f35cc0ca82cee0481f2" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">2050eb4</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Add LabVIEW CI pipeline"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=2050eb42b65f7702864d7f35cc0ca82cee0481f2" style="color:var(--fg)">Add LabVIEW CI pipeline</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Add LabVIEW CI pipeline"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=2050eb42b65f7702864d7f35cc0ca82cee0481f2" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Add LabVIEW CI pipeline</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -733,7 +1147,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=dcc643584eb7fcac429fca3e9700fbac71b9d02c" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">dcc6435</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Merge pull request #4 from elijah286/fix/update-tooling-to-v2-1-1"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=dcc643584eb7fcac429fca3e9700fbac71b9d02c" style="color:var(--fg)">Merge pull request #4 from elijah286/fix/update-tooling-to-v2-1-1</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Merge pull request #4 from elijah286/fix/update-tooling-to-v2-1-1"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=dcc643584eb7fcac429fca3e9700fbac71b9d02c" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Merge pull request #4 from elijah286/fix/update-tooling-to-v2-1-1</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -748,7 +1162,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=a21bf524bf66536037d119f088627c65f644cae0" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">a21bf52</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="chore: update LabVIEW CI tooling from v2.1.0 to v2.1.1"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=a21bf524bf66536037d119f088627c65f644cae0" style="color:var(--fg)">chore: update LabVIEW CI tooling from v2.1.0 to v2.1.1</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="chore: update LabVIEW CI tooling from v2.1.0 to v2.1.1"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=a21bf524bf66536037d119f088627c65f644cae0" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">chore: update LabVIEW CI tooling from v2.1.0 to v2.1.1</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -763,7 +1177,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=6133e9657f8d98f775849ff123f86c0ab356f34d" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">6133e96</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Merge pull request #3 from elijah286/ci/install-labview-ci"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=6133e9657f8d98f775849ff123f86c0ab356f34d" style="color:var(--fg)">Merge pull request #3 from elijah286/ci/install-labview-ci</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Merge pull request #3 from elijah286/ci/install-labview-ci"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=6133e9657f8d98f775849ff123f86c0ab356f34d" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Merge pull request #3 from elijah286/ci/install-labview-ci</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -778,7 +1192,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=106cf4c9a058d0b732462f2967ecf6f1599f4d16" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">106cf4c</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=106cf4c9a058d0b732462f2967ecf6f1599f4d16" style="color:var(--fg)">ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=106cf4c9a058d0b732462f2967ecf6f1599f4d16" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -793,7 +1207,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=44488d7b6f58bb679371757fee333ba557b15d7d" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">44488d7</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Merge pull request #2 from elijah286/ci/install-labview-ci"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=44488d7b6f58bb679371757fee333ba557b15d7d" style="color:var(--fg)">Merge pull request #2 from elijah286/ci/install-labview-ci</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Merge pull request #2 from elijah286/ci/install-labview-ci"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=44488d7b6f58bb679371757fee333ba557b15d7d" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Merge pull request #2 from elijah286/ci/install-labview-ci</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -808,7 +1222,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=d6fee1a88102276a800591ed833acef6890d8824" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">d6fee1a</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=d6fee1a88102276a800591ed833acef6890d8824" style="color:var(--fg)">ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=d6fee1a88102276a800591ed833acef6890d8824" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -823,7 +1237,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=aea0ad4cc0937b75c2e5cef0eb8e02a962d9f914" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">aea0ad4</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Merge pull request #1 from elijah286/ci/install-labview-ci"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=aea0ad4cc0937b75c2e5cef0eb8e02a962d9f914" style="color:var(--fg)">Merge pull request #1 from elijah286/ci/install-labview-ci</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Merge pull request #1 from elijah286/ci/install-labview-ci"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=aea0ad4cc0937b75c2e5cef0eb8e02a962d9f914" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Merge pull request #1 from elijah286/ci/install-labview-ci</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-17</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -838,7 +1252,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=a47907250c91220900dd6e0f5712f2a527d3f976" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">a479072</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=a47907250c91220900dd6e0f5712f2a527d3f976" style="color:var(--fg)">ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=a47907250c91220900dd6e0f5712f2a527d3f976" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, sn</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2026-06-16</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -853,7 +1267,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=0a2a2d86605a88408c92e3a79c509751c5ac34e1" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">0a2a2d8</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Update README.md"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=0a2a2d86605a88408c92e3a79c509751c5ac34e1" style="color:var(--fg)">Update README.md</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Update README.md"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=0a2a2d86605a88408c92e3a79c509751c5ac34e1" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Update README.md</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2020-01-07</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -868,7 +1282,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=a1d42c6f00c0ce23b1b8fa6d45e5fe65458c846d" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">a1d42c6</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Update README.md"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=a1d42c6f00c0ce23b1b8fa6d45e5fe65458c846d" style="color:var(--fg)">Update README.md</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Update README.md"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=a1d42c6f00c0ce23b1b8fa6d45e5fe65458c846d" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Update README.md</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2020-01-07</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -883,7 +1297,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=b8074f6ba674f508124db019630c98184badee81" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">b8074f6</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Update README.md"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=b8074f6ba674f508124db019630c98184badee81" style="color:var(--fg)">Update README.md</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Update README.md"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=b8074f6ba674f508124db019630c98184badee81" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Update README.md</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2020-01-07</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -898,7 +1312,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=5788f8a860d2d8dacb85fa8e25fea3dec134ad00" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">5788f8a</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Update README.md"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=5788f8a860d2d8dacb85fa8e25fea3dec134ad00" style="color:var(--fg)">Update README.md</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Update README.md"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=5788f8a860d2d8dacb85fa8e25fea3dec134ad00" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Update README.md</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2020-01-07</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -913,7 +1327,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=334b5637852c47b8349c5eadfb1489452eb5f5fc" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">334b563</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Update README.md"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=334b5637852c47b8349c5eadfb1489452eb5f5fc" style="color:var(--fg)">Update README.md</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Update README.md"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=334b5637852c47b8349c5eadfb1489452eb5f5fc" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Update README.md</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2020-01-07</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -928,7 +1342,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=eda0c3664816b161888630d731c7f452e376040f" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">eda0c36</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Update README.md"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=eda0c3664816b161888630d731c7f452e376040f" style="color:var(--fg)">Update README.md</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Update README.md"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=eda0c3664816b161888630d731c7f452e376040f" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Update README.md</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2020-01-07</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -943,7 +1357,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=684bfe1f19a1917d12b60a8be9776f0358fb4b11" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">684bfe1</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Update README.md"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=684bfe1f19a1917d12b60a8be9776f0358fb4b11" style="color:var(--fg)">Update README.md</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Update README.md"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=684bfe1f19a1917d12b60a8be9776f0358fb4b11" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Update README.md</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2020-01-07</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -958,7 +1372,7 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=05f6f9b8c6e103b449f4c74d5c212c89dddd6252" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">05f6f9b</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Create README.md"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=05f6f9b8c6e103b449f4c74d5c212c89dddd6252" style="color:var(--fg)">Create README.md</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Create README.md"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=05f6f9b8c6e103b449f4c74d5c212c89dddd6252" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Create README.md</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">Elijah Kerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2020-01-07</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -973,22 +1387,22 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=5d92203dcb9e26e63d3f61a123c313cb14d49ebe" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">5d92203</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="package spec"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=5d92203dcb9e26e63d3f61a123c313cb14d49ebe" style="color:var(--fg)">package spec</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="package spec"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=5d92203dcb9e26e63d3f61a123c313cb14d49ebe" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">package spec</a><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=5d92203dcb9e26e63d3f61a123c313cb14d49ebe" class="snap-glyph" title="Snapshots exist for this revision" aria-label="Snapshots exist for this revision"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true" style="vertical-align:text-bottom;flex:0 0 auto"><path d="M1.75 2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h.94l8.5-8.5a.25.25 0 0 1 .354 0l1.756 1.757V2.75a.25.25 0 0 0-.25-.25H1.75ZM14.5 9.232 11.06 5.79 3.852 13h9.898a.25.25 0 0 0 .25-.25V9.232ZM1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75C0 1.784.784 1 1.75 1ZM5.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg></a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijahkerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2018-05-27</td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="masscompile" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" title="Run Mass Compile for commit 5d92203">&#9655;</a></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" data-ts="2026-06-17T18:36:55Z"><span style="background:#da3633;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://github.com/elijah286/Extensible-Config-Dialog/actions/runs/27711356174" style="color:inherit">❌ analyze</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" title="Run VIDiff for commit 5d92203">&#9655;</a></td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="snapshots" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" title="Run VI Snapshots for commit 5d92203">&#9655;</a></td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center"><span title="Snapshots rendered for all 41 VIs in this revision" style="background:#1f6feb;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=5d92203dcb9e26e63d3f61a123c313cb14d49ebe" style="color:inherit">41</a></span></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" title="Run Unit Tests for commit 5d92203">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" title="Run Antidoc for commit 5d92203">&#9655;</a></td>
     </tr>
 
     <tr data-project="false">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=7b10515d1488b217118a64102382bcbdb27e01b5" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">7b10515</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="built successfully"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=7b10515d1488b217118a64102382bcbdb27e01b5" style="color:var(--fg)">built successfully</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="built successfully"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=7b10515d1488b217118a64102382bcbdb27e01b5" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">built successfully</a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijahkerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2018-03-20</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1003,60 +1417,60 @@
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=688fa810950414efe8e44f6be11ed31d33589e5c" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">688fa81</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="changed  access scope of get path"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=688fa810950414efe8e44f6be11ed31d33589e5c" style="color:var(--fg)">changed  access scope of get path</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="changed  access scope of get path"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=688fa810950414efe8e44f6be11ed31d33589e5c" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">changed  access scope of get path</a><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=688fa810950414efe8e44f6be11ed31d33589e5c" class="snap-glyph" title="Snapshots exist for this revision" aria-label="Snapshots exist for this revision"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true" style="vertical-align:text-bottom;flex:0 0 auto"><path d="M1.75 2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h.94l8.5-8.5a.25.25 0 0 1 .354 0l1.756 1.757V2.75a.25.25 0 0 0-.25-.25H1.75ZM14.5 9.232 11.06 5.79 3.852 13h9.898a.25.25 0 0 0 .25-.25V9.232ZM1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75C0 1.784.784 1 1.75 1ZM5.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg></a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijahkerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2018-03-20</td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="masscompile" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" title="Run Mass Compile for commit 688fa81">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" title="Run VI Analyzer for commit 688fa81">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" title="Run VIDiff for commit 688fa81">&#9655;</a></td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="snapshots" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" title="Run VI Snapshots for commit 688fa81">&#9655;</a></td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center"><span title="Snapshots rendered for all 41 VIs in this revision" style="background:#1f6feb;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=688fa810950414efe8e44f6be11ed31d33589e5c" style="color:inherit">41</a></span></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" title="Run Unit Tests for commit 688fa81">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" title="Run Antidoc for commit 688fa81">&#9655;</a></td>
     </tr>
 
     <tr data-project="true">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=dc16184ff0f53055cca00b6c644f2c69a9a6f12c" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">dc16184</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Better support for an API"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=dc16184ff0f53055cca00b6c644f2c69a9a6f12c" style="color:var(--fg)">Better support for an API</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Better support for an API"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=dc16184ff0f53055cca00b6c644f2c69a9a6f12c" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Better support for an API</a><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=dc16184ff0f53055cca00b6c644f2c69a9a6f12c" class="snap-glyph" title="Snapshots exist for this revision" aria-label="Snapshots exist for this revision"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true" style="vertical-align:text-bottom;flex:0 0 auto"><path d="M1.75 2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h.94l8.5-8.5a.25.25 0 0 1 .354 0l1.756 1.757V2.75a.25.25 0 0 0-.25-.25H1.75ZM14.5 9.232 11.06 5.79 3.852 13h9.898a.25.25 0 0 0 .25-.25V9.232ZM1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75C0 1.784.784 1 1.75 1ZM5.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg></a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijahkerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2018-03-09</td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="masscompile" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" title="Run Mass Compile for commit dc16184">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" title="Run VI Analyzer for commit dc16184">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" title="Run VIDiff for commit dc16184">&#9655;</a></td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="snapshots" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" title="Run VI Snapshots for commit dc16184">&#9655;</a></td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center"><span title="Snapshots rendered for all 41 VIs in this revision" style="background:#1f6feb;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=dc16184ff0f53055cca00b6c644f2c69a9a6f12c" style="color:inherit">41</a></span></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" title="Run Unit Tests for commit dc16184">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" title="Run Antidoc for commit dc16184">&#9655;</a></td>
     </tr>
 
     <tr data-project="true">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=f284f1ee1de37bbbde515d887b07b7e56f0bc334" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">f284f1e</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="minor improvements"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=f284f1ee1de37bbbde515d887b07b7e56f0bc334" style="color:var(--fg)">minor improvements</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="minor improvements"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=f284f1ee1de37bbbde515d887b07b7e56f0bc334" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">minor improvements</a><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=f284f1ee1de37bbbde515d887b07b7e56f0bc334" class="snap-glyph" title="Snapshots exist for this revision" aria-label="Snapshots exist for this revision"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true" style="vertical-align:text-bottom;flex:0 0 auto"><path d="M1.75 2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h.94l8.5-8.5a.25.25 0 0 1 .354 0l1.756 1.757V2.75a.25.25 0 0 0-.25-.25H1.75ZM14.5 9.232 11.06 5.79 3.852 13h9.898a.25.25 0 0 0 .25-.25V9.232ZM1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75C0 1.784.784 1 1.75 1ZM5.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg></a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijahkerry</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2018-03-07</td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="masscompile" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" title="Run Mass Compile for commit f284f1e">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" title="Run VI Analyzer for commit f284f1e">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" title="Run VIDiff for commit f284f1e">&#9655;</a></td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="snapshots" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" title="Run VI Snapshots for commit f284f1e">&#9655;</a></td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center"><span title="Snapshots rendered for all 37 VIs in this revision" style="background:#1f6feb;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=f284f1ee1de37bbbde515d887b07b7e56f0bc334" style="color:inherit">37</a></span></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" title="Run Unit Tests for commit f284f1e">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" title="Run Antidoc for commit f284f1e">&#9655;</a></td>
     </tr>
 
     <tr data-project="true">
       <td style="padding:8px;font-family:monospace;font-size:.85em">
         <a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=4e8d2e03d9d528d354e03833a49998f94411cb38" style="color:var(--link)" title="Browse this commit's VIs in the VI Browser">4e8d2e0</a>
       </td>
-      <td style="padding:8px;font-size:.85em;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Moving over from SVN"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=4e8d2e03d9d528d354e03833a49998f94411cb38" style="color:var(--fg)">Moving over from SVN</a></td>
+      <td style="padding:8px;font-size:.85em;max-width:320px" title="Moving over from SVN"><span style="display:flex;align-items:center;gap:6px;min-width:0"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=4e8d2e03d9d528d354e03833a49998f94411cb38" style="color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Moving over from SVN</a><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=4e8d2e03d9d528d354e03833a49998f94411cb38" class="snap-glyph" title="Snapshots exist for this revision" aria-label="Snapshots exist for this revision"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true" style="vertical-align:text-bottom;flex:0 0 auto"><path d="M1.75 2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h.94l8.5-8.5a.25.25 0 0 1 .354 0l1.756 1.757V2.75a.25.25 0 0 0-.25-.25H1.75ZM14.5 9.232 11.06 5.79 3.852 13h9.898a.25.25 0 0 0 .25-.25V9.232ZM1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25V2.75C0 1.784.784 1 1.75 1ZM5.5 6a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg></a></span></td>
       <td style="padding:8px;font-size:.82em;color:var(--fg-muted)">elijah286</td>
       <td style="padding:8px;font-size:.75em;color:var(--fg-muted)">2016-07-25</td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" data-ts="2026-06-17T18:36:33Z"><span style="background:#da3633;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://github.com/elijah286/Extensible-Config-Dialog/actions/runs/27711334595" style="color:inherit">❌ compile</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" title="Run VI Analyzer for commit 4e8d2e0">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" title="Run VIDiff for commit 4e8d2e0">&#9655;</a></td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="snapshots" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" title="Run VI Snapshots for commit 4e8d2e0">&#9655;</a></td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
-      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center"><span title="Snapshots rendered for all 37 VIs in this revision" style="background:#1f6feb;color:#fff;padding:2px 7px;border-radius:4px;font-size:.75em"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=4e8d2e03d9d528d354e03833a49998f94411cb38" style="color:inherit">37</a></span></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" title="Run Unit Tests for commit 4e8d2e0">&#9655;</a></td>
+      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="antidoc" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" title="Run Antidoc for commit 4e8d2e0">&#9655;</a></td>
     </tr></tbody>
   </table>
   </div>
@@ -1086,6 +1500,60 @@
       };
       checkbox.addEventListener('change', applyFilter);
       applyFilter();
+    })();
+
+    // Column-visibility menu: a standard "Columns" dropdown of checkboxes that
+    // toggles each (non-identifier) column on/off, persisted per-repo in
+    // localStorage so the choice survives reloads. Commit (column 0) is the row
+    // identifier and is always shown.
+    (() => {
+      const STORE = 'lvci_dash_cols_elijah286/Extensible-Config-Dialog';
+      const COLS = [
+        {key:'message',     label:'Message',      idx:1},
+        {key:'author',      label:'Author',       idx:2},
+        {key:'date',        label:'Date',         idx:3},
+        {key:'masscompile', label:'Mass Compile', idx:4},
+        {key:'vi-analyzer', label:'VI Analyzer',  idx:5},
+        {key:'vidiff',      label:'VIDiff',       idx:6},
+        {key:'snapshots',   label:'Snapshots',    idx:7},
+        {key:'unit-tests',  label:'Unit Tests',   idx:8},
+        {key:'antidoc',     label:'Antidoc',      idx:9}
+      ];
+      const btn = document.getElementById('cidash-colbtn');
+      const panel = document.getElementById('cidash-colpanel');
+      if (!btn || !panel) return;
+      const hidden = {};
+      try { (JSON.parse(localStorage.getItem(STORE)) || []).forEach((k) => { hidden[k] = true; }); } catch (e) {}
+      const persist = () => {
+        try { localStorage.setItem(STORE, JSON.stringify(COLS.map((c) => c.key).filter((k) => hidden[k]))); } catch (e) {}
+      };
+      const applyCol = (col) => {
+        const vis = !hidden[col.key];
+        document.querySelectorAll('#cidash-table > thead > tr, #cidash-table > tbody > tr').forEach((tr) => {
+          const cell = tr.children[col.idx];
+          if (cell) cell.style.display = vis ? '' : 'none';
+        });
+      };
+      const head = document.createElement('div');
+      head.className = 'hd';
+      head.textContent = 'Show columns';
+      panel.appendChild(head);
+      COLS.forEach((col) => {
+        const lab = document.createElement('label');
+        lab.className = 'cidash-colopt';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !hidden[col.key];
+        cb.addEventListener('change', () => { hidden[col.key] = !cb.checked; applyCol(col); persist(); });
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(' ' + col.label));
+        panel.appendChild(lab);
+        applyCol(col);
+      });
+      const setOpen = (open) => { panel.hidden = !open; btn.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+      btn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(panel.hidden); });
+      document.addEventListener('click', (e) => { if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) setOpen(false); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
     })();
   </script>
 </body>

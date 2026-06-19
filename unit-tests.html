@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<!--
+  .github/pages/unit-tests.html
+  Top-level "Unit Testing" configurator. One tab per framework (Caraya, VI
+  Tester, and — coming soon — NI Unit Test Framework, plus room for more). For
+  each enabled framework the user declares WHERE its tests live in the project
+  (virtual-folder paths or globs); the CI runner auto-discovers tests within
+  those locations by each framework's native convention. Settings are written to
+  `.github/labview-ci.yml` under `unitTests:`; the page loads the repo's current
+  config, lets the user edit it, and produces the updated file to commit (same
+  download-&-commit path as the Configure page). Pure static page, no backend.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Unit Testing — LabVIEW CI</title>
+  <script>window.LVCI = { context: 'unit-tests-config' };</script>
+  <script src="./lvci-header.js" defer></script>
+  <style>
+    :root{--bg:#0d1117;--surface:#161b22;--surface2:#0d1117;--border:#30363d;--fg:#e6edf3;--muted:#8b949e;--link:#58a6ff;--accent:#238636;--accent-fg:#fff;--chip:#21262d;--code:#010409;--warn:#9a6700}
+    @media(prefers-color-scheme:light){:root{--bg:#fff;--surface:#f6f8fa;--surface2:#fff;--border:#d0d7de;--fg:#1f2328;--muted:#57606a;--link:#0969da;--accent:#1f883d;--chip:#eaeef2;--code:#f6f8fa}}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5}
+    a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+    .wrap{max-width:920px;margin:0 auto;padding:22px 20px 64px}
+    h1{font-size:1.5em;margin:0}
+    .sub{color:var(--muted);font-size:.9em;margin:4px 0 22px}
+    section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:18px}
+    section h2{font-size:1.02em;margin:0 0 4px}
+    section .hint{color:var(--muted);font-size:.82em;margin:0 0 14px}
+    code.inl{background:var(--chip);padding:1px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
+    .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap}
+    .tab{padding:8px 14px;border:1px solid transparent;border-bottom:0;border-radius:8px 8px 0 0;cursor:pointer;font-size:.9em;color:var(--muted);background:transparent;display:flex;align-items:center;gap:7px;margin-bottom:-1px}
+    .tab.active{color:var(--fg);background:var(--surface2);border-color:var(--border)}
+    .tab.soon{opacity:.6;cursor:default}
+    .tab .soonbadge{font-size:.62em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--border);border-radius:999px;padding:1px 6px;color:var(--muted)}
+    .tab .dot{width:8px;height:8px;border-radius:50%;background:#6e7681}
+    .tab.on .dot{background:var(--accent)}
+    .panel{display:none}.panel.active{display:block}
+    .enable{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+    .enable input{width:16px;height:16px;accent-color:var(--accent)}
+    .enable .nm{font-weight:600}
+    label.fl{display:block;font-size:.8em;color:var(--muted);margin:14px 0 6px}
+    .locs{display:flex;flex-direction:column;gap:8px}
+    .loc{display:flex;gap:8px;align-items:center}
+    .loc input{flex:1 1 auto;padding:8px 10px;background:var(--surface2);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.9em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .loc button,.addloc{padding:7px 11px;font-size:.84em;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg);cursor:pointer}
+    .addloc{margin-top:8px}
+    .conv{margin-top:14px;font-size:.82em;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+    .conv b{color:var(--fg)}
+    .disablednote{color:var(--muted);font-size:.86em;font-style:italic}
+    .codebox{position:relative;background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px}
+    pre{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;white-space:pre-wrap;word-break:break-word;color:var(--fg);max-height:300px;overflow:auto}
+    .copy{position:absolute;top:8px;right:8px;padding:4px 10px;font-size:.72em;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--fg);cursor:pointer}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+    button.primary{padding:9px 16px;font-size:.9em;font-weight:600;border:1px solid transparent;border-radius:6px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
+    .status{font-size:.82em;color:var(--muted);margin-top:8px;min-height:1.2em}
+    .status.ok{color:var(--accent)}.status.err{color:#cf222e}
+    .subhead{font-weight:600;font-size:.9em;margin:14px 0 6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Unit Testing</h1>
+    <p class="sub">Configure which LabVIEW unit-test frameworks run in CI and where their tests live. Results publish to the dashboard as a single <strong>Unit Tests</strong> report per revision, with links straight to the VI under test in the VI Browser.</p>
+
+    <section>
+      <h2>1. Repository</h2>
+      <p class="hint">These settings apply to the repository you came from — its current configuration is loaded automatically.</p>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.92em">
+        <span style="color:var(--muted)">Configuring</span>
+        <code class="inl" id="repoLabel">…</code>
+        <span style="color:var(--muted)">on branch</span>
+        <code class="inl" id="branchLabel">main</code>
+      </div>
+      <input type="hidden" id="repo"><input type="hidden" id="branch" value="main">
+      <div class="status" id="loadStatus" style="margin-top:10px"></div>
+    </section>
+
+    <section>
+      <h2>2. Frameworks</h2>
+      <p class="hint">Enable a framework and tell it where its tests live. Several can run at once — results merge into one report. Written to <code class="inl">.github/labview-ci.yml</code> under <code class="inl">unitTests</code>.</p>
+      <div class="tabs" id="tabs"></div>
+      <div id="panels"></div>
+    </section>
+
+    <section>
+      <h2>3. Review &amp; apply</h2>
+      <p class="hint">Download the updated config and commit it, or copy the <code class="inl">unitTests</code> block into your existing <code class="inl">.github/labview-ci.yml</code>.</p>
+      <div class="actions">
+        <button class="primary" id="dlYaml">Download labview-ci.yml</button>
+        <span class="status" id="dlStatus"></span>
+      </div>
+      <div class="subhead">unitTests block</div>
+      <div class="codebox"><button class="copy" id="copyBlock">Copy</button><pre id="blockPreview"></pre></div>
+    </section>
+  </div>
+
+  <script>
+  (() => {
+    "use strict";
+    const SOURCE_FALLBACK = { repo: "elijah286/LabVIEW-CI-with-Containers", ref: "main" };
+
+    // Framework catalog for this page. `soon` tools render a disabled tab.
+    const TOOLS = [
+      { id: "caraya",    name: "Caraya",
+        conv: "Caraya tests are <b>VIs that contain Caraya assertions</b> (e.g. <code>Assert Equal.vi</code>). The runner executes every such VI found within the locations below.",
+        ph: "e.g. tests/  or  **/*Tests.vi" },
+      { id: "vi-tester", name: "VI Tester",
+        conv: "VI Tester tests are <b>TestCase classes</b> (<code>.lvclass</code> inheriting from <code>TestCase</code>). The runner discovers and runs every TestCase within the locations below.",
+        ph: "e.g. tests/  or  source/**/*.lvclass" },
+      { id: "utf",       name: "Unit Test Framework", soon: true,
+        conv: "NI Unit Test Framework uses <code>.lvtest</code> files, each targeting one VI. Headless execution support is coming soon.",
+        ph: "e.g. tests/" },
+    ];
+    const DEFAULTS = () => TOOLS.reduce((o,t)=>(o[t.id]={enabled:false,locations:[]},o),{});
+
+    let state = DEFAULTS();
+    let activeTab = "caraya";
+
+    const $ = (id) => document.getElementById(id);
+    const rawUrl = (repo, ref, path) => `https://raw.githubusercontent.com/${repo}/${ref}/${path}`;
+    async function fetchText(u){ const r=await fetch(u,{cache:"no-store"}); if(!r.ok) throw new Error("HTTP "+r.status); return r.text(); }
+
+    // ---- minimal labview-ci.yml unitTests parser (our own simple format) -----
+    // Reads the `unitTests:` block: per-tool `enabled:` + `locations:` list.
+    function parseUnitTests(text){
+      const out = DEFAULTS();
+      const lines = text.split(/\r?\n/);
+      let i = 0;
+      // find top-level "unitTests:"
+      while (i < lines.length && !/^unitTests:\s*$/.test(lines[i])) i++;
+      if (i >= lines.length) return out;
+      i++;
+      let tool = null, inLocs = false;
+      for (; i < lines.length; i++){
+        const line = lines[i];
+        if (/^\S/.test(line)) break;                       // dedent to top level → done
+        let m;
+        if ((m = line.match(/^\s{4,6}([A-Za-z0-9_\-]+):\s*$/)) && /^\s{4}\S/.test(line)){
+          tool = out[m[1]] ? m[1] : null; inLocs = false; continue;
+        }
+        if (tool){
+          if ((m = line.match(/^\s{6,}enabled:\s*(true|false)/))){ out[tool].enabled = m[1]==="true"; inLocs=false; continue; }
+          if (/^\s{6,}locations:\s*\[\s*\]/.test(line)){ out[tool].locations=[]; inLocs=false; continue; }
+          if (/^\s{6,}locations:\s*$/.test(line)){ inLocs=true; out[tool].locations=[]; continue; }
+          if (inLocs && (m = line.match(/^\s{8,}-\s*["']?([^"'\n]+?)["']?\s*$/))){ out[tool].locations.push(m[1]); continue; }
+          if (inLocs && /^\s{6}\S/.test(line)) inLocs=false;
+        }
+      }
+      return out;
+    }
+
+    // ---- YAML generation -----------------------------------------------------
+    function genBlock(){
+      const lines = ["unitTests:", "  tools:"];
+      for (const t of TOOLS){
+        const s = state[t.id];
+        lines.push(`    ${t.id}:`);
+        lines.push(`      enabled: ${s.enabled ? "true" : "false"}`);
+        const locs = (s.locations||[]).map(x=>x.trim()).filter(Boolean);
+        if (locs.length){
+          lines.push("      locations:");
+          locs.forEach(l => lines.push(`        - "${l.replace(/"/g,'\\"')}"`));
+        } else {
+          lines.push("      locations: []");
+        }
+      }
+      return lines.join("\n") + "\n";
+    }
+
+    // Merge our unitTests block into the loaded labview-ci.yml (replace existing
+    // top-level unitTests:, else append). Keeps the rest of the file verbatim.
+    let loadedYaml = null;
+    function genFullYaml(){
+      const block = genBlock();
+      if (loadedYaml == null){
+        return "# .github/labview-ci.yml\n# Add or merge this unitTests block into your config.\n\n" + block;
+      }
+      const lines = loadedYaml.split(/\r?\n/);
+      const start = lines.findIndex(l => /^unitTests:\s*$/.test(l));
+      if (start < 0) return loadedYaml.replace(/\s*$/, "\n") + "\n" + block;
+      let end = start + 1;
+      while (end < lines.length && !/^\S/.test(lines[end])) end++;
+      return lines.slice(0,start).join("\n").replace(/\s*$/,"\n") + "\n" + block + (end<lines.length ? "\n"+lines.slice(end).join("\n") : "");
+    }
+
+    // ---- rendering -----------------------------------------------------------
+    function renderTabs(){
+      $("tabs").innerHTML = TOOLS.map(t=>{
+        const on = state[t.id] && state[t.id].enabled && !t.soon;
+        const cls = "tab" + (t.id===activeTab?" active":"") + (t.soon?" soon":"") + (on?" on":"");
+        return `<div class="${cls}" data-tab="${t.id}">
+          <span class="dot"></span>${t.name}${t.soon?'<span class="soonbadge">soon</span>':''}</div>`;
+      }).join("");
+      $("tabs").querySelectorAll(".tab").forEach(el=>{
+        if (el.classList.contains("soon")) { /* still selectable to read the note */ }
+        el.addEventListener("click", ()=>{ activeTab = el.dataset.tab; renderTabs(); renderPanels(); });
+      });
+    }
+    function renderPanels(){
+      $("panels").innerHTML = TOOLS.map(t=>{
+        const s = state[t.id];
+        const locs = s.locations && s.locations.length ? s.locations : [""];
+        const locRows = t.soon ? "" : `
+          <label class="fl">Test locations <span style="text-transform:none">(project folders or globs; blank = whole project)</span></label>
+          <div class="locs" id="locs-${t.id}">
+            ${locs.map((l,idx)=>`<div class="loc">
+              <input type="text" value="${esc(l)}" placeholder="${esc(t.ph)}" data-tool="${t.id}" data-idx="${idx}">
+              <button data-rm="${t.id}" data-idx="${idx}" title="Remove">✕</button></div>`).join("")}
+          </div>
+          <button class="addloc" data-add="${t.id}">+ Add location</button>`;
+        const enableRow = t.soon
+          ? `<div class="disablednote">Headless ${esc(t.name)} support is coming soon — this tab is a placeholder so it's ready to enable later.</div>`
+          : `<label class="enable"><input type="checkbox" data-en="${t.id}" ${s.enabled?"checked":""}><span class="nm">Run ${esc(t.name)} in CI</span></label>`;
+        return `<div class="panel ${t.id===activeTab?"active":""}" id="panel-${t.id}">
+          ${enableRow}
+          ${locRows}
+          <div class="conv">${t.conv}</div>
+        </div>`;
+      }).join("");
+      // wire inputs
+      $("panels").querySelectorAll("input[data-en]").forEach(cb=>cb.addEventListener("change",()=>{
+        state[cb.dataset.en].enabled = cb.checked; renderTabs(); update();
+      }));
+      $("panels").querySelectorAll(".loc input").forEach(inp=>inp.addEventListener("input",()=>{
+        const t=inp.dataset.tool, i=+inp.dataset.idx; state[t].locations[i]=inp.value; update();
+      }));
+      $("panels").querySelectorAll("button[data-rm]").forEach(b=>b.addEventListener("click",()=>{
+        const t=b.dataset.rm, i=+b.dataset.idx; state[t].locations.splice(i,1); renderPanels(); update();
+      }));
+      $("panels").querySelectorAll("button[data-add]").forEach(b=>b.addEventListener("click",()=>{
+        state[b.dataset.add].locations.push(""); renderPanels(); update();
+      }));
+    }
+    function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    function update(){ $("blockPreview").textContent = genBlock(); }
+
+    function download(name, text){
+      const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type:"text/plain"}));
+      a.download=name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    }
+
+    // ---- target detection + load --------------------------------------------
+    function detectTarget(){
+      const p = new URLSearchParams(location.search);
+      const qRepo = p.get("repo"), qRef = p.get("ref");
+      if (qRepo && qRepo.includes("/")) return { repo: qRepo, ref: qRef || "main" };
+      const host = location.hostname.match(/^([^.]+)\.github\.io$/i);
+      if (host){ const seg = location.pathname.split("/").filter(Boolean); if (seg.length && !/\.html?$/i.test(seg[0])) return { repo: `${host[1]}/${seg[0]}`, ref: qRef||"main" }; }
+      return { repo: SOURCE_FALLBACK.repo, ref: qRef || SOURCE_FALLBACK.ref };
+    }
+    async function loadCurrent(repo, ref){
+      const st=$("loadStatus");
+      if (!repo.includes("/")){ st.className="status err"; st.textContent="Could not determine the repository to configure."; return; }
+      st.className="status"; st.textContent="Loading current configuration…";
+      try{
+        loadedYaml = await fetchText(rawUrl(repo, ref, ".github/labview-ci.yml"));
+        const parsed = parseUnitTests(loadedYaml);
+        for (const t of TOOLS) if (parsed[t.id]) state[t.id] = parsed[t.id];
+        st.className="status ok"; st.textContent = `Loaded current settings from ${repo}@${ref}.`;
+      }catch(_){
+        st.className="status"; st.textContent = "No existing config found — showing defaults to download & commit.";
+      }
+      renderTabs(); renderPanels(); update();
+    }
+
+    (function init(){
+      const t = detectTarget();
+      $("repo").value=t.repo; $("branch").value=t.ref;
+      $("repoLabel").textContent=t.repo; $("branchLabel").textContent=t.ref;
+      renderTabs(); renderPanels(); update();
+      $("dlYaml").addEventListener("click", ()=>{ download("labview-ci.yml", genFullYaml()); const s=$("dlStatus"); s.className="status ok"; s.textContent="labview-ci.yml downloaded — place at .github/labview-ci.yml"; });
+      $("copyBlock").addEventListener("click", async ()=>{ try{ await navigator.clipboard.writeText(genBlock()); $("copyBlock").textContent="Copied!"; setTimeout(()=>$("copyBlock").textContent="Copy",1400);}catch(_){} });
+      loadCurrent(t.repo, t.ref).catch(()=>{});
+    })();
+  })();
+  </script>
+</body>
+</html>

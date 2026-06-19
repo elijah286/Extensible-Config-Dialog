@@ -67,6 +67,8 @@
     .pkg .pname{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.84em}
     .pkg .psum{color:var(--fg-muted);font-size:.8em}
     .pkg .pver{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.74em;color:var(--fg-muted)}
+    .pkg .pkgctl{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+    .pkg .pkgmon{display:inline-flex;align-items:center;gap:5px;font-size:.76em;color:var(--fg-muted);white-space:nowrap;cursor:pointer;user-select:none}
     .addpkg{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
     .addpkg input{flex:1 1 160px}
     .badge{display:inline-block;font-size:.64em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
@@ -102,6 +104,32 @@
     .routerow.off{opacity:.6}
     .pill{display:inline-block;font-size:.6em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
          padding:2px 7px;border-radius:20px;border:1px solid var(--border);color:var(--fg-muted);background:var(--chip);margin-left:8px}
+    /* Info (i) button + popover — reusable, click to reveal detail */
+    .infowrap{position:relative;display:inline-block;vertical-align:middle}
+    .infobtn{appearance:none;width:16px;height:16px;line-height:13px;padding:0;margin-left:6px;border-radius:50%;
+         border:1px solid var(--border);background:var(--surface2);color:var(--fg-muted);font-size:.72em;font-weight:700;
+         font-style:italic;font-family:Georgia,'Times New Roman',serif;cursor:pointer;text-align:center}
+    .infobtn:hover{color:var(--fg);border-color:var(--link)}
+    .infobtn[aria-expanded="true"]{color:var(--accent-fg);background:var(--accent);border-color:var(--accent)}
+    .infopop{position:absolute;z-index:40;top:calc(100% + 6px);left:0;width:330px;max-width:78vw;background:var(--surface);
+         border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:.82em;color:var(--fg-muted);
+         line-height:1.55;font-weight:400;text-transform:none;letter-spacing:normal;box-shadow:0 8px 28px rgba(0,0,0,.35)}
+    .infopop[hidden]{display:none}
+    .infopop strong{color:var(--fg)}
+    .infopop.right{left:auto;right:0}
+    /* Triggers matrix — which submission sources run each activity */
+    #trigMatrix{overflow-x:auto}
+    .trigtable{width:100%;min-width:430px;border-collapse:collapse;margin-top:8px;font-size:.88em}
+    .trigtable th,.trigtable td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:center;vertical-align:middle}
+    .trigtable thead th{color:var(--fg-muted);font-weight:600;font-size:.82em;border-bottom:1px solid var(--border)}
+    .trigtable th:not(:first-child),.trigtable td:not(:first-child){width:92px}
+    .trigtable th:first-child,.trigtable td:first-child{text-align:left;min-width:140px}
+    .trigtable tbody tr:last-child td{border-bottom:0}
+    .trigtable tbody tr.off{opacity:.5}
+    .trigtable .actname{font-weight:600}
+    .trigtable .colsrc{display:inline}
+    .trigtable input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px;margin:0;cursor:pointer}
+    .trigtable input[type=checkbox]:disabled{cursor:not-allowed}
   </style>
 </head>
 <body>
@@ -116,7 +144,7 @@
 
     <section id="targetBar">
       <h2>Configuring <code class="inl" id="targetRepo">this repository</code></h2>
-      <p class="hint">These settings apply only to the repository you opened this dialog from &mdash; detected automatically from the dashboard you launched it from.</p>
+      <p class="hint">These settings define <strong>what your CI does whenever a revision is submitted</strong> to this repository &mdash; whether you push directly to the default branch, open a pull request from a branch here, or receive a pull request from a fork. They apply only to the repo above, detected automatically from the dashboard you launched this from.</p>
       <input type="hidden" id="repo">
       <input type="hidden" id="branch" value="main">
       <div class="status" id="loadStatus"></div>
@@ -137,23 +165,43 @@
         <div class="row">
           <div class="field">
             <label class="fl" for="version">LabVIEW version</label>
-            <select id="version"></select>
+            <select id="version" disabled aria-disabled="true" title="The CI tooling, container images, and baked dependencies are built for LabVIEW 2026."></select>
+            <p class="hint" style="margin-top:6px">Fixed to LabVIEW 2026 &mdash; the container images and tooling are built for it.</p>
           </div>
           <div class="field">
             <label class="fl">Operating systems</label>
             <div class="toggle-row" id="osToggle">
               <label class="toggle"><input type="checkbox" value="windows" checked> Windows</label>
-              <label class="toggle"><input type="checkbox" value="linux" checked> Linux</label>
+              <label class="toggle"><input type="checkbox" value="linux"> Linux</label>
             </div>
+            <p class="hint" style="margin-top:6px">Linux container jobs run on the NI base image and are <strong>experimental</strong> &mdash; opt in only if you want them. Windows is the supported default.</p>
           </div>
           <div class="field">
-            <label class="fl" for="runners">Max concurrent runners</label>
+            <label class="fl" for="runners">Max concurrent runners
+              <span class="infowrap">
+                <button type="button" class="infobtn" aria-expanded="false" aria-label="About max concurrent runners">i</button>
+                <span class="infopop" hidden role="note">Your per-repo preference for how many CI jobs run in parallel. GitHub's real concurrency limit is <strong>per account, not per repo</strong> &mdash; Free 20, Pro 40, Team 60, Enterprise 500 simultaneous jobs, shared across <em>all</em> your repositories. Runners are also consumed automatically whenever you submit code or run a tooling upgrade, so CI spread over several repos draws from that one shared pool. The default of 5 leaves headroom; raise it only if your account can spare the capacity.</span>
+              </span>
+            </label>
             <input type="number" id="runners" min="1" max="50" value="5">
-            <div class="hint" style="margin-top:4px">Your per-repo preference for how many CI jobs run in parallel. GitHub's real concurrency limit is <strong>per account, not per repo</strong> &mdash; Free 20, Pro 40, Team 60, Enterprise 500 simultaneous jobs, shared across <em>all</em> your repositories. Runners are also consumed automatically whenever you submit code or run a tooling upgrade, so CI spread over several repos draws from that one shared pool. The default of 5 leaves headroom; raise it only if your account can spare the capacity.</div>
+            <div class="hint" style="margin-top:4px">Per-repo cap, drawn from your account-wide pool.</div>
           </div>
         </div>
         <div class="subhead">Activities</div>
+        <p class="hint" style="margin:-2px 0 10px">The checks and reports this pipeline can run. Choose <em>when</em> each one runs under <strong>When activities run</strong> below.</p>
         <div class="acts" id="acts"></div>
+      </section>
+
+      <section>
+        <h2>When activities run
+          <span class="infowrap">
+            <button type="button" class="infobtn" aria-expanded="false" aria-label="About activity triggers">i</button>
+            <span class="infopop" hidden role="note">A &ldquo;submission&rdquo; is any change arriving at this repository. Standard git workflows map to three sources: a <strong>push to the default branch</strong> (a direct commit, or a merged pull request landing on the default branch), a <strong>pull request from a branch</strong> in this repository, and a <strong>pull request from a fork</strong> (an outside contributor). Tick which activities run for each source. Pull requests from forks run with a <strong>read-only token and no access to your repository secrets</strong>, so they can validate code but can't deploy or publish.</span>
+          </span>
+        </h2>
+        <p class="hint">Decide what happens for each way a revision reaches this repository. For example, run Mass Compile and VIDiff on every pull request, but build the VI Snapshots gallery only when a commit lands on the default branch.</p>
+        <div id="trigMatrix"></div>
+        <p class="hint" style="margin-top:10px">Saved to your configuration and included in the pull request. Activities already run on the sources ticked by default; custom per-source rules are recorded here and take effect as each workflow is wired to honor them &mdash; the same way <strong>Max concurrent runners</strong> is stored today. Pull requests from forks run sandboxed by GitHub &mdash; read-only and without access to your secrets.</p>
       </section>
     </div><!-- /pane-pipeline -->
 
@@ -171,7 +219,7 @@
         </div>
 
         <div class="subhead">VIPC dependencies baked into the container</div>
-        <p class="hint">Each VIPC file is applied to the worker image so the project's add-on dependencies are available in CI. Turn on <strong>Monitor</strong> to rebuild and re-push the container automatically whenever that file changes on a submission &mdash; so the container always matches the dependencies the project needs.</p>
+        <p class="hint">VIPC files found in your repository are listed below, <strong>de-selected by default</strong>. Tick the ones you want baked into the worker image so their add-on dependencies are available in CI. Turn on <strong>Monitor</strong> for an included file to rebuild and re-push the container automatically whenever it changes on a submission &mdash; so the container always matches the dependencies the project needs.</p>
         <div class="pkgs" id="vipcs"></div>
         <div class="addpkg">
           <input type="text" id="newVipcPath" placeholder="path to a .vipc file (e.g. COTC Dependencies.vipc)">
@@ -255,12 +303,25 @@
 
     let catalog = null;
     let pkgObj = null;                       // parsed ci-tooling.packages.json
-    const osSel = new Set(["windows", "linux"]);
+    const osSel = new Set(["windows"]);      // Linux container jobs are experimental (NI base image); opt in via the toggle below
     const actSel = new Set();
     let winLatest = null;                    // workers/windows/latest.json (current build)
     let containerUse = "latest";             // config.container.use (default tag activities pull)
-    let vipcList = [];                       // [{ path, monitor }] baked into the worker image
+    let vipcList = [];                       // [{ path, include, monitor }] repo VIPC files; only `include` ones are baked
+    let vipcFoundCount = 0;                  // how many .vipc files discovery found in the repo
     const actionContainer = new Map();       // activity id -> container tag override (absent = inherit `use`)
+    const triggerSel = new Map();            // activity id -> Set of submission sources that run it
+
+    // The submission sources a revision can arrive by, in display order. These map
+    // to GitHub events: push-default -> `push` to the default branch; pr-branch and
+    // pr-fork -> `pull_request` (a fork is distinguished at run time). Snapshots only
+    // run on the default branch today; everything else runs on all three by default,
+    // which matches the activity workflows' current `on:` triggers.
+    const TRIGGER_SOURCES = [
+      ["push-default", "Push to default branch"],
+      ["pr-branch", "Pull request from a branch"],
+      ["pr-fork", "Pull request from a fork"],
+    ];
 
     const $ = (id) => document.getElementById(id);
     const csv = (set) => [...set].join(",");
@@ -297,15 +358,21 @@
 
     // ---- minimal labview-ci.yml parser (our own simple format) -------------
     function parseManifest(text) {
-      const out = { version: "", os: [], activities: [], runners: null, containerUse: "", vipc: [], actions: {} };
-      let inActs = false, inContainer = false, inVipc = false, inActions = false, curVipc = null;
+      const out = { version: "", os: [], activities: [], runners: null, containerUse: "", vipc: [], actions: {}, triggers: {} };
+      let inActs = false, inContainer = false, inVipc = false, inActions = false, inTriggers = false, curVipc = null;
       for (const line of text.split(/\r?\n/)) {
-        if (/^\s*activities:\s*$/.test(line)) { inActs = true; inContainer = false; inVipc = false; inActions = false; continue; }
-        if (/^\s*container:\s*$/.test(line)) { inContainer = true; inActs = false; inVipc = false; inActions = false; continue; }
+        if (/^\s*activities:\s*$/.test(line)) { inActs = true; inContainer = false; inVipc = false; inActions = false; inTriggers = false; continue; }
+        if (/^\s*container:\s*$/.test(line)) { inContainer = true; inActs = false; inVipc = false; inActions = false; inTriggers = false; continue; }
+        if (/^\s*triggers:\s*$/.test(line)) { inTriggers = true; inActs = false; inContainer = false; inVipc = false; inActions = false; continue; }
         if (inActs) {
           const m = line.match(/^\s*-\s*(\S+)/);
           if (m) { out.activities.push(m[1]); continue; }
           inActs = false;
+        }
+        if (inTriggers) {
+          const mt = line.match(/^\s{4}([A-Za-z0-9_.\-]+):\s*(\S+)/);
+          if (mt) { out.triggers[mt[1]] = mt[2]; continue; }
+          if (/^\s{0,3}\S/.test(line)) inTriggers = false;
         }
         if (inContainer) {
           let mc;
@@ -330,11 +397,23 @@
     }
 
     // ---- rendering ---------------------------------------------------------
+    // LOCKED to the single supported LabVIEW year (catalog.defaults.labviewVersion).
+    // The container images / baked VIPC / LabVIEW.exe paths are all built for that
+    // year, so reconfiguring to another year asked for an image that doesn't exist
+    // and broke every container job. Ignore the repo's stored value and always show
+    // that year, disabled -- so saving heals a repo pinned to an unsupported year.
+    // Code COMPATIBILITY with an older LabVIEW run-time is owned by the project's own
+    // .lvproj "save for previous version" setting, honored by the 2026 container -- so
+    // this field stays permanently locked and needs no version/compatibility picker.
     function renderVersions(sel) {
-      const el = $("version"); const versions = catalog.labviewVersions || ["2026"];
-      const def = sel || (catalog.defaults && catalog.defaults.labviewVersion) || versions[versions.length - 1];
+      const el = $("version");
+      const locked = (catalog.defaults && catalog.defaults.labviewVersion) || "2026";
       el.innerHTML = "";
-      versions.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = v; if (v === def) o.selected = true; el.appendChild(o); });
+      const o = document.createElement("option");
+      o.value = locked; o.textContent = locked; o.selected = true;
+      el.appendChild(o);
+      el.disabled = true;
+      el.setAttribute("aria-disabled", "true");
     }
 
     function renderActivities() {
@@ -346,7 +425,7 @@
         const cb = document.createElement("input");
         cb.type = "checkbox"; cb.value = cap.id; cb.disabled = planned;
         cb.checked = actSel.has(cap.id);
-        cb.addEventListener("change", () => { cb.checked ? actSel.add(cap.id) : actSel.delete(cap.id); renderActionRouting(); update(); });
+        cb.addEventListener("change", () => { cb.checked ? actSel.add(cap.id) : actSel.delete(cap.id); renderActionRouting(); renderTriggers(); update(); });
         lab.appendChild(cb);
         lab.appendChild(document.createTextNode(" " + cap.name));
         if (planned) { const b = document.createElement("span"); b.className = "badge"; b.textContent = "soon"; lab.appendChild(b); }
@@ -406,32 +485,53 @@
     }
     function renderVipcs() {
       const host = $("vipcs"); if (!host) return; host.innerHTML = "";
+      updateVipcNote();
       if (!vipcList.length) {
-        host.innerHTML = '<div class="hint">No VIPC files configured yet. The image still builds; add a <code class="inl">.vipc</code> to bake project dependencies into the container.</div>';
+        host.innerHTML = '<div class="hint">No VIPC files found in this repository. The image still builds; add a <code class="inl">.vipc</code> path to bake project dependencies into the container.</div>';
         return;
       }
       vipcList.forEach((v, i) => {
+        const included = v.include === true;
         const row = document.createElement("div"); row.className = "pkg";
-        const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = v.monitor !== false;
-        cb.title = "Monitor this file and rebuild the container automatically when it changes";
-        cb.addEventListener("change", () => { v.monitor = cb.checked; renderVipcs(); update(); });
+        // Primary control: include this VIPC in the worker container (de-selected by default).
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = included;
+        cb.title = "Include this VIPC file in the worker container";
+        cb.addEventListener("change", () => { v.include = cb.checked; renderVipcs(); update(); });
         const mid = document.createElement("div");
         mid.innerHTML = '<span class="pname">' + escapeHtml(v.path) + "</span>" +
-          '<div class="psum">' + (v.monitor !== false
-            ? "Monitored \u2014 rebuilds &amp; re-pushes the container when this file changes"
-            : "Baked once \u2014 not monitored for changes") + "</div>";
+          '<div class="psum">' + (included
+            ? (v.monitor !== false
+                ? "Included \u2014 monitored, rebuilds &amp; re-pushes the container when this file changes"
+                : "Included \u2014 baked once, not monitored for changes")
+            : "Not included \u2014 tick to bake this file into the container") + "</div>";
+        const ctl = document.createElement("div"); ctl.className = "pkgctl";
+        if (included) {
+          const ml = document.createElement("label"); ml.className = "pkgmon";
+          ml.title = "Monitor this file and rebuild the container automatically when it changes";
+          const mcb = document.createElement("input"); mcb.type = "checkbox"; mcb.checked = v.monitor !== false;
+          mcb.addEventListener("change", () => { v.monitor = mcb.checked; renderVipcs(); update(); });
+          ml.appendChild(mcb); ml.appendChild(document.createTextNode("Monitor"));
+          ctl.appendChild(ml);
+        }
         const rm = document.createElement("button"); rm.type = "button"; rm.className = "ghost"; rm.textContent = "Remove";
         rm.addEventListener("click", () => { vipcList.splice(i, 1); renderVipcs(); update(); });
-        row.appendChild(cb); row.appendChild(mid); row.appendChild(rm);
+        ctl.appendChild(rm);
+        row.appendChild(cb); row.appendChild(mid); row.appendChild(ctl);
         host.appendChild(row);
       });
     }
     function renderContainer() { renderContainerUse(); renderVipcs(); }
-    function setVipcNote(found) {
+    function updateVipcNote() {
       const el = $("vipcNote"); if (!el) return;
-      el.textContent = (found && found.length)
-        ? ("Found " + found.length + " VIPC file" + (found.length === 1 ? "" : "s") + " in the repository.")
-        : "";
+      const parts = [];
+      if (vipcFoundCount) parts.push("Found " + vipcFoundCount + " VIPC file" + (vipcFoundCount === 1 ? "" : "s") + " in the repository.");
+      if (vipcList.length) {
+        const sel = vipcList.filter(v => v.include === true).length;
+        parts.push(sel
+          ? (sel + " selected to bake into the container.")
+          : "None selected \u2014 files are de-selected by default; tick the ones you want baked in.");
+      }
+      el.textContent = parts.join(" ");
     }
 
     // ---- per-action container routing --------------------------------------
@@ -495,11 +595,92 @@
         .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
     }
 
+    // ---- per-activity submission triggers ----------------------------------
+    // Which submission sources run each activity. dashboard + custom-image are not
+    // submission-triggered (the dashboard reacts to status events; the image builds
+    // on dependency changes), so they are excluded — the same set the routing tab uses.
+    function triggerableCaps() {
+      return (catalog.capabilities || []).filter(c =>
+        c.status !== "planned" && c.id !== "dashboard" && c.id !== "custom-image");
+    }
+    function defaultTriggerSet(id) {
+      // Snapshots build the historical gallery only when a commit lands on the
+      // default branch; every other activity also runs on pull requests — which is
+      // exactly what the activity workflows' `on:` triggers do today.
+      return new Set(id === "snapshots" ? ["push-default"] : ["push-default", "pr-branch", "pr-fork"]);
+    }
+    function setsEqual(a, b) {
+      if (a.size !== b.size) return false;
+      for (const v of a) if (!b.has(v)) return false;
+      return true;
+    }
+    function initTriggerDefaults() {
+      triggerSel.clear();
+      triggerableCaps().forEach(c => triggerSel.set(c.id, defaultTriggerSet(c.id)));
+    }
+    // Only activities whose sources differ from their default (stable, sorted).
+    function triggerEntries() {
+      const out = [];
+      triggerableCaps().forEach(c => {
+        const cur = triggerSel.get(c.id) || defaultTriggerSet(c.id);
+        if (!setsEqual(cur, defaultTriggerSet(c.id))) {
+          out.push([c.id, TRIGGER_SOURCES.map(([k]) => k).filter(k => cur.has(k))]);
+        }
+      });
+      return out.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+    }
+    function triggerYamlLines() {
+      const entries = triggerEntries();
+      if (!entries.length) return [];
+      return ["  triggers:"].concat(
+        entries.map(([id, srcs]) => "    " + id + ": " + (srcs.length ? srcs.join("+") : "none")));
+    }
+    function triggerInputEnc() {
+      return triggerEntries().map(([id, srcs]) => `${id}::${srcs.length ? srcs.join("+") : "none"}`).join(";");
+    }
+    function renderTriggers() {
+      const host = $("trigMatrix"); if (!host || !catalog) return; host.innerHTML = "";
+      const table = document.createElement("table"); table.className = "trigtable";
+      const thead = document.createElement("thead"); const hr = document.createElement("tr");
+      const hAct = document.createElement("th"); hAct.textContent = "Activity"; hr.appendChild(hAct);
+      TRIGGER_SOURCES.forEach(([, label]) => {
+        const th = document.createElement("th");
+        const span = document.createElement("span"); span.className = "colsrc"; span.textContent = label;
+        th.appendChild(span); hr.appendChild(th);
+      });
+      thead.appendChild(hr); table.appendChild(thead);
+      const tbody = document.createElement("tbody");
+      triggerableCaps().forEach(cap => {
+        const enabled = actSel.has(cap.id);
+        const cur = triggerSel.get(cap.id) || defaultTriggerSet(cap.id);
+        const tr = document.createElement("tr"); if (!enabled) tr.className = "off";
+        const tdName = document.createElement("td");
+        const nm = document.createElement("span"); nm.className = "actname"; nm.textContent = cap.name; tdName.appendChild(nm);
+        if (!enabled) { const pill = document.createElement("span"); pill.className = "pill"; pill.textContent = "not enabled"; tdName.appendChild(pill); }
+        tr.appendChild(tdName);
+        TRIGGER_SOURCES.forEach(([key]) => {
+          const td = document.createElement("td");
+          const cb = document.createElement("input"); cb.type = "checkbox";
+          cb.checked = cur.has(key); cb.disabled = !enabled;
+          cb.setAttribute("aria-label", cap.name + " on " + key);
+          cb.addEventListener("change", () => {
+            const s = triggerSel.get(cap.id) || defaultTriggerSet(cap.id);
+            cb.checked ? s.add(key) : s.delete(key);
+            triggerSel.set(cap.id, s); update();
+          });
+          td.appendChild(cb); tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody); host.appendChild(table);
+    }
+
     function containerYamlLines() {
       const lines = ["  container:", "    use: " + (containerUseValue() || "latest")];
-      if (vipcList.length) {
+      const baked = vipcList.filter(v => v.include === true);
+      if (baked.length) {
         lines.push("    vipc:");
-        vipcList.forEach(v => {
+        baked.forEach(v => {
           lines.push('      - path: "' + String(v.path).replace(/"/g, "") + '"');
           lines.push("        monitor: " + (v.monitor !== false ? "true" : "false"));
         });
@@ -522,11 +703,13 @@
         if (!r.ok) return;
         const data = await r.json();
         const found = (data.tree || []).filter(t => t.type === "blob" && /\.vipc$/i.test(t.path)).map(t => t.path);
+        vipcFoundCount = found.length;
         const have = new Set(vipcList.map(v => v.path));
         let added = false;
-        found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, monitor: true }); added = true; } });
-        if (added) { renderVipcs(); update(); }
-        setVipcNote(found);
+        // Pre-populate every discovered file, de-selected by default — the user picks which to bake.
+        found.forEach(p => { if (!have.has(p)) { vipcList.push({ path: p, monitor: true, include: false }); added = true; } });
+        renderVipcs();
+        if (added) update();
       } catch (_) {}
     }
 
@@ -547,6 +730,7 @@
         "  concurrency:",
         "    maxParallel: " + (parseInt($("runners").value, 10) || 1),
         ...containerYamlLines(),
+        ...triggerYamlLines(),
         "activities:",
         ...acts.map(a => "  - " + a),
         "",
@@ -571,11 +755,13 @@
       const repo = $("repo").value.trim();
       const r = repo.includes("/") ? ` -R ${repo}` : "";
       const antidoc = $("antidoc").checked ? "true" : "false";
-      const cVipc = vipcList.map(v => `${v.path}::${v.monitor !== false ? 1 : 0}`).join(";");
+      const cVipc = vipcList.filter(v => v.include === true).map(v => `${v.path}::${v.monitor !== false ? 1 : 0}`).join(";");
       const cActs = containerActionEntries().map(([id, t]) => `${id}::${t}`).join(";");
+      const cTrig = triggerInputEnc();
       const cLine = ` \\\n  -f container_use=${containerUseValue() || "latest"}` +
         (cVipc ? ` \\\n  -f container_vipc="${cVipc}"` : "") +
-        (cActs ? ` \\\n  -f container_actions="${cActs}"` : "");
+        (cActs ? ` \\\n  -f container_actions="${cActs}"` : "") +
+        (cTrig ? ` \\\n  -f action_triggers="${cTrig}"` : "");
       return `gh workflow run reconfigure.yml${r} \\\n` +
         `  -f labview_version=${$("version").value} \\\n` +
         `  -f operating_systems=${osChoice()} \\\n` +
@@ -616,6 +802,27 @@
       }));
     }
 
+    // ---- info (i) popovers (event-delegated so dynamic buttons work too) ----
+    function closeAllInfo() {
+      document.querySelectorAll('.infobtn[aria-expanded="true"]').forEach(b => b.setAttribute("aria-expanded", "false"));
+      document.querySelectorAll(".infopop").forEach(p => { p.hidden = true; });
+    }
+    function initInfoButtons() {
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".infobtn");
+        if (btn) {
+          e.preventDefault(); e.stopPropagation();
+          const pop = btn.parentElement.querySelector(".infopop");
+          const open = btn.getAttribute("aria-expanded") === "true";
+          closeAllInfo();
+          if (!open && pop) { btn.setAttribute("aria-expanded", "true"); pop.hidden = false; }
+          return;
+        }
+        if (!e.target.closest(".infopop")) closeAllInfo();
+      });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeAllInfo(); });
+    }
+
     // Resolve the repo this dialog configures. The dialog is always scoped to the
     // repository whose dashboard launched it; the user never picks it. Priority:
     //   1. ?repo=owner/name (passed by the dashboard launcher / explicit deep-link)
@@ -654,11 +861,18 @@
         if (m.activities.length) { actSel.clear(); m.activities.forEach(a => actSel.add(a)); renderActivities(); }
         if (m.runners) $("runners").value = m.runners;
         containerUse = m.containerUse || "latest";
-        vipcList = (m.vipc || []).map(v => ({ path: v.path, monitor: v.monitor !== false }));
+        vipcList = (m.vipc || []).map(v => ({ path: v.path, monitor: v.monitor !== false, include: true }));
         actionContainer.clear();
         Object.keys(m.actions || {}).forEach(id => actionContainer.set(id, m.actions[id]));
+        // Triggers: reset to per-activity defaults, then apply any saved overrides.
+        initTriggerDefaults();
+        Object.keys(m.triggers || {}).forEach(id => {
+          const v = String(m.triggers[id]).trim();
+          triggerSel.set(id, new Set(v === "none" || v === "" ? [] : v.split("+").map(s => s.trim()).filter(Boolean)));
+        });
         renderContainer();
         renderActionRouting();
+        renderTriggers();
         loadedAny = true;
       } catch (_) { /* not installed yet */ }
       try {
@@ -707,7 +921,8 @@
       $("containerUseCustom").addEventListener("input", () => { containerUse = containerUseValue(); update(); });
       $("addVipcBtn").addEventListener("click", () => {
         const p = $("newVipcPath").value.trim(); if (!p) return;
-        if (!vipcList.some(v => v.path === p)) vipcList.push({ path: p, monitor: true });
+        // Manually added paths are an explicit choice, so include them by default.
+        if (!vipcList.some(v => v.path === p)) vipcList.push({ path: p, monitor: true, include: true });
         $("newVipcPath").value = ""; renderVipcs(); update();
       });
     }
@@ -728,7 +943,8 @@
       renderPackages();
       winLatest = await (async () => { try { return await fetchJson("./workers/windows/latest.json"); } catch (_) { return null; } })();
       renderContainer(); renderActionRouting();
-      wire(); initTabs(); update();
+      initTriggerDefaults(); renderTriggers();
+      wire(); initTabs(); initInfoButtons(); update();
 
       // The dialog is scoped to the repo whose dashboard launched it (never asked).
       // Auto-detect it, reflect it read-only, and load that repo's current settings
