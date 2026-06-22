@@ -309,6 +309,7 @@
       "packages": [
         "jki_lib_caraya-1.4.4.148",
         "jki_vi_tester",
+        "ni_lib_utf_junit_report-1.0.1.43",
         "wovalab_lib_antidoc_cli-3.3.0.117"
       ],
       "nipkg_ready": true,
@@ -316,6 +317,10 @@
         {
           "name": "ni-expat1-libs",
           "version": "2.7.3."
+        },
+        {
+          "name": "ni-expat1-libs",
+          "version": "2.6.3."
         },
         {
           "name": "ni-labview-2026-help-en",
@@ -386,16 +391,32 @@
           "version": "14.44.35112"
         },
         {
+          "name": "ni-msvcrt-2015",
+          "version": "14.42.34433"
+        },
+        {
           "name": "ni-mswebview2",
           "version": "143.0.3650"
+        },
+        {
+          "name": "ni-mswebview2",
+          "version": "131.0.2903"
         },
         {
           "name": "ni-openssl3-libs",
           "version": "3.5.4."
         },
         {
+          "name": "ni-openssl3-libs",
+          "version": "3.0.15."
+        },
+        {
           "name": "ni-openssl3-libs-x86",
           "version": "3.5.4."
+        },
+        {
+          "name": "ni-openssl3-libs-x86",
+          "version": "3.0.15."
         },
         {
           "name": "ni-search-labview-2026-support",
@@ -407,7 +428,7 @@
         }
       ],
       "labview_version": "2026",
-      "version": "win-5f78fa77a678"
+      "version": "win-03647c881b07"
     },
     {
       "key": "linux",
