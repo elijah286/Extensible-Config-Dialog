@@ -7,7 +7,7 @@ on:
   # outside the tooling dir), monthly for base-image security updates, or on
   # demand. After install, build it once from the dashboard (or workflow_dispatch).
   push:
-    branches: [main]
+    branches: [master]
     paths:
       # Your project's VI Package Configuration(s) are baked into the worker, so
       # changing your dependencies rebuilds it. The tooling's own vipc (added by
@@ -23,6 +23,15 @@ on:
         description: 'Deprecated — :latest is always published now (kept for compatibility)'
         type: boolean
         default: true
+      rebuild_vipm_base:
+        description: 'Force rebuild and push the shared LabVIEW+VIPM base before building the worker'
+        type: boolean
+        default: false
+      rebuild_policy:
+        description: 'In-flight CI before the rebuild: drain = let running jobs finish first; cancel = stop them now; config = use .github/labview-ci.yml (default drain)'
+        type: choice
+        options: [config, drain, cancel]
+        default: config
 
 env:
   # IMAGE_NAME and PAGES_URL are populated at runtime by the resolve step below
@@ -57,7 +66,7 @@ jobs:
       build: ${{ steps.decide.outputs.build }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Decide whether to rebuild
@@ -92,6 +101,8 @@ jobs:
               # Worker-affecting change that is NOT a .vipc -> always build.
               nonvipc = [f for f in files if not is_vipc(f) and (
                   f == '.github/docker/labview-ci.Dockerfile' or
+                  f == '.github/docker/labview-vipm-base.Dockerfile' or
+                  f == '.github/docker/labview-vipc-layer.Dockerfile' or
                   f.startswith('.github/labview/vipm/') or
                   f == '.github/workflows/build-labview-image.yml')]
               if nonvipc:
@@ -133,24 +144,142 @@ jobs:
               print('gate error -> build=true:', e)
           PY
 
-  build-and-push:
+  # Before a heavy (~15+ min) worker rebuild, coordinate the CI runs that USE the
+  # worker container so they do not straddle the image swap. The OLD image stays in
+  # GHCR until the new one is pushed, so this is about a clean, predictable hand-off
+  # and honest status -- not correctness. The policy comes from the dispatch input or
+  # config.container.rebuildPolicy in .github/labview-ci.yml (default drain):
+  #   drain  = wait for already-running worker jobs to finish, then rebuild.
+  #   cancel = stop already-running worker jobs now, then rebuild.
+  # Brand-new worker jobs are already gated by wait-for-worker-image.sh (they wait
+  # for THIS build), so we only ever touch runs that started BEFORE this one, which
+  # rules out a drain/wait deadlock. Best-effort: it never blocks the rebuild.
+  coordinate:
     needs: gate
     if: needs.gate.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write     # cancel in-flight runs (drain only needs read)
+      contents: read     # read .github/labview-ci.yml for the policy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Coordinate in-flight CI before the rebuild
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_POLICY: ${{ github.event.inputs.rebuild_policy || 'config' }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 - <<'PY' || echo "::notice::rebuild coordination ended early (non-fatal)"
+          import json, os, re, subprocess, time, pathlib
+
+          def gh(args):
+              r = subprocess.run(['gh', 'api'] + args, capture_output=True, text=True)
+              return r.stdout if r.returncode == 0 else ''
+
+          repo = os.environ.get('GITHUB_REPOSITORY', '')
+          run_id = os.environ.get('RUN_ID', '')
+          policy = (os.environ.get('INPUT_POLICY', 'config') or 'config').strip().lower()
+
+          # Resolve the policy from config when the dispatch left it on "config".
+          if policy in ('', 'config'):
+              policy = 'drain'
+              cfg = pathlib.Path('.github/labview-ci.yml')
+              if cfg.exists():
+                  in_c = False
+                  for line in cfg.read_text(encoding='utf-8').splitlines():
+                      if re.match(r'^\s*container:\s*$', line):
+                          in_c = True; continue
+                      if in_c:
+                          m = re.match(r'^\s{4}rebuildPolicy:\s*"?([A-Za-z]+)"?', line)
+                          if m:
+                              policy = m.group(1).strip().lower(); break
+                          if re.match(r'^\S', line):
+                              in_c = False
+          if policy not in ('drain', 'cancel'):
+              policy = 'drain'
+          print('Rebuild coordination policy:', policy)
+
+          # Only coordinate runs that started BEFORE this build, so we never wait on
+          # a worker job that is itself blocked waiting for THIS image (no deadlock).
+          my_created = ''
+          if repo and run_id:
+              me = json.loads(gh(['repos/%s/actions/runs/%s' % (repo, run_id)]) or '{}')
+              my_created = me.get('created_at', '') or ''
+
+          def worker_runs():
+              data = json.loads(gh(['repos/%s/actions/runs?per_page=100' % repo]) or '{}')
+              out = []
+              for r in data.get('workflow_runs', []):
+                  if str(r.get('id')) == str(run_id):
+                      continue
+                  if 'Container' not in (r.get('name') or ''):
+                      continue                       # the per-cap workers are "... Container"
+                  if r.get('status') == 'completed':
+                      continue
+                  if my_created and (r.get('created_at', '') or '') >= my_created:
+                      continue                       # newer -> gated by wait-for-worker-image
+                  out.append(r)
+              return out
+
+          active = worker_runs()
+          if not active:
+              print('No in-flight worker-container CI to coordinate.')
+              raise SystemExit(0)
+
+          print('In-flight worker CI runs to %s (%d):' % (policy, len(active)))
+          for r in active:
+              print('  - %s #%s [%s]' % (r.get('name'), r.get('run_number'), r.get('status')))
+
+          if policy == 'cancel':
+              for r in active:
+                  gh(['-X', 'POST', 'repos/%s/actions/runs/%s/cancel' % (repo, r.get('id'))])
+                  print('Requested cancel:', r.get('name'), r.get('id'))
+
+          # Bounded wait for the targeted runs to leave the running state. 25 min is
+          # under the 30 min that downstream wait-for-worker-image allows.
+          ids = [str(r.get('id')) for r in active]
+          deadline = time.time() + 1500
+          while time.time() < deadline:
+              data = json.loads(gh(['repos/%s/actions/runs?per_page=100' % repo]) or '{}')
+              by_id = {str(r.get('id')): r for r in data.get('workflow_runs', [])}
+              pending = [i for i in ids if by_id.get(i, {}).get('status') not in ('completed', None)]
+              if not pending:
+                  print('All targeted worker CI runs have finished.')
+                  break
+              print('  ... waiting for %d worker run(s) to finish' % len(pending))
+              time.sleep(20)
+          else:
+              print('Timed out coordinating in-flight CI; proceeding with the rebuild.')
+
+          summ = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summ:
+              with open(summ, 'a') as f:
+                  f.write('### Worker rebuild coordination\n')
+                  f.write('- Policy: **%s**\n' % policy)
+                  f.write('- In-flight worker CI runs handled: **%d**\n' % len(active))
+          PY
+
+  build-and-push:
+    needs: [gate, coordinate]
+    # always(): coordination is best-effort, so a coordinate hiccup must never
+    # block the actual rebuild -- only the gate decision gates the build.
+    if: always() && needs.gate.outputs.build == 'true'
     # IMPORTANT: windows-latest resolves to Server 2025 which has a broken
     # Docker daemon. Always pin to windows-2022.
     runs-on: windows-2022
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -178,7 +307,9 @@ jobs:
       # .github/labview-ci.yml lists config.container.vipc entries, exactly those
       # files are baked, so the Configure dialog can choose which dependencies apply
       # and a VIPC can live anywhere in the repo (not just the root). With no list,
-      # every repo-root *.vipc is baked (the original behavior).
+      # every project *.vipc found ANYWHERE in the repo (recursively, excluding the
+      # tooling dir under .github/) is baked -- VIPC files are the source of truth
+      # for project dependencies, so they are all discovered and applied by default.
       - name: Stage repo VIPC files
         shell: bash
         run: |
@@ -203,7 +334,10 @@ jobs:
                   elif in_c and re.match(r'^\S', line):
                       in_c = False
           if not paths:
-              paths = sorted(glob.glob('*.vipc'))
+              paths = sorted(
+                  p for p in glob.glob('**/*.vipc', recursive=True)
+                  if not p.replace(os.sep, '/').startswith('.github/')
+              )
           staged = 0
           for p in paths:
               if os.path.isfile(p):
@@ -223,7 +357,8 @@ jobs:
         shell: powershell
         run: |
           $files = @(
-            '.github/docker/labview-ci.Dockerfile',
+            '.github/docker/labview-vipm-base.Dockerfile',
+            '.github/docker/labview-vipc-layer.Dockerfile',
             '.github/labview/vipm/install-vipc.ps1'
           )
           $files += (Get-ChildItem '.github/labview/vipm' -Filter *.vipc -File |
@@ -241,10 +376,45 @@ jobs:
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           Write-Host "Worker version: $version"
 
+      - name: Ensure Docker daemon is running
+        shell: powershell
+        run: ./.github/labview/ensure-docker.ps1
+
+      - name: Pull or build LabVIEW VIPM base image
+        shell: powershell
+        run: |
+          $baseRef = '${{ env.IMAGE_NAME }}-vipm-base:${{ env.DEFAULT_TAG }}'
+          $latestRef = '${{ env.IMAGE_NAME }}-vipm-base:latest'
+          $rebuild = '${{ github.event.inputs.rebuild_vipm_base || 'false' }}' -eq 'true'
+
+          if (-not $rebuild) {
+            Write-Host "Pulling existing VIPM base image: $baseRef"
+            docker pull $baseRef
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "VIPM base image was not available; it will be built once and pushed."
+              $rebuild = $true
+            }
+          }
+
+          if ($rebuild) {
+            Write-Host "Building shared LabVIEW+VIPM base image: $baseRef"
+            docker build -f .github/docker/labview-vipm-base.Dockerfile `
+              -t $baseRef `
+              -t $latestRef .
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+            foreach ($ref in @($baseRef, $latestRef)) {
+              Write-Host "Pushing $ref"
+              docker push $ref
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+          }
+
       - name: Build and push LabVIEW CI image
         shell: powershell
         run: |
           $base  = '${{ env.IMAGE_NAME }}'
+          $vipmBase = '${{ env.IMAGE_NAME }}-vipm-base:${{ env.DEFAULT_TAG }}'
           $ver   = '${{ env.DEFAULT_TAG }}'
           $date  = '${{ steps.date.outputs.date }}'
           $wv    = '${{ steps.ver.outputs.version }}'
@@ -255,8 +425,14 @@ jobs:
 
           # Build — context is repo root so Dockerfile can COPY vipm/ and .vipc
           $tagFlags = ($tags | ForEach-Object { "-t", $_ })
-          docker build -f .github/docker/labview-ci.Dockerfile `
-            --build-arg CI_WORKER_VERSION=$wv @tagFlags .
+          # VIPM 26.3 Community Edition installs only from inside a PUBLIC Git repo,
+          # so pass this build's public repo URL for install-vipc.ps1 to use as the
+          # origin of its install working dir.
+          $repoUrl = '${{ github.server_url }}/${{ github.repository }}.git'
+          docker build -f .github/docker/labview-vipc-layer.Dockerfile `
+            --build-arg VIPM_BASE_IMAGE=$vipmBase `
+            --build-arg CI_WORKER_VERSION=$wv `
+            --build-arg VIPM_PUBLIC_REPO_URL=$repoUrl @tagFlags .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           foreach ($tag in $tags) {
@@ -286,7 +462,7 @@ jobs:
           $baseDigest = ''
           try {
             $baseDigest = (docker inspect --format '{{index .RepoDigests 0}}' `
-              nationalinstruments/labview:latest-windows 2>$null)
+              '${{ env.IMAGE_NAME }}-vipm-base:${{ env.DEFAULT_TAG }}' 2>$null)
           } catch {}
 
           $vipcArgs = @()
@@ -299,7 +475,7 @@ jobs:
             --nipkg-list 'ci-out/worker/nipkg-list.txt' `
             --labview-version ${{ vars.LABVIEW_VERSION || '2026' }} `
             --pages-url '${{ env.PAGES_URL }}' `
-            --base-image nationalinstruments/labview:latest-windows `
+            --base-image '${{ env.IMAGE_NAME }}-vipm-base:${{ env.DEFAULT_TAG }}' `
             --base-digest "$baseDigest" `
             --image-ref $img `
             --git-sha '${{ github.sha }}' `
@@ -328,7 +504,7 @@ jobs:
           git config --system core.longpaths true || true
 
       - name: Publish worker manifest to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ci-out/workers-pages

@@ -9,22 +9,23 @@ on:
   workflow_dispatch:
     inputs:
       labview_version:
-        description: 'LabVIEW year (e.g. 2026)'
+        description: 'LabVIEW year (e.g. 2026; blank = keep current)'
         required: false
-        default: '2026'
+        default: ''
       operating_systems:
-        description: 'Which platforms the pipeline targets'
+        description: 'Which platforms the pipeline targets (keep = leave unchanged)'
         type: choice
-        options: [both, windows, linux]
-        default: both
+        options: [keep, both, windows, linux]
+        default: keep
       antidoc:
-        description: 'Bake Antidoc (Wovalab doc generation) into the worker image'
-        type: boolean
-        default: true
+        description: 'Bake Antidoc (Wovalab doc generation) into the worker image (keep = leave unchanged)'
+        type: choice
+        options: [keep, 'true', 'false']
+        default: keep
       concurrent_runners:
-        description: 'Per-repo cap on parallel CI jobs. GitHub limits concurrency per ACCOUNT (Free 20, Pro 40, Team 60, Enterprise 500) shared across all your repos, so keep it modest. Default 5.'
+        description: 'Per-repo cap on parallel CI jobs (blank = keep current). GitHub limits concurrency per ACCOUNT (Free 20, Pro 40, Team 60, Enterprise 500) shared across all your repos, so keep it modest.'
         required: false
-        default: '5'
+        default: ''
       activities:
         description: 'Comma-separated capability ids (blank = keep current)'
         required: false
@@ -45,6 +46,22 @@ on:
         description: 'Per-activity submission triggers as id::sources pairs separated by ; (sources joined by +, e.g. snapshots::push-default+pr-branch; use "none" to disable an activity; blank = keep current)'
         required: false
         default: ''
+      vi_browser:
+        description: 'VI Browser render matrix as classic::<oses>;positionAware::<oses> (oses joined by +, e.g. positionAware::windows+linux; "none" to disable a generation; blank = keep current)'
+        required: false
+        default: ''
+      via_default:
+        description: 'VI Analyzer default test configuration: builtin (full suite), none (skip unmatched VIs), or a committed .viancfg path (blank = keep current)'
+        required: false
+        default: ''
+      via_rules:
+        description: 'VI Analyzer per-path configs as <config>::<paths> pairs separated by ; (paths joined by |; config "none" excludes; blank = keep current)'
+        required: false
+        default: ''
+      unit_tests:
+        description: 'Unit-test tool config as JSON; blank = keep current'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -59,10 +76,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
@@ -77,35 +94,46 @@ jobs:
           IN_CONTAINER_VIPC: ${{ inputs.container_vipc }}
           IN_CONTAINER_ACTIONS: ${{ inputs.container_actions }}
           IN_ACTION_TRIGGERS: ${{ inputs.action_triggers }}
+          IN_VI_BROWSER: ${{ inputs.vi_browser }}
+          IN_VIA_DEFAULT: ${{ inputs.via_default }}
+          IN_VIA_RULES: ${{ inputs.via_rules }}
+          IN_UNIT_TESTS: ${{ inputs.unit_tests }}
         run: |
           python3 - <<'PY'
           import os, re, json, datetime, pathlib
 
-          ver     = os.environ['IN_VERSION'].strip() or '2026'
-          oss     = os.environ['IN_OS'].strip() or 'both'
-          antidoc = os.environ['IN_ANTIDOC'].strip().lower() == 'true'
+          ver_in  = os.environ['IN_VERSION'].strip()
+          oss     = os.environ['IN_OS'].strip()
+          antidoc_in = os.environ['IN_ANTIDOC'].strip().lower()
           runners = os.environ['IN_RUNNERS'].strip()
           acts_in = os.environ['IN_ACTS'].strip()
           container_use_in = os.environ.get('IN_CONTAINER_USE', '').strip()
           container_vipc_in = os.environ.get('IN_CONTAINER_VIPC', '').strip()
           container_actions_in = os.environ.get('IN_CONTAINER_ACTIONS', '').strip()
           action_triggers_in = os.environ.get('IN_ACTION_TRIGGERS', '').strip()
+          vi_browser_in = os.environ.get('IN_VI_BROWSER', '').strip()
+          via_default_in = os.environ.get('IN_VIA_DEFAULT', '').strip()
+          via_rules_in = os.environ.get('IN_VIA_RULES', '').strip()
+          unit_tests_in = os.environ.get('IN_UNIT_TESTS', '').strip()
 
           # Preserve provenance fields from any existing manifest.
           mpath = pathlib.Path('.github/labview-ci.yml')
           prev = {'activities': [], 'installedVersion': '', 'repo': '', 'ref': 'main',
-                  'container_use': '', 'vipc': [], 'actions': {}, 'triggers': {}, 'unitTests_block': []}
+                  'container_use': '', 'vipc': [], 'actions': {}, 'triggers': {}, 'viBrowser': {}, 'unitTests_block': [],
+                  'labviewVersion': '', 'os': [], 'maxParallel': None}
           if mpath.exists():
-              in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_ut = False; cur_vipc = None
+              in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; in_ut = False; cur_vipc = None
               for line in mpath.read_text(encoding='utf-8').splitlines():
                   if re.match(r'^\s*activities:\s*$', line):
-                      in_acts = True; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; continue
+                      in_acts = True; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; continue
                   if re.match(r'^\s*container:\s*$', line):
-                      in_container = True; in_acts = False; in_vipc = False; in_actions = False; in_triggers = False; continue
+                      in_container = True; in_acts = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False; continue
                   if re.match(r'^\s*triggers:\s*$', line):
-                      in_triggers = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; continue
+                      in_triggers = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_vibrowser = False; continue
+                  if re.match(r'^\s*viBrowser:\s*$', line):
+                      in_vibrowser = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; continue
                   if re.match(r'^unitTests:\s*$', line):
-                      in_ut = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False
+                      in_ut = True; in_acts = False; in_container = False; in_vipc = False; in_actions = False; in_triggers = False; in_vibrowser = False
                       prev['unitTests_block'] = [line]; continue
                   if in_ut:
                       if re.match(r'^\s+\S', line):
@@ -119,6 +147,10 @@ jobs:
                       m = re.match(r'^\s{4}([A-Za-z0-9_.\-]+):\s*(\S+)', line)
                       if m: prev['triggers'][m.group(1)] = m.group(2); continue
                       if re.match(r'^\s{0,3}\S', line): in_triggers = False
+                  if in_vibrowser:
+                      m = re.match(r'^\s{4}(classic|positionAware):\s*(\S+)', line)
+                      if m: prev['viBrowser'][m.group(1)] = m.group(2); continue
+                      if re.match(r'^\s{0,3}\S', line): in_vibrowser = False
                   if in_container:
                       m = re.match(r'^\s{4}use:\s*"?([^"\s]+)"?', line)
                       if m: prev['container_use'] = m.group(1); in_vipc = False; in_actions = False; continue
@@ -139,12 +171,22 @@ jobs:
                   if m and not prev['repo']: prev['repo'] = m.group(1)
                   m = re.match(r'^\s*ref:\s*(\S+)', line)
                   if m and prev['ref'] == 'main': prev['ref'] = m.group(1)
+                  m = re.match(r'^\s{2}labviewVersion:\s*"?([^"\s]+)"?', line)
+                  if m: prev['labviewVersion'] = m.group(1)
+                  m = re.match(r'^\s{2}os:\s*\[([^\]]*)\]', line)
+                  if m: prev['os'] = [x.strip() for x in m.group(1).split(',') if x.strip()]
+                  m = re.match(r'^\s{4}maxParallel:\s*(\d+)', line)
+                  if m: prev['maxParallel'] = int(m.group(1))
 
-          os_list = ['windows', 'linux'] if oss == 'both' else [oss]
+          # version / os / runners: explicit input wins; blank or "keep" preserves
+          # whatever the manifest had (so a focused editor can change one thing).
+          ver = ver_in or prev.get('labviewVersion') or '2026'
+          os_list = (prev['os'] or ['windows', 'linux']) if oss in ('', 'keep') \
+              else (['windows', 'linux'] if oss == 'both' else [oss])
           acts = [a.strip() for a in acts_in.split(',') if a.strip()] \
               or prev['activities'] or ['dashboard', 'masscompile', 'vi-analyzer', 'vidiff']
           now = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-          max_parallel = int(runners) if runners.isdigit() and int(runners) > 0 else 1
+          max_parallel = int(runners) if runners.isdigit() and int(runners) > 0 else (prev.get('maxParallel') or 5)
 
           # Container: explicit input wins; blank keeps whatever the manifest had.
           container_use = container_use_in or prev['container_use'] or 'latest'
@@ -189,6 +231,71 @@ jobs:
               return out
           triggers = _parse_triggers(action_triggers_in) if action_triggers_in else prev['triggers']
 
+          # VI Browser render matrix: explicit input wins; blank keeps the manifest's.
+          # "classic::<oses>;positionAware::<oses>" (oses joined by +, or "none").
+          def _parse_vibrowser(s):
+              out = {}
+              for entry in s.split(';'):
+                  entry = entry.strip()
+                  if not entry or '::' not in entry: continue
+                  k, v = entry.split('::', 1)
+                  k = k.strip(); v = v.strip()
+                  if k and v: out[k] = v
+              return out
+          vi_browser = _parse_vibrowser(vi_browser_in) if vi_browser_in else prev['viBrowser']
+
+          # VI Analyzer: which .viancfg test config runs on which code. Explicit
+          # inputs win; blank keeps the manifest's. Parsed on its own (nested rules).
+          def _parse_via_block(text):
+              out = {'default': '', 'rules': []}
+              lines = text.splitlines()
+              i = 0
+              while i < len(lines) and not re.match(r'^\s{2}viAnalyzer:\s*$', lines[i]):
+                  i += 1
+              i += 1
+              cur = None; in_rules = False
+              while i < len(lines):
+                  line = lines[i]; i += 1
+                  if re.match(r'^\s{0,3}\S', line):
+                      break
+                  m = re.match(r'^\s{4}default:\s*"?([^"\s]+)"?', line)
+                  if m:
+                      out['default'] = m.group(1); in_rules = False; continue
+                  if re.match(r'^\s{4}rules:\s*$', line):
+                      in_rules = True; continue
+                  if in_rules:
+                      m = re.match(r'^\s{6}-\s*config:\s*"?([^"]+?)"?\s*$', line)
+                      if m:
+                          cur = {'config': m.group(1).strip(), 'paths': []}; out['rules'].append(cur); continue
+                      m = re.match(r'^\s{8}paths:\s*"?([^"]*?)"?\s*$', line)
+                      if m and cur is not None:
+                          cur['paths'] = [p.strip() for p in m.group(1).split('|') if p.strip()]; continue
+              return out
+          def _parse_via_rules(s):
+              rules = []
+              for entry in s.split(';'):
+                  entry = entry.strip()
+                  if not entry or '::' not in entry:
+                      continue
+                  cfg, paths = entry.split('::', 1)
+                  cfg = cfg.strip()
+                  pl = [p.strip() for p in paths.split('|') if p.strip()]
+                  if cfg and pl:
+                      rules.append({'config': cfg, 'paths': pl})
+              return rules
+          prev_via = _parse_via_block(mpath.read_text(encoding='utf-8')) if mpath.exists() else {'default': '', 'rules': []}
+          if via_default_in:
+              # A dedicated VI Analyzer editor sends the full state: the default is
+              # authoritative and rules are taken as provided (empty = no rules).
+              via_default = via_default_in
+              via_rules = _parse_via_rules(via_rules_in)
+          elif via_rules_in:
+              via_default = prev_via.get('default') or 'builtin'
+              via_rules = _parse_via_rules(via_rules_in)
+          else:
+              via_default = prev_via.get('default', '')
+              via_rules = prev_via.get('rules', [])
+
           lines = [
               '# .github/labview-ci.yml - LabVIEW CI configuration',
               '# Updated by the Reconfigure workflow.',
@@ -217,28 +324,103 @@ jobs:
               lines.append('    actions:')
               for _id in sorted(container_actions):
                   lines.append(f'      {_id}: {container_actions[_id]}')
+          if vi_browser:
+              lines.append('  viBrowser:')
+              for _k in ('classic', 'positionAware'):
+                  if _k in vi_browser:
+                      lines.append(f'    {_k}: {vi_browser[_k]}')
+          if via_default and (via_default != 'builtin' or via_rules):
+              lines.append('  viAnalyzer:')
+              lines.append(f'    default: {via_default}')
+              if via_rules:
+                  lines.append('    rules:')
+                  for _r in via_rules:
+                      _cfg = _r['config']
+                      if _cfg == 'none':
+                          lines.append('      - config: none')
+                      else:
+                          lines.append('      - config: "' + str(_cfg).replace('"', '') + '"')
+                      _paths = '|'.join(str(p).replace('|', '').replace('"', '') for p in _r['paths'])
+                      lines.append(f'        paths: "{_paths}"')
           if triggers:
               lines.append('  triggers:')
               for _id in sorted(triggers):
                   lines.append(f'    {_id}: {triggers[_id]}')
           lines += ['activities:'] + [f'  - {a}' for a in acts] + ['']
-          # Preserve the unit-test tool config (written by the Unit Testing page);
-          # reconfigure manages activities/container only, so keep it verbatim.
-          if prev.get('unitTests_block'):
-              lines += prev['unitTests_block'] + ['']
+          def _unit_tests_block_from_json(s):
+              data = json.loads(s)
+              tools = data.get('tools', data) if isinstance(data, dict) else {}
+              if not isinstance(tools, dict):
+                  raise ValueError('unit_tests must be a JSON object')
+              def _pct(value, default):
+                  try:
+                      return max(0, min(100, int(float(str(value).strip()))))
+                  except Exception:
+                      return default
+              raw_thresholds = data.get('thresholds', {}) if isinstance(data, dict) else {}
+              raw_passed = raw_thresholds.get('passedPercent', {}) if isinstance(raw_thresholds, dict) else {}
+              passed = {
+                  'greenAtLeast': _pct(raw_passed.get('greenAtLeast'), 100),
+                  'yellowAtLeast': _pct(raw_passed.get('yellowAtLeast'), 80),
+                  'redBelow': _pct(raw_passed.get('redBelow'), 80),
+              }
+              passed['greenAtLeast'] = max(passed['greenAtLeast'], passed['yellowAtLeast'])
+              passed['redBelow'] = min(passed['redBelow'], passed['yellowAtLeast'])
+              ordered = [k for k in ('caraya', 'vi-tester', 'utf') if k in tools]
+              ordered += sorted(k for k in tools if k not in ordered)
+              out = [
+                  'unitTests:',
+                  '  thresholds:',
+                  '    passedPercent:',
+                  f"      greenAtLeast: {passed['greenAtLeast']}",
+                  f"      yellowAtLeast: {passed['yellowAtLeast']}",
+                  f"      redBelow: {passed['redBelow']}",
+                  '  tools:',
+              ]
+              for key in ordered:
+                  if not re.match(r'^[A-Za-z0-9_.-]+$', key):
+                      raise ValueError(f'invalid unit-test tool id: {key!r}')
+                  cfg = tools.get(key) or {}
+                  enabled = bool(cfg.get('enabled'))
+                  raw_locs = cfg.get('locations') or []
+                  if not isinstance(raw_locs, list):
+                      raise ValueError(f'locations for {key} must be a list')
+                  locs = [str(x).strip() for x in raw_locs if str(x).strip()]
+                  out.append(f'    {key}:')
+                  out.append(f"      enabled: {'true' if enabled else 'false'}")
+                  if locs:
+                      out.append('      locations:')
+                      for loc in locs:
+                          out.append('        - "' + loc.replace('"', '\\"') + '"')
+                  else:
+                      out.append('      locations: []')
+              return out
+          unit_tests_block = _unit_tests_block_from_json(unit_tests_in) if unit_tests_in else prev.get('unitTests_block')
+          if unit_tests_block:
+              lines += unit_tests_block + ['']
           mpath.parent.mkdir(parents=True, exist_ok=True)
           mpath.write_text('\n'.join(lines), encoding='utf-8')
           print('Wrote', mpath)
 
+          # Hand the resolved LabVIEW version to the VIPC-regen step (the input may
+          # have been blank = keep current).
+          if os.environ.get('GITHUB_ENV'):
+              with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as _f:
+                  _f.write(f'RESOLVED_LV={ver}\n')
+
           # Toggle Antidoc (a VIPM package) in the container dependency manifest.
+          # "keep" (or blank) leaves the current include flag untouched.
           ppath = pathlib.Path('.github/labview/vipm/ci-tooling.packages.json')
-          if ppath.exists():
+          if ppath.exists() and antidoc_in not in ('', 'keep'):
+              antidoc = antidoc_in == 'true'
               obj = json.loads(ppath.read_text(encoding='utf-8'))
               for p in obj.get('vipmPackages', {}).get('packages', []):
                   if p.get('name') == 'wovalab_lib_antidoc_cli':
                       p['include'] = bool(antidoc)
               ppath.write_text(json.dumps(obj, indent=2) + '\n', encoding='utf-8')
               print('Antidoc include ->', antidoc)
+          else:
+              print('Antidoc: keep current')
           PY
 
       - name: Regenerate container VIPC (best effort)
@@ -248,7 +430,7 @@ jobs:
           PKG=.github/labview/vipm/ci-tooling.packages.json
           OUT=.github/labview/vipm/ci-tooling.vipc
           if [ -f "$GEN" ] && [ -f "$PKG" ]; then
-            python3 "$GEN" --manifest "$PKG" --out "$OUT" --labview-version "${{ inputs.labview_version }}"
+            python3 "$GEN" --manifest "$PKG" --out "$OUT" --labview-version "${RESOLVED_LV:-2026}"
           else
             echo "VIPC generator or manifest not present; skipping regeneration."
           fi
@@ -291,6 +473,10 @@ jobs:
           | Container | ${{ inputs.container_use }} |
           | Per-action containers | ${{ inputs.container_actions }} |
           | Activity triggers | ${{ inputs.action_triggers }} |
+          | VI Browser renders | ${{ inputs.vi_browser }} |
+          | VI Analyzer default | ${{ inputs.via_default }} |
+          | VI Analyzer rules | ${{ inputs.via_rules }} |
+          | Unit tests | ${{ inputs.unit_tests }} |
 
           Review and merge to apply. Container-dependency and LabVIEW-version changes
           take effect on the next image build; OS/runner settings apply where the

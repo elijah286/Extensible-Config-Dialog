@@ -6,13 +6,15 @@
 # runs the catalog-driven installer in --update mode, which re-pulls every tooling
 # file for this repo's selected activities (bringing new capabilities, not just a
 # version bump), rebrands them to this repo, preserves your own config + baked
-# dependencies, and bumps the version. The result is opened as a pull request.
-# Review + merge to finish — no terminal needed. The config ref bump + vendored
-# scripts + pages push with the built-in token, so the version (and thus the
-# dashboard + runtime tooling) always adopts token-lessly; only changes to
-# .github/workflows/** need a one-time TOOLING_UPDATE_TOKEN (repo + workflow
-# scope) and are otherwise deferred. GitHub's own "Run workflow" gate limits this
-# to write-access users.
+# dependencies, and bumps the version. It then commits the update STRAIGHT to the
+# default branch — no pull request to open, approve, or merge — using only the
+# built-in token's `contents: write` (it does NOT rely on the repo allowing Actions
+# to create pull requests, the secure default that used to leave a successful update
+# with no PR). Only changes to .github/workflows/** need a one-time
+# TOOLING_UPDATE_TOKEN (repo + workflow scope) and are otherwise deferred. If the
+# default branch is protected so a direct push is refused, it falls back to opening
+# a pull request and enabling auto-merge. GitHub's own "Run workflow" gate limits
+# this to write-access users.
 name: Apply LabVIEW CI update
 
 on:
@@ -161,12 +163,13 @@ jobs:
             echo "source_repo=$SRC_REPO"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Open the upgrade pull request
+      - name: Apply the update
         env:
           GH_TOKEN: ${{ secrets.TOOLING_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
           INSTALLED: ${{ steps.apply.outputs.installed }}
           LATEST: ${{ steps.apply.outputs.latest }}
           SOURCE_REPO: ${{ steps.apply.outputs.source_repo }}
+          DEFAULT_BRANCH: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           git config user.name  "github-actions[bot]"
@@ -182,75 +185,135 @@ jobs:
             exit 0
           fi
 
-          BRANCH="ci/adopt-tooling-v${LATEST}"
-          git checkout -B "$BRANCH"
+          DEFAULT_BRANCH="${DEFAULT_BRANCH:-${GITHUB_REF_NAME:-main}}"
+
           git add -A
           CHANGED=$(git diff --cached --name-only | wc -l | tr -d ' ')
-
-          {
-            echo "Adopts the latest LabVIEW CI tooling (**v${INSTALLED} → v${LATEST}**) from \`${SOURCE_REPO}\`."
-            echo ""
-            echo "This is a **full update**: every tooling file for this repo's selected capabilities was"
-            echo "re-pulled at the latest version (new capabilities included), rebranded to this repo, with your"
-            echo "own configuration and baked dependencies preserved. **${CHANGED} file(s)** changed."
-            echo ""
-            echo "Triggered from the dashboard **Update now** button. Review and merge to finish — the version"
-            echo "badge turns green and the pipeline runs the updated capabilities."
-            echo ""
-            echo "> **See an older update PR, or a merge conflict?** You can ignore it — only this PR (the newest, **v${LATEST}**) matters. Any older \`ci/adopt-tooling-*\` update PR is closed automatically. And if this PR ever shows a conflict on \`catalog.json\` / \`labview-ci.yml\`, don't hand-resolve it: just click **Update now** again. That rebuilds this branch from the latest default branch, which clears the conflict (the update replaces those files wholesale, so there is never anything real to merge by hand)."
-          } > /tmp/pr-body.md
-
           git commit -m "ci: adopt LabVIEW CI tooling v${LATEST} (full update)"
 
-          # Pushing .github/workflows/** needs a token with `workflow` scope;
-          # with only the built-in token GitHub rejects the whole branch. But the
-          # workflow YAMLs are THIN callers that read the tooling ref from
-          # .github/labview-ci.yml at RUNTIME, so the rest of the update — the ref
-          # bump + vendored scripts + pages — adopts the new version on its own
-          # (the dashboard caller checks the tooling out at the bumped ref and runs
-          # the fixed generator). So when the push is refused only for workflow
-          # scope, defer just those YAMLs and push the part that actually fixes the
-          # pipeline, instead of dropping the entire update. DEFERRED_WF carries the
-          # count into the PR body / summary.
+          # Strip every .github/workflows/** change out of the last commit so the
+          # built-in token (which lacks `workflow` scope) can push the rest. Reverts
+          # modified + deleted workflow files AND deletes brand-new ones (a plain
+          # `git checkout HEAD -- path` would leave new files behind, so the re-push
+          # is refused again). Sets DEFERRED_WF to the count held back.
           DEFERRED_WF=0
+          strip_workflows() {
+            DEFERRED_WF=$(git diff --name-only HEAD~1 HEAD -- '.github/workflows' | grep -c . || true)
+            git reset --soft HEAD~1
+            git reset -q HEAD -- '.github/workflows' 2>/dev/null || true
+            git checkout -q -- '.github/workflows' 2>/dev/null || true
+            git clean -fdq -- '.github/workflows' 2>/dev/null || true
+            git add -A
+          }
 
-          if ! git push -u origin "$BRANCH" --force 2>/tmp/push-err; then
+          # ---- Primary path: commit the update STRAIGHT to the default branch — no
+          # pull request, no manual merge. A direct push needs only `contents: write`
+          # (the built-in token has it) and does NOT depend on the repo's "Allow
+          # GitHub Actions to create pull requests" setting — that secure default is
+          # exactly what used to leave a successful update with no PR to merge. The
+          # dashboard + pages rebuild that the push triggers publishes the new
+          # version on its own; only .github/workflows/** still needs a token.
+          PUSHED=0
+          push_default() { git push origin "HEAD:${DEFAULT_BRANCH}" 2>/tmp/push-err; }
+
+          if push_default; then
+            PUSHED=1
+          else
             cat /tmp/push-err || true
-            if grep -qi 'workflow' /tmp/push-err; then
-              # Re-commit WITHOUT the workflow YAMLs so the default token can push.
-              DEFERRED_WF=$(git diff --name-only HEAD~1 HEAD -- '.github/workflows' | grep -c . || true)
-              git reset --soft HEAD~1
-              # Strip EVERY workflow change from the commit -- modified, deleted, AND
-              # newly added. `git checkout HEAD -- <path>` only reverts files that
-              # already exist in HEAD, so a brand-new YAML (e.g. a new capability's
-              # workflow) would survive and the re-push is refused again. Unstage the
-              # paths, restore the tracked ones, then delete the now-untracked new
-              # files so the following `git add -A` cannot re-stage them.
-              git reset -q HEAD -- '.github/workflows' 2>/dev/null || true
-              git checkout -q -- '.github/workflows' 2>/dev/null || true
-              git clean -fdq -- '.github/workflows' 2>/dev/null || true
-              git add -A
-              if [ -z "$(git diff --cached --name-only)" ]; then
+            # Lost a race to a concurrent push? Rebase onto the new tip and retry once.
+            if grep -qiE 'fetch first|non-fast-forward|tip of your current branch is behind' /tmp/push-err; then
+              git fetch --no-tags origin "${DEFAULT_BRANCH}" >/dev/null 2>&1 || true
+              if git rebase FETCH_HEAD >/dev/null 2>&1; then
+                if push_default; then PUSHED=1; else cat /tmp/push-err || true; fi
+              else
+                git rebase --abort >/dev/null 2>&1 || true
+              fi
+            fi
+            # Refused ONLY because the commit touches .github/workflows/** and the
+            # token lacks `workflow` scope (not a branch-protection refusal): defer
+            # the YAMLs and push the rest straight to the default branch. The YAMLs
+            # are thin runtime callers, so the version still adopts without them.
+            if [ "$PUSHED" != 1 ] && grep -qi 'workflow' /tmp/push-err \
+               && ! grep -qiE 'protected|pull request|hook declined|rule' /tmp/push-err; then
+              strip_workflows
+              if [ -n "$(git diff --cached --name-only)" ]; then
+                CHANGED=$(git diff --cached --name-only | wc -l | tr -d ' ')
+                git commit -m "ci: adopt LabVIEW CI tooling v${LATEST} (config + scripts; ${DEFERRED_WF} workflow file(s) deferred)"
+                if push_default; then PUSHED=1; else cat /tmp/push-err || true; fi
+              else
+                # Everything in this release is workflow files; the built-in token
+                # can't push any of it directly. Ask for a one-time token.
                 {
                   echo "## ⚠️ This update only changes workflow files — add a one-time token"
                   echo ""
                   echo "Everything new in **v${LATEST}** lives in GitHub **workflow files**, which the built-in"
-                  echo "token cannot push. Two ways to finish:"
+                  echo "token cannot push. Finish it from the dashboard:"
                   echo ""
-                  echo "**Easiest — from the dashboard, no settings trip.** Open **What's New ▸ Update now**. When no pull request appears it now shows an **\"add a one-time workflow token\"** field with a ready-made token link (Contents + Workflows + Pull requests + Secrets = Read and write). Paste the token there; the page seals it in your browser, stores it as this repo's \`TOOLING_UPDATE_TOKEN\` secret, and restarts the update."
+                  echo "**From the dashboard, no settings trip.** Open **What's New ▸ Update now**. When the update can't finish on its own it shows an **\"add a one-time token\"** field with a ready-made token link (Contents + Workflows + Pull requests + Secrets = Read and write). Paste the token there; the page seals it in your browser, stores it as this repo's \`TOOLING_UPDATE_TOKEN\` secret, and restarts the update — which then commits the workflow files for you."
                   echo ""
-                  echo "**Or add the secret yourself:**"
-                  echo "1. Create a token — classic PAT: \`repo\` + \`workflow\`; or fine-grained: **Contents + Workflows + Pull requests** = Read and write."
-                  echo "2. Add it as the repository secret **TOOLING_UPDATE_TOKEN** (Settings ▸ Secrets and variables ▸ Actions)."
-                  echo "3. Re-run **Update now**."
+                  echo "**Or add the secret yourself:** create a token (classic PAT \`repo\` + \`workflow\`, or fine-grained **Contents + Workflows = Read and write**), add it as the repository secret **TOOLING_UPDATE_TOKEN** (Settings ▸ Secrets and variables ▸ Actions), then re-run **Update now**."
                 } >> "$GITHUB_STEP_SUMMARY"
                 echo "::warning title=Token needed::This update only changes workflow files; pushing them needs a one-time TOOLING_UPDATE_TOKEN. Add it inline from the What's New > Update now page, or as a repo secret."
-                git push origin --delete "$BRANCH" >/dev/null 2>&1 || true
+                exit 0
+              fi
+            fi
+          fi
+
+          # ---- Direct push succeeded: the update is applied, no PR. Report it and
+          # tidy away any stale update PR/branch left by an older attempt.
+          if [ "$PUSHED" = 1 ]; then
+            {
+              echo "## ✅ Update applied — v${INSTALLED} → v${LATEST}"
+              echo ""
+              echo "Committed the latest LabVIEW CI tooling straight to \`${DEFAULT_BRANCH}\` (**${CHANGED} file(s)**, no pull request to merge). Your dashboard rebuilds and the version badge turns green within a minute."
+              if [ "${DEFERRED_WF:-0}" -gt 0 ]; then
+                echo ""
+                echo "> ⚠️ **${DEFERRED_WF} workflow file(s) deferred** — the built-in token can't push \`.github/workflows/**\`, so those YAMLs keep their current version. The dashboard and reusable tooling still update (they load the tooling at the bumped ref at runtime). To also refresh the workflow YAMLs, add a **TOOLING_UPDATE_TOKEN** secret (repo + workflow scope) and re-run **Update now**."
+              fi
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Applied the update directly to ${DEFAULT_BRANCH}."
+            gh pr list --state open --json number,headRefName \
+              --jq '.[] | select(.headRefName|test("^ci/(adopt|update)-tooling-v")) | "\(.number)\t\(.headRefName)"' 2>/dev/null \
+            | while IFS=$'\t' read -r num ref; do
+                [ -z "${num:-}" ] && continue
+                gh pr close "$num" --delete-branch --comment "Superseded — the update to **v${LATEST}** was applied directly to \`${DEFAULT_BRANCH}\`, so there is nothing to merge here." >/dev/null 2>&1 || true
+              done || true
+            exit 0
+          fi
+
+          # ---- Fallback: the direct push was refused by branch protection / a
+          # ruleset (the default branch requires a pull request). Open one — and turn
+          # on auto-merge below — so it still finishes hands-off wherever the repo
+          # permits; otherwise it waits for the review the protection asks for.
+          echo "::notice::A direct push to ${DEFAULT_BRANCH} was refused; opening a pull request instead."
+          BRANCH="ci/adopt-tooling-v${LATEST}"
+
+          {
+            echo "Adopts the latest LabVIEW CI tooling (**v${INSTALLED} → v${LATEST}**) from \`${SOURCE_REPO}\`."
+            echo ""
+            echo "Your default branch requires changes to go through a pull request, so the update is offered here. **${CHANGED} file(s)** changed — every tooling file for this repo's selected capabilities was re-pulled at the latest version (new capabilities included), rebranded to this repo, with your own configuration and baked dependencies preserved."
+            echo ""
+            echo "Triggered from the dashboard **Update now** button. If the repository permits it, this PR **auto-merges** once its requirements are met; otherwise review and merge to finish — the version badge turns green and the pipeline runs the updated capabilities."
+            echo ""
+            echo "> **See an older update PR, or a merge conflict?** You can ignore it — only this PR (the newest, **v${LATEST}**) matters. Any older \`ci/adopt-tooling-*\` update PR is closed automatically. And if this PR ever shows a conflict on \`catalog.json\` / \`labview-ci.yml\`, don't hand-resolve it: just click **Update now** again. That rebuilds this branch from the latest default branch, which clears the conflict (the update replaces those files wholesale, so there is never anything real to merge by hand)."
+          } > /tmp/pr-body.md
+
+          if ! git push -f origin "HEAD:refs/heads/${BRANCH}" 2>/tmp/push-err; then
+            cat /tmp/push-err || true
+            if grep -qi 'workflow' /tmp/push-err; then
+              strip_workflows
+              if [ -z "$(git diff --cached --name-only)" ]; then
+                {
+                  echo "## ⚠️ This update only changes workflow files — add a one-time token"
+                  echo ""
+                  echo "Everything new in **v${LATEST}** lives in GitHub **workflow files**, which the built-in token cannot push, and your default branch requires a pull request. Open **What's New ▸ Update now** and paste the one-time token it offers (Contents + Workflows + Pull requests + Secrets = Read and write); it stores the \`TOOLING_UPDATE_TOKEN\` secret and finishes the update."
+                } >> "$GITHUB_STEP_SUMMARY"
+                echo "::warning title=Token needed::This update only changes workflow files; add a one-time TOOLING_UPDATE_TOKEN from the What's New > Update now page."
                 exit 0
               fi
               CHANGED=$(git diff --cached --name-only | wc -l | tr -d ' ')
               git commit -m "ci: adopt LabVIEW CI tooling v${LATEST} (config + scripts; ${DEFERRED_WF} workflow file(s) deferred)"
-              if ! git push -u origin "$BRANCH" --force 2>/tmp/push-err2; then
+              if ! git push -f origin "HEAD:refs/heads/${BRANCH}" 2>/tmp/push-err2; then
                 cat /tmp/push-err2 || true
                 echo "::error title=Push failed::Could not push the update branch."
                 exit 1
@@ -298,6 +361,16 @@ jobs:
             exit 0
           fi
 
+          # Auto-merge where the repo allows it (Allow auto-merge enabled + all
+          # requirements met) so even a protected default branch finishes without a
+          # manual click; if it isn't permitted this no-ops and the PR waits for the
+          # review the branch protection asks for.
+          if [ -n "${URL:-}" ]; then
+            gh pr merge "$URL" --merge --auto >/dev/null 2>&1 \
+              || gh pr merge "$URL" --merge >/dev/null 2>&1 \
+              || echo "::notice::Opened the pull request; merge it to finish (auto-merge isn't available here)."
+          fi
+
           # Keep only ONE open update PR. A previous "Update now" that was never
           # merged leaves a per-version branch behind; once this repo's default
           # branch moves on, that stale branch collides on catalog.json /
@@ -321,5 +394,5 @@ jobs:
             echo ""
             echo "Adopts LabVIEW CI tooling **v${INSTALLED} → v${LATEST}** (${CHANGED} file(s) changed)."
             echo ""
-            echo "**[Review &amp; merge the pull request](${URL})** to finish the update."
+            echo "If the repository allows it this PR **auto-merges** once its requirements are met. Otherwise **[review &amp; merge it](${URL})** to finish the update."
           } >> "$GITHUB_STEP_SUMMARY"

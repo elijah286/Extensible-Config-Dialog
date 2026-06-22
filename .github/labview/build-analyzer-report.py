@@ -276,44 +276,171 @@ def aggregate_rules(vis: list[dict]) -> list[dict]:
     return rules_list
 
 
-def build_data(report: str, args: argparse.Namespace) -> dict:
-    # Exclude CI-tooling VIs (.github/, ci-out/, build/) so the report lists only
-    # project code — matching the snapshot gallery, which never renders them.
-    vis = [v for v in parse_failed(report) if not is_tooling_vi(v["vi_rel"])]
-    vis.sort(key=lambda v: (-v["total"], v["vi_rel"].lower()))
-    summary = parse_summary(report)
-    # "Failed Tests" (summary) counts failed test *instances* (VI x test); a single
-    # failed test can emit several findings, so the listed rows (findings) usually
-    # exceed it. Surface both so the per-severity/per-VI tallies reconcile.
+def _finalize(vis: list, summary: dict, errors: dict, testing_errors: list,
+              meta_extra: dict, args: argparse.Namespace) -> dict:
+    """Assemble the final report data dict from already-merged per-VI findings."""
+    vis = sorted(vis, key=lambda v: (-v["total"], v["vi_rel"].lower()))
+    summary = dict(summary)
     summary["findings"] = sum(v["total"] for v in vis)
     summary["vis_with_findings"] = len(vis)
-
-    # Same project-only scope for the testing-errors banner; drop blocks left empty.
-    testing_errors = []
-    for blk in parse_testing_errors(report):
-        items = [it for it in blk["items"] if not is_tooling_vi(it["vi_rel"])]
-        if items:
-            testing_errors.append({"test": blk["test"], "items": items})
-
+    meta = {
+        "sha": args.sha,
+        "short": (args.sha or "")[:7],
+        "platform": args.platform,
+        "repo": args.repo,
+        "pages_url": (args.pages_url or "").rstrip("/"),
+        "pages_base": (getattr(args, "pages_base", "") or "../..").rstrip("/"),
+        "commit": {"message": args.commit_msg, "author": args.author, "date": args.date},
+        "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+    }
+    meta.update(meta_extra or {})
     return {
-        "meta": {
-            "sha": args.sha,
-            "short": (args.sha or "")[:7],
-            "platform": args.platform,
-            "repo": args.repo,
-            "pages_url": (args.pages_url or "").rstrip("/"),
-            "commit": {"message": args.commit_msg, "author": args.author, "date": args.date},
-            "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-            **parse_meta(report),
-        },
+        "meta": meta,
         "summary": summary,
-        "errors": parse_errors(report),
+        "errors": errors,
         "categories": CATEGORY_META,
         "category_order": CATEGORY_ORDER,
         "vis": vis,
         "rules": aggregate_rules(vis),
         "testing_errors": testing_errors,
     }
+
+
+def _project_testing_errors(report: str) -> list:
+    out = []
+    for blk in parse_testing_errors(report):
+        items = [it for it in blk["items"] if not is_tooling_vi(it["vi_rel"])]
+        if items:
+            out.append({"test": blk["test"], "items": items})
+    return out
+
+
+def build_data(report: str, args: argparse.Namespace) -> dict:
+    # Exclude CI-tooling VIs (.github/, ci-out/, build/) so the report lists only
+    # project code — matching the snapshot gallery, which never renders them.
+    vis = [v for v in parse_failed(report) if not is_tooling_vi(v["vi_rel"])]
+    # "Failed Tests" (summary) counts failed test *instances* (VI x test); a single
+    # failed test can emit several findings, so the listed rows (findings) usually
+    # exceed it. Surface both so the per-severity/per-VI tallies reconcile (in _finalize).
+    meta_extra = dict(parse_meta(report))
+    return _finalize(vis, parse_summary(report), parse_errors(report),
+                     _project_testing_errors(report), meta_extra, args)
+
+
+# ── Multi-configuration merge ─────────────────────────────────────────────────
+# When the project assigns different .viancfg test configurations to different
+# subsets of code (config.viAnalyzer in .github/labview-ci.yml), the runner emits
+# one native report per "pass" — a default pass over the whole tree plus one pass
+# per rule — and a passes/manifest.json describing each. We merge them so each VI
+# shows the findings of the configuration that actually applies to it: a rule's
+# scope REPLACES the default for the VIs under it (first matching rule wins), and
+# "exclude" scopes drop their VIs entirely.
+def _norm_path(p: str) -> str:
+    return (p or "").replace("\\", "/").strip("/").lower()
+
+
+def _path_matches(vi_rel: str, scope: str) -> bool:
+    """A VI is in a scope when the scope is the VI itself or a folder above it."""
+    vr, s = _norm_path(vi_rel), _norm_path(scope)
+    return bool(s) and (vr == s or vr.startswith(s + "/"))
+
+
+def _parse_pass_report(text: str, label: str) -> dict:
+    vis = [v for v in parse_failed(text) if not is_tooling_vi(v["vi_rel"])]
+    for v in vis:
+        v["config"] = label
+    return {"vis": vis, "summary": parse_summary(text), "errors": parse_errors(text),
+            "testing_errors": _project_testing_errors(text), "meta": parse_meta(text)}
+
+
+def merge_passes(passes: list, args: argparse.Namespace) -> dict:
+    """passes: ordered list of {kind, config, label, paths, data|None}."""
+    rule_passes = [p for p in passes if p["kind"] == "rule" and p.get("config") != "none"]
+    exclude_scopes = []
+    for p in passes:
+        if p["kind"] == "exclude" or (p["kind"] == "rule" and p.get("config") == "none"):
+            exclude_scopes += p.get("paths", [])
+    default_pass = next((p for p in passes if p["kind"] == "default"), None)
+
+    def excluded(vr):
+        return any(_path_matches(vr, s) for s in exclude_scopes)
+
+    def claimed_by_rule(vr):
+        return any(_path_matches(vr, s) for p in rule_passes for s in p.get("paths", []))
+
+    merged = {}
+    # Rules first, in order: the first rule whose scope contains a VI owns it.
+    for p in rule_passes:
+        scope = p.get("paths", [])
+        for v in (p["data"]["vis"] if p.get("data") else []):
+            vr = v["vi_rel"]
+            if excluded(vr) or vr in merged:
+                continue
+            if any(_path_matches(vr, s) for s in scope):
+                merged[vr] = v
+    # Default fills every VI not excluded and not already owned by a rule scope.
+    if default_pass and default_pass.get("data"):
+        for v in default_pass["data"]["vis"]:
+            vr = v["vi_rel"]
+            if excluded(vr) or claimed_by_rule(vr) or vr in merged:
+                continue
+            merged[vr] = v
+
+    ran = [p for p in passes if p.get("data")]
+    summary = {k: sum(p["data"]["summary"].get(k, 0) for p in ran)
+               for k in ("vis_analyzed", "tests_run", "passed", "failed", "skipped")}
+    errors = {k: sum(p["data"]["errors"].get(k, 0) for p in ran)
+              for k in ("vi_not_loadable", "test_not_loadable", "test_not_runnable", "test_error_out")}
+    # Testing errors: union across passes, de-duplicated by (test, vi_rel, message).
+    te_seen, testing_errors = set(), []
+    te_index = {}
+    for p in ran:
+        for blk in p["data"]["testing_errors"]:
+            tgt = te_index.get(blk["test"])
+            if tgt is None:
+                tgt = {"test": blk["test"], "items": []}
+                te_index[blk["test"]] = tgt
+                testing_errors.append(tgt)
+            for it in blk["items"]:
+                key = (blk["test"], it.get("vi_rel", ""), it.get("message", ""))
+                if key in te_seen:
+                    continue
+                te_seen.add(key)
+                tgt["items"].append(it)
+
+    meta_extra = {}
+    base_meta = (default_pass or (ran[0] if ran else {})).get("data", {}) if (default_pass or ran) else {}
+    if base_meta:
+        meta_extra.update(base_meta.get("meta", {}))
+    # Which configurations contributed (shown when more than one applies).
+    configs = []
+    for p in passes:
+        if p["kind"] == "default":
+            if p.get("config") == "none":
+                continue  # no default suite -> nothing to list for it
+            configs.append({"label": p.get("label", "Built-in full test suite"), "scope": "all other VIs"})
+        elif p["kind"] in ("rule", "exclude"):
+            is_excl = p["kind"] == "exclude" or p.get("config") == "none"
+            configs.append({"label": "Excluded (not tested)" if is_excl else p.get("label", p.get("config", "")),
+                            "scope": ", ".join(p.get("paths", [])) or "(no paths)",
+                            "exclude": is_excl})
+    meta_extra["configs"] = configs
+    return _finalize(list(merged.values()), summary, errors, testing_errors, meta_extra, args)
+
+
+def build_data_from_passes(passes_dir: str, args: argparse.Namespace) -> dict:
+    pd = Path(passes_dir)
+    manifest = json.loads((pd / "manifest.json").read_text(encoding="utf-8"))
+    passes = []
+    for p in manifest.get("passes", []):
+        data = None
+        rep = p.get("report")
+        if rep and (pd / rep).exists():
+            text = (pd / rep).read_text(encoding="utf-8", errors="replace")
+            data = _parse_pass_report(text, p.get("label") or p.get("config") or "")
+        passes.append({**p, "data": data})
+    return merge_passes(passes, args)
+
 
 
 # ── Renderer ─────────────────────────────────────────────────────────────────
@@ -327,25 +454,28 @@ def render(data: dict) -> str:
     # bake a small config rather than depend on client-side parsing order.
     m = data.get("meta", {}) or {}
     pages = (m.get("pages_url") or "").rstrip("/")
+    base = (m.get("pages_base") or "../..").rstrip("/")  # relative prefix to the Pages root
     hdr_cfg = {
         "context": "vi-analyzer-report",
         "repo": m.get("repo", ""),
-        "pagesUrl": pages or "../..",
+        "pagesUrl": pages or base,
         "sha": m.get("sha", ""),
         "short": m.get("short", ""),
         "platform": m.get("platform", "windows"),
         "rawUrl": "raw.html",
     }
-    hdr_src = "../../lvci-header.js"  # reports deploy at vi-analyzer/<sha>/ (two deep)
+    hdr_src = base + "/lvci-header.js"  # reports deploy at vi-analyzer/<sha>/ (../..); a re-run sits one deeper
     out = _TEMPLATE.replace("__VIA_DATA_JSON__", blob)
     out = out.replace("__VIA_HEADER_CFG__", json.dumps(hdr_cfg, ensure_ascii=False))
     out = out.replace("__LVCI_HEADER_SRC__", hdr_src)
+    out = out.replace("__PAGES_BASE__", base)
     return out
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Build a friendly VI Analyzer report from the native HTML report.")
-    ap.add_argument("--in", dest="in_path", required=True, help="Path to the native VI Analyzer index.html")
+    ap.add_argument("--in", dest="in_path", default="", help="Path to the native VI Analyzer index.html (single-config run)")
+    ap.add_argument("--passes-dir", dest="passes_dir", default="", help="Directory of per-configuration passes (passes/manifest.json + native reports) for a multi-config run")
     ap.add_argument("--out", dest="out_dir", required=True, help="Output directory")
     ap.add_argument("--sha", default="", help="Commit SHA being analyzed")
     ap.add_argument("--platform", default="windows", choices=["windows", "linux"])
@@ -354,20 +484,33 @@ def main() -> None:
     ap.add_argument("--date", default="")
     ap.add_argument("--repo", default="")
     ap.add_argument("--pages-url", dest="pages_url", default="")
+    ap.add_argument("--pages-base", dest="pages_base", default="../..",
+                    help="Relative prefix from the report to the Pages root (../.. for vi-analyzer/<sha>/; ../../.. for a deeper re-run path)")
     args = ap.parse_args()
 
-    in_path = Path(args.in_path)
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    report = in_path.read_text(encoding="utf-8", errors="replace")
-
-    # Preserve the native report verbatim before we overwrite index.html.
-    raw_path = out_dir / "raw.html"
-    if in_path.resolve() == (out_dir / "index.html").resolve():
-        raw_path.write_text(report, encoding="utf-8")
-
-    data = build_data(report, args)
+    if args.passes_dir:
+        # Multi-configuration run: merge each pass's native report. Preserve the
+        # default (or first) pass's native report as raw.html for reference.
+        pd = Path(args.passes_dir)
+        manifest = json.loads((pd / "manifest.json").read_text(encoding="utf-8"))
+        passes = manifest.get("passes", [])
+        raw_src = next((p for p in passes if p.get("kind") == "default" and p.get("report")), None) \
+            or next((p for p in passes if p.get("report")), None)
+        if raw_src and (pd / raw_src["report"]).exists():
+            (out_dir / "raw.html").write_text((pd / raw_src["report"]).read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+        data = build_data_from_passes(args.passes_dir, args)
+    else:
+        if not args.in_path:
+            ap.error("one of --in or --passes-dir is required")
+        in_path = Path(args.in_path)
+        report = in_path.read_text(encoding="utf-8", errors="replace")
+        # Preserve the native report verbatim before we overwrite index.html.
+        if in_path.resolve() == (out_dir / "index.html").resolve():
+            (out_dir / "raw.html").write_text(report, encoding="utf-8")
+        data = build_data(report, args)
 
     (out_dir / "summary.json").write_text(
         json.dumps({"meta": data["meta"], "summary": data["summary"], "errors": data["errors"],
@@ -513,6 +656,36 @@ h1{font-size:1.35em;margin:0 0 2px}
 #snaphead button{background:none;border:none;color:var(--fg);font-size:1.3em;cursor:pointer;line-height:1}
 #snapframe{flex:1;border:none;background:#fff;width:100%}
 #snapnote{padding:18px;color:var(--fg-muted);font-size:.86em;display:none}
+
+/* re-run a single VI with a chosen configuration */
+.rerunbtn{flex:0 0 auto;background:none;border:1px solid var(--border);color:var(--link);border-radius:6px;
+  padding:3px 9px;font:inherit;font-size:.76em;cursor:pointer}
+.rerunbtn:hover{border-color:var(--link)}
+.viacfgpill{background:var(--surface2);border:1px solid var(--border)}
+.viacfgs{color:var(--fg-muted);font-size:.82em;margin:-8px 0 14px}
+.viacfgs code{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:0 5px}
+#rrback{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .15s;z-index:50}
+#rrback.show{opacity:1;pointer-events:auto}
+#rrwrap{position:fixed;top:50%;left:50%;transform:translate(-50%,-46%);width:min(92vw,540px);max-height:86vh;overflow:auto;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;z-index:51;opacity:0;pointer-events:none;
+  transition:opacity .15s, transform .15s}
+#rrwrap.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}
+#rrhead{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+#rrhead .t{font-weight:600;flex:1 1 auto}
+#rrhead button{background:none;border:none;color:var(--fg);font-size:1.3em;cursor:pointer;line-height:1}
+#rrbody{padding:14px 16px}
+.rrintro{margin:0 0 12px;color:var(--fg-muted);font-size:.86em;line-height:1.5}
+.rrlabel{display:block;font-size:.8em;color:var(--fg-muted);margin-bottom:5px}
+#rrconfig{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:7px;padding:8px 10px;font:inherit;font-size:.88em}
+.rractions{margin-top:14px}
+.rrgo{background:var(--link);color:#fff;border:none;border-radius:7px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+.rrgo:disabled{opacity:.6;cursor:default}
+.rrstatus{margin-top:12px;font-size:.84em;display:none;line-height:1.5}
+.rrstatus.show{display:block}
+.rrstatus.ok{color:var(--ok)}.rrstatus.err{color:var(--bad)}
+.rrnone{font-size:.86em;color:var(--fg-muted);line-height:1.5}
+.rrtok{margin-top:12px;display:flex;flex-direction:column;gap:8px;font-size:.84em}
+.rrtok input{background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font:inherit}
 </style>
 </head>
 <body>
@@ -553,12 +726,32 @@ h1{font-size:1.35em;margin:0 0 2px}
   <div id="snapnote"></div>
 </aside>
 
+<div id="rrback"></div>
+<aside id="rrwrap" role="dialog" aria-modal="true" aria-labelledby="rrtitle">
+  <div id="rrhead">
+    <span class="t" id="rrtitle">Re-run VI Analyzer</span>
+    <button id="rrclose" title="Close">&times;</button>
+  </div>
+  <div id="rrbody">
+    <p class="rrintro">Re-run VI Analyzer on <code id="rrvi"></code> with a different test configuration. Only this VI is analyzed and its result is published separately &mdash; the revision's full report is left unchanged.</p>
+    <label class="rrlabel" for="rrconfig">Test configuration (a committed <code>.viancfg</code>)</label>
+    <select id="rrconfig"></select>
+    <div class="rrnone" id="rrnone" hidden></div>
+    <div class="rractions"><button class="rrgo" id="rrgo">Re-run this VI</button></div>
+    <div class="rrstatus" id="rrstatus"></div>
+    <div class="rrtok" id="rrtok" hidden></div>
+  </div>
+</aside>
+
 <script id="via-data" type="application/json">__VIA_DATA_JSON__</script>
 <script>
 const DATA = JSON.parse(document.getElementById('via-data').textContent);
 const META = DATA.meta, SUM = DATA.summary, ERR = DATA.errors;
 const CATS = DATA.categories, ORDER = DATA.category_order;
-const SNAP_BASE = '../../vi-snapshots/';
+const SNAP_BASE = '__PAGES_BASE__/vi-snapshots/';
+// Show the per-VI configuration pill only when more than one *test* configuration
+// applies (excludes don't count); the header note lists all configs incl excludes.
+const MULTICFG = ((META.configs||[]).filter(c=>!c.exclude).length) > 1;
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // active severity filters (all on by default)
@@ -602,6 +795,11 @@ let query = '';
     (c.sub?`<div class="l" style="text-transform:none;letter-spacing:0;opacity:.75;margin-top:1px">${c.sub}</div>`:'')+`</div>`).join('');
   document.getElementById('barfill').style.width = pct+'%';
   document.getElementById('barlabel').textContent = `${pct}% of ${ (SUM.tests_run||0).toLocaleString() } tests passed · ${(SUM.failed||0).toLocaleString()} failed tests reported ${((SUM.findings!=null?SUM.findings:SUM.failed)||0).toLocaleString()} findings`;
+  if(META.configs && META.configs.length > 1){
+    const cfgnote = document.createElement('div'); cfgnote.className='viacfgs';
+    cfgnote.innerHTML = 'Test configurations applied: ' + META.configs.map(c=>`<code>${esc(c.label)}</code>${c.scope?` <span style="opacity:.8">(${esc(c.scope)})</span>`:''}`).join(' · ');
+    const sub=document.getElementById('sub'); sub.parentNode.insertBefore(cfgnote, sub.nextSibling);
+  }
 })();
 
 // ── testing errors banner ────────────────────────────────────────────────
@@ -666,7 +864,9 @@ function viCard(v){
       <span class="virel">${esc(v.vi_rel)}</span>
       ${sevDots(v.sev_counts)}
       <span class="pill">${v.total} finding${v.total===1?'':'s'}</span>
+      ${MULTICFG && v.config ? `<span class="pill viacfgpill" title="Analyzed with this configuration">${esc(v.config)}</span>` : ''}
       <button class="snapbtn" data-snap="${esc(v.vi_rel)}" data-name="${esc(v.name)}">Snapshot</button>
+      <button class="rerunbtn" data-rerun="${esc(v.vi_rel)}" data-name="${esc(v.name)}" title="Re-run VI Analyzer on this VI with a chosen configuration">Re-run…</button>
     </summary>
     <div class="vibody">${rules}</div>
   </details>`;
@@ -804,6 +1004,93 @@ document.addEventListener('click',e=>{
   e.preventDefault(); e.stopPropagation();
   openSnap(b.dataset.snap, b.dataset.name);
 });
+
+// ── re-run a single VI with a chosen .viancfg configuration ────────────────────
+const RR_TOK = 'lvci_dispatch_token';
+let rrConfigs = null, rrVi = '', rrPollTimer = null;
+function rrWorkflow(){ return META.platform==='linux' ? 'run-vi-analyzer-linux-container.yml' : 'run-vi-analyzer-windows-container.yml'; }
+function rrTok(){ try { return localStorage.getItem(RR_TOK)||''; } catch(e){ return ''; } }
+// Slug must match the runner's deterministic re-run output path (PowerShell/bash).
+function rrSlug(cfg, vi){ return (cfg+'__'+vi).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80); }
+function rrPagesBase(){ return (META.pages_url && /^https?:/i.test(META.pages_url)) ? META.pages_url.replace(/\/$/,'') : '../..'; }
+async function rrDiscover(){
+  if(rrConfigs) return rrConfigs;
+  rrConfigs = [];
+  if(!META.repo) return rrConfigs;
+  const ref = META.sha || 'main';
+  try {
+    const r = await fetch(`https://api.github.com/repos/${META.repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`,{cache:'no-store'});
+    if(r.ok){ const d = await r.json(); rrConfigs = (d.tree||[]).filter(t=>t.type==='blob'&&/\.viancfg$/i.test(t.path)&&!/^(\.github|ci-out|build)\//i.test(t.path)).map(t=>t.path).sort(); }
+  } catch(e){}
+  return rrConfigs;
+}
+function rrStatus(html, kind){ const el=document.getElementById('rrstatus'); el.innerHTML=html||''; el.className='rrstatus'+(html?' show':'')+(kind?(' '+kind):''); }
+async function openRerun(viRel){
+  rrVi = viRel;
+  document.getElementById('rrvi').textContent = viRel;
+  document.getElementById('rrback').classList.add('show');
+  document.getElementById('rrwrap').classList.add('show');
+  rrStatus(''); document.getElementById('rrtok').hidden=true;
+  const sel=document.getElementById('rrconfig'), none=document.getElementById('rrnone'), go=document.getElementById('rrgo');
+  sel.innerHTML='<option>Loading configurations\u2026</option>'; sel.disabled=true; go.disabled=true; none.hidden=true; sel.style.display=''; go.style.display='';
+  const cfgs = await rrDiscover();
+  if(rrVi!==viRel) return;
+  if(!cfgs.length){
+    sel.style.display='none'; go.style.display='none'; none.hidden=false;
+    none.innerHTML = 'No <code>.viancfg</code> configurations were found in this repository. Create one in LabVIEW (Tools \u203a VI Analyzer, choose tests, <strong>Save Configuration</strong>) and commit it \u2014 then you can re-run this VI against it.';
+    return;
+  }
+  sel.innerHTML = cfgs.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  sel.disabled=false; go.disabled=false;
+}
+function closeRerun(){ document.getElementById('rrback').classList.remove('show'); document.getElementById('rrwrap').classList.remove('show'); if(rrPollTimer){ clearTimeout(rrPollTimer); rrPollTimer=null; } }
+function rrShowToken(){
+  const p=document.getElementById('rrtok'); const owner=(META.repo.split('/')[0])||'';
+  const url='https://github.com/settings/personal-access-tokens/new?name='+encodeURIComponent('LabVIEW CI dispatch')+'&description='+encodeURIComponent('Dispatch CI runs for '+META.repo)+'&target_name='+encodeURIComponent(owner)+'&actions=write';
+  p.hidden=false;
+  p.innerHTML = '<div>Re-running needs a fine-grained token with <strong>Actions: Read and write</strong> on <code>'+esc(META.repo)+'</code>. <a href="'+url+'" target="_blank" rel="noopener">Create one \u2197</a> (stored only in this browser; shared with the dashboard).</div><input id="rrtokin" type="password" placeholder="github_pat_\u2026" autocomplete="off" spellcheck="false"><button class="rrgo" id="rrtoksave">Save &amp; re-run</button>';
+  const inp=document.getElementById('rrtokin'), save=document.getElementById('rrtoksave');
+  if(inp) inp.focus();
+  if(save) save.addEventListener('click',()=>{ const v=(inp&&inp.value||'').trim(); if(!v){ if(inp) inp.focus(); return; } try{ localStorage.setItem(RR_TOK,v); }catch(e){} p.hidden=true; rrDispatch(); });
+  if(inp) inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'&&save) save.click(); });
+}
+function rrDispatch(){
+  const sel=document.getElementById('rrconfig'); const cfg=sel.value; if(!cfg) return;
+  if(!META.repo||!META.sha){ rrStatus('Re-running needs a repository and commit.','err'); return; }
+  if(!rrTok()){ rrShowToken(); rrStatus('Paste a token to dispatch the run.'); return; }
+  const wf=rrWorkflow(); const go=document.getElementById('rrgo');
+  go.disabled=true; go.textContent='Queuing\u2026';
+  rrStatus('Queuing a re-run of <code>'+esc(rrVi)+'</code> with <code>'+esc(cfg)+'</code>\u2026');
+  fetch('https://api.github.com/repos/'+META.repo+'/actions/workflows/'+encodeURIComponent(wf)+'/dispatches',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+rrTok(),'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
+    body:JSON.stringify({ref:'main',inputs:{commit_sha:META.sha,files:rrVi,config:cfg}})
+  }).then(r=>{
+    go.disabled=false; go.textContent='Re-run this VI';
+    if(r.status===204){
+      const url=rrPagesBase()+'/vi-analyzer/'+encodeURIComponent(META.sha)+'/reruns/'+rrSlug(cfg,rrVi)+'/index.html';
+      const runs='https://github.com/'+META.repo+'/actions/workflows/'+wf;
+      rrStatus('\u2713 Queued. The result will appear as <a href="'+url+'" target="_blank" rel="noopener">this VI\u2019s re-run report \u2197</a> when the run finishes, and in the <a href="'+runs+'" target="_blank" rel="noopener">Actions run \u2197</a>.','ok');
+      rrPoll(url);
+      return;
+    }
+    if(r.status===401){ try{localStorage.removeItem(RR_TOK);}catch(e){} rrStatus('That token was rejected (401). Paste a valid one.','err'); rrShowToken(); return; }
+    if(r.status===403){ rrStatus('<strong>403</strong>: the token is missing <strong>Actions: Read and write</strong> on this repository.','err'); rrShowToken(); return; }
+    if(r.status===404){ rrStatus('<strong>404</strong>: the token cannot see <code>'+esc(META.repo)+'</code>. Grant it access + Actions: Read and write.','err'); return; }
+    if(r.status===422){ rrStatus('This repository\u2019s VI Analyzer workflow doesn\u2019t accept a per-VI configuration yet \u2014 run a tooling update, then try again.','err'); return; }
+    rrStatus('Dispatch failed (HTTP '+r.status+').','err');
+  }).catch(e=>{ go.disabled=false; go.textContent='Re-run this VI'; rrStatus('Network error: '+esc(String(e&&e.message||e)),'err'); });
+}
+function rrPoll(url){
+  let tries=0; if(rrPollTimer) clearTimeout(rrPollTimer);
+  const tick=()=>{ tries++; fetch(url+'?_='+Date.now(),{cache:'no-store'}).then(r=>{ if(r.ok){ rrStatus('\u2713 The re-run result is ready: <a href="'+url+'" target="_blank" rel="noopener">open it \u2197</a>.','ok'); rrPollTimer=null; return; } if(tries<24){ rrPollTimer=setTimeout(tick,8000); } }).catch(()=>{ if(tries<24){ rrPollTimer=setTimeout(tick,8000); } }); };
+  rrPollTimer=setTimeout(tick,8000);
+}
+document.getElementById('rrclose').addEventListener('click',closeRerun);
+document.getElementById('rrback').addEventListener('click',closeRerun);
+document.getElementById('rrgo').addEventListener('click',rrDispatch);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeRerun(); });
+document.addEventListener('click',e=>{ const b=e.target.closest('.rerunbtn'); if(!b) return; e.preventDefault(); e.stopPropagation(); openRerun(b.dataset.rerun); });
 
 // ── tabs / tools ─────────────────────────────────────────────────────────
 document.querySelectorAll('.tabs button').forEach(btn=>btn.addEventListener('click',()=>{
