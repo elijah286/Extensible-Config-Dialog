@@ -50,6 +50,7 @@ TEXT_EXTS = {
 # The installer's own tooling directory is never rebranded: it must keep pointing
 # at the tooling SOURCE repo (catalog.source) so re-runs / upgrades still work.
 NO_SUBSTITUTION_PREFIX = ".github/labview-ci/"
+DEFAULT_EXCLUDED_STATUSES = {"planned", "experimental"}
 
 
 def log(msg: str = "") -> None:
@@ -146,6 +147,13 @@ def build_substitutions(catalog: dict, owner: str | None, name: str | None) -> l
         if find != replace:
             subs.append((find, replace))
     return subs
+
+
+def default_activities(catalog: dict) -> list[str]:
+    return [
+        c["id"] for c in catalog.get("capabilities", [])
+        if c.get("recommended") and c.get("status", "stable") not in DEFAULT_EXCLUDED_STATUSES
+    ]
 
 
 def resolve_file_list(catalog: dict, activities: list[str], os_list: list[str]) -> list[str]:
@@ -637,9 +645,7 @@ def main() -> int:
             "target. Run a normal install first.")
     prev = manifest or {}
 
-    activities = parse_csv(args.activities) or prev.get("activities") or [
-        c["id"] for c in catalog.get("capabilities", []) if c.get("recommended")
-    ]
+    activities = parse_csv(args.activities) or prev.get("activities") or default_activities(catalog)
     os_list = parse_csv(args.os) or prev.get("os") or list(defaults.get("os", ["windows"]))
     valid_os = {"windows", "linux"}
     bad_os = [o for o in os_list if o not in valid_os]

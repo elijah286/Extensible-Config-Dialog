@@ -57,7 +57,7 @@ api_repo="repos/${repo}/actions/runs?per_page=50"
 changed=false
 if [ -n "${before:-}" ] && git cat-file -e "${before}^{commit}" 2>/dev/null; then
   if git diff --name-only "$before" "$sha" \
-      | grep -Eq '(\.vipc$|^\.github/docker/labview-ci\.Dockerfile$|^\.github/labview/vipm/)'; then
+      | grep -Eq '(\.vipc$|^\.github/docker/labview-ci\.Dockerfile$|^\.github/docker/labview-vipm-base\.Dockerfile$|^\.github/docker/labview-vipc-layer\.Dockerfile$|^\.github/docker/labview-ci-linux\.Dockerfile$|^\.github/docker/labview-ci-linux-beta\.Dockerfile$|^\.github/labview/build-worker-manifest\.py$|^\.github/labview/wait-for-worker-image\.sh$|^\.github/labview/vipm/|^\.github/workflows/build-labview-image\.yml$|^\.github/workflows/build-labview-linux-image\.yml$|^\.github/workflows/build-labview-linux-beta-image\.yml$)'; then
     changed=true
   fi
 fi
@@ -83,12 +83,21 @@ if [ "$changed" != "true" ] && [ "$building" != "true" ]; then
   exit 0
 fi
 
-if [ "$changed" = "true" ]; then
-  echo "Worker inputs changed in this push - waiting for '$workflow_name' for $sha."
-  api="$api_sha"
-else
+# Prefer the repo-wide listing whenever a build is actually in progress or queued.
+# A fresh install (or a "Configure Workers" rebuild) dispatches the build via
+# workflow_dispatch on the branch tip, which is almost always a DIFFERENT commit
+# than the one this CI job runs on -- and tooling changes under .github/** never
+# trigger a per-commit push build at all (build-labview-image.yml's push filter is
+# `**.vipc` with `!.github/**`). Keying the wait to this job's exact SHA in those
+# cases would never find the build and would time out after appear_seconds. Only
+# fall back to the per-commit listing when nothing is building yet but this push
+# changed a worker input -- a project *.vipc triggers a push build on THIS commit.
+if [ "$building" = "true" ]; then
   echo "A '$workflow_name' build is in progress - waiting so CI runs on the freshly built worker image."
   api="$api_repo"
+else
+  echo "Worker inputs changed in this push - waiting for '$workflow_name' for $sha."
+  api="$api_sha"
 fi
 
 appear_deadline=$(( $(date +%s) + appear_seconds ))

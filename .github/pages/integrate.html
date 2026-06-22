@@ -60,8 +60,13 @@
     .badge.rec{color:#fff;background:var(--accent);border-color:transparent}
     .badge.adv{color:#9a6700;border-color:#9a6700}
     .badge.planned{color:#bf8700;border-color:#bf8700}
+    .badge.exp{color:#cf222e;border-color:#cf222e}
     .badge.os{color:var(--fg-muted)}
     .note{font-size:.78em;color:var(--fg-muted);margin-top:6px}
+    .exp-details{margin-top:8px;font-size:.84em;color:var(--fg-muted)}
+    .exp-details summary{cursor:pointer;color:var(--link);user-select:none}
+    .exp-details ul{margin:7px 0 0;padding-left:18px}
+    .exp-details li{margin:0 0 5px}
     .tabs{display:flex;gap:4px;margin-bottom:0}
     .tab{padding:7px 14px;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;
          background:var(--chip);cursor:pointer;font-size:.85em;color:var(--fg-muted)}
@@ -169,16 +174,16 @@
           <label class="fl">Operating systems</label>
           <div class="os-toggle" id="osToggle">
             <label class="toggle"><input type="checkbox" value="windows" checked> Windows</label>
-            <label class="toggle"><input type="checkbox" value="linux"> Linux</label>
+            <label class="toggle"><input type="checkbox" value="linux" checked> Linux</label>
           </div>
-          <p class="hint" style="margin-top:6px">Linux container jobs run on the NI base image and are <strong>experimental</strong> &mdash; opt in only if you want them. Windows is the supported default.</p>
+          <p class="hint" style="margin-top:6px">Linux container jobs run on the NI base image by default. The Linux Beta/VIPM lane is experimental and opt-in below.</p>
         </div>
       </div>
     </section>
 
     <section>
       <h2>2. Capabilities</h2>
-      <p class="hint">All available capabilities are selected by default &mdash; uncheck any you don't want. Dependencies are added automatically.</p>
+      <p class="hint">Stable and advanced capabilities are selected by default. Experimental features are off unless you opt in. Dependencies are added automatically.</p>
       <div class="caps" id="caps"></div>
     </section>
 
@@ -300,7 +305,8 @@
     let relocated = null;         // {from,to} when the tooling has moved to a new official home
     let activeTab = "bash";
     const selected = new Set();   // capability ids the user checked
-    const osSel = new Set(["windows"]);   // Windows is the supported default; Linux container jobs are experimental (NI base image) and opt-in via Configure Workers
+    const EXPERIMENTAL_STATUS = "experimental";
+    const osSel = new Set(["windows", "linux"]);   // Stable Windows + Linux jobs are selected by default; experimental lanes stay opt-in below.
     let priorState = null;        // set by detectPriorInstall when re-installing over an existing setup
     let insRunId = 0;             // bumped per install run; guards the async publish-wait UI against a newer install
 
@@ -387,17 +393,22 @@
       sel.setAttribute("aria-disabled", "true");
     }
 
+    function isPlanned(cap) { return cap && cap.status === "planned"; }
+    function isExperimental(cap) { return cap && cap.status === EXPERIMENTAL_STATUS; }
+    function experimentalCaps() { return (catalog.capabilities || []).filter(c => isExperimental(c)); }
+
     function renderCaps() {
       const host = $("caps");
       host.innerHTML = "";
-      catalog.capabilities.forEach(cap => {
-        const planned = cap.status === "planned";
+      selected.clear();
+      catalog.capabilities.filter(cap => !isExperimental(cap)).forEach(cap => {
+        const planned = isPlanned(cap);
         const wrap = document.createElement("label");
         wrap.className = "cap" + (planned ? " disabled" : "");
         const cb = document.createElement("input");
         cb.type = "checkbox"; cb.value = cap.id; cb.disabled = planned;
-        // All available capabilities are on by default (everything except the
-        // ones still marked "Coming soon", which can't be installed yet).
+        // Available non-experimental capabilities are on by default. Experimental
+        // ones are grouped in a separate opt-in card below.
         cb.checked = !planned;
         if (cb.checked) selected.add(cap.id);
         cb.addEventListener("change", () => {
@@ -410,6 +421,7 @@
         if (cap.recommended) badges.push('<span class="badge rec">Recommended</span>');
         if (cap.status === "advanced") badges.push('<span class="badge adv">Advanced</span>');
         if (planned) badges.push('<span class="badge planned">Coming soon</span>');
+        if (isExperimental(cap)) badges.push('<span class="badge exp">Experimental</span>');
         const osBadges = (cap.supportsOs || []).map(o => `<span class="badge os">${o}</span>`).join("");
         body.innerHTML =
           `<div class="name">${cap.name}${badges.join("")}</div>` +
@@ -420,6 +432,34 @@
         wrap.dataset.id = cap.id;
         host.appendChild(wrap);
       });
+      renderExperimentalCard(host);
+    }
+
+    function renderExperimentalCard(host) {
+      const caps = experimentalCaps().filter(cap => !isPlanned(cap));
+      if (!caps.length) return;
+      const wrap = document.createElement("div");
+      wrap.className = "cap";
+      wrap.dataset.id = "__experimental";
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.value = "__experimental"; cb.checked = false;
+      cb.addEventListener("change", () => {
+        caps.forEach(cap => {
+          if (cb.checked) { selected.add(cap.id); addRequires(cap.id); }
+          else selected.delete(cap.id);
+        });
+        syncChecks(); update();
+      });
+      const body = document.createElement("div");
+      const included = caps.map(cap =>
+        `<li><strong>${esc(cap.name)}</strong> - ${esc(cap.summary)}</li>`
+      ).join("");
+      body.innerHTML =
+        `<div class="name">Experimental features<span class="badge exp">Experimental</span></div>` +
+        `<div class="desc">Opt into features still being proven before they become part of the default installer path.</div>` +
+        `<details class="exp-details"><summary>Included experimental features</summary><ul>${included}</ul></details>`;
+      wrap.appendChild(cb); wrap.appendChild(body);
+      host.appendChild(wrap);
     }
 
     function byId(id) { return catalog.capabilities.find(c => c.id === id); }
@@ -432,7 +472,13 @@
     function syncChecks() {
       document.querySelectorAll(".cap").forEach(el => {
         const cb = el.querySelector("input");
-        if (cb && !cb.disabled) cb.checked = selected.has(el.dataset.id);
+        if (!cb || cb.disabled) return;
+        if (el.dataset.id === "__experimental") {
+          const ids = experimentalCaps().filter(cap => !isPlanned(cap)).map(cap => cap.id);
+          cb.checked = ids.length > 0 && ids.every(id => selected.has(id));
+        } else {
+          cb.checked = selected.has(el.dataset.id);
+        }
       });
     }
 
