@@ -21,7 +21,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>What's New — LabVIEW CI</title>
-  <script>window.LVCI={context:'whats-new'};</script>
+  <script>
+    // Tell the shared header which repository this page is about. In central mode
+    // the page is served from the SOURCE site but upgrades a CONSUMER repo (?repo=),
+    // so brandRepo points the header brand + Dashboard/VI Browser nav at the repo
+    // being upgraded instead of the source site that serves the assets.
+    (function () {
+      var LVCI = { context: 'whats-new' };
+      try { var r = new URLSearchParams(location.search).get('repo'); if (r) LVCI.brandRepo = r; } catch (e) {}
+      window.LVCI = LVCI;
+    })();
+  </script>
   <script src="lvci-header.js" defer></script>
   <style>
     :root{
@@ -44,7 +54,28 @@
     header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
     h1{font-size:1.5em;margin:0}
     .sub{color:var(--fg-muted);font-size:.9em;margin:4px 0 24px}
-    .back{font-size:.85em}
+    .back{font-size:.85em;white-space:nowrap}
+    /* Persistent identity of the repo being upgraded — visible the whole time. */
+    .target-repo{display:inline-flex;align-items:center;gap:7px;max-width:100%;margin:9px 0 2px;padding:5px 12px;
+         border:1px solid var(--border);border-radius:20px;background:var(--chip);font-size:.9em;font-weight:600}
+    .target-repo[hidden]{display:none}
+    .target-repo .tr-ico{flex:none;color:var(--fg-muted)}
+    .target-repo .tr-label{color:var(--fg-muted);font-weight:500}
+    .target-repo .tr-name{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.95em;color:var(--link);
+         overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .target-repo .tr-name:hover{text-decoration:underline}
+    /* Any repo name shown inline links to the repository on GitHub. */
+    .repo-link{color:var(--link)}.repo-link code{color:inherit;cursor:pointer}
+    .up-prog-repo a{color:inherit;text-decoration:none}.up-prog-repo a:hover{text-decoration:underline}
+    /* "What's changed" collapses by default so the update controls stay above the fold. */
+    #notesReveal>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px;user-select:none;margin:0}
+    #notesReveal>summary::-webkit-details-marker{display:none}
+    #notesReveal>summary::before{content:"\25B6";font-size:.72em;color:var(--fg-muted);transition:transform .15s}
+    #notesReveal[open]>summary::before{transform:rotate(90deg)}
+    #notesReveal>summary .notes-h2{font-size:1.02em;font-weight:600;color:var(--fg)}
+    #notesReveal>summary:hover .notes-h2{color:var(--link)}
+    #notesReveal>summary .notes-meta{font-size:.82em;color:var(--fg-muted)}
+    #notesHint{margin-top:12px}
     section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:18px}
     section h2{font-size:1.02em;margin:0 0 4px}
     section .hint{color:var(--fg-muted);font-size:.82em;margin:0 0 14px}
@@ -141,7 +172,7 @@
     .up-steps li.wait{color:var(--fg);font-weight:600}
     .up-prog-msg{font-size:.86em;color:var(--fg);min-height:1.2em;margin:0}
     .up-note{display:block;margin-top:5px;font-size:.95em;color:var(--fg-muted)}
-    .up-prog-links{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:.84em}
+    .up-prog-links{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:.84em}
     .up-prog-foot{margin-top:11px;font-size:.78em;color:var(--fg-muted)}
     .up-prog-foot[hidden]{display:none}
     .up-prog-foot a{color:var(--link);cursor:pointer}
@@ -178,9 +209,13 @@
     <header class="top">
       <div>
         <h1>What's new in LabVIEW CI</h1>
+        <div class="target-repo" id="targetRepo" hidden>
+          <svg class="tr-ico" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="currentColor"><path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.25.25 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"></path></svg>
+          <span class="tr-label" id="targetRepoLabel">Updating</span>
+          <a class="tr-name" id="targetRepoName" target="_blank" rel="noopener"></a>
+        </div>
         <p class="sub" id="sub">Checking for updates&hellip;</p>
       </div>
-      <a class="back" id="backLink" href="./">&larr; Back to dashboard</a>
     </header>
 
     <section>
@@ -191,31 +226,25 @@
       <div class="status" id="movedNote" style="display:none"></div>
     </section>
 
-    <section id="notesSec" style="display:none">
-      <h2>What's changed</h2>
-      <p class="hint">Release notes between your version and the latest, newest first.</p>
-      <div id="latestNote"></div>
-      <details id="allNotes" style="display:none">
-        <summary id="allNotesSummary"></summary>
-        <div id="allNotesBody"></div>
-      </details>
-    </section>
-
     <section id="updateSec" style="display:none">
       <h2>Update your CI tooling</h2>
-      <p class="hint" id="updateLead">Updating is a few clicks: <strong>Update now</strong> kicks it off, then you
-        <strong>merge</strong> the pull request it opens. Here is the whole sequence so nothing waits on a step you did not know about:</p>
-      <ol class="upsteps" id="upSteps">
-        <li>Click <strong>Update now</strong> below. The first time, paste a one-time token &mdash; the dialog walks you
-          through it (the same token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses).</li>
-        <li>The <strong>Apply LabVIEW CI update</strong> workflow runs and opens a <strong>pull request</strong> that adopts the new version.</li>
-        <li class="key"><strong>Merge the pull request.</strong>
-          <small>Open it and click <strong>Merge</strong> &mdash; that&rsquo;s what finishes the update. It changes only
-          configuration and tooling files, so it normally has <strong>no checks to wait for</strong> and is ready to merge
-          right away. <em>Only if</em> GitHub shows a check marked <em>&ldquo;Action required&rdquo;</em> (it can do that for a
-          pull request opened by automation) &mdash; open the <strong>Actions</strong> tab and click <strong>Approve and run</strong> first.</small></li>
-        <li>On the next refresh, the dashboard badge turns green and shows the new version.</li>
-      </ol>
+      <p class="hint" id="updateLead">One click &mdash; <strong>Update now</strong> applies the latest tooling
+        <strong>straight to your repository</strong>, with no pull request to open or merge.</p>
+      <details id="howWorks" style="margin:2px 0 14px">
+        <summary style="cursor:pointer;font-size:.86em">What happens when you click Update&nbsp;now?</summary>
+        <ol class="upsteps" id="upSeq" style="margin-top:12px">
+          <li>Click <strong>Update now</strong> below. The first time, paste a one-time token &mdash; the dialog walks you
+            through it (the same token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses).</li>
+          <li>The <strong>Apply LabVIEW CI update</strong> workflow runs and <strong>commits the new version straight to your
+            default branch</strong> &mdash; nothing to review or merge.</li>
+          <li class="key"><strong>That&rsquo;s it.</strong>
+            <small>Your dashboard rebuilds and the badge turns green with the new version within a minute. If your default
+            branch is <strong>protected</strong> (it requires pull requests), the update opens one instead and turns on
+            <strong>auto-merge</strong> &mdash; it still finishes on its own wherever the repository allows it, otherwise just
+            <strong>merge</strong> that pull request to finish.</small></li>
+        </ol>
+        <p class="hint" id="updateHowto" style="margin:0"></p>
+      </details>
       <!-- One-time token setup (hidden until needed), mirroring the dashboard's Run now dialog. -->
       <div class="tokpanel" id="tokPanel" style="display:none">
         <h3>One-time setup &mdash; a token to start the update</h3>
@@ -252,9 +281,9 @@
         <ol class="up-steps" id="upSteps">
           <li>Start</li>
           <li>Build update</li>
-          <li>Open&nbsp;PR</li>
-          <li>Review</li>
-          <li>Merge</li>
+          <li>Apply</li>
+          <li>Publish</li>
+          <li>Done</li>
         </ol>
         <p class="up-prog-msg" id="upMsg"></p>
         <div class="up-prog-links" id="upLinks"></div>
@@ -264,20 +293,20 @@
         </details>
         <div class="up-prog-foot" id="upProgFoot" hidden></div>
       </div>
-      <!-- Inline recovery for an update whose pull request the repo's built-in token
-           can't open. TWO causes, same fix: (a) the release changes .github/workflows/**
-           which the built-in token may not push, or (b) the repo doesn't allow GitHub
-           Actions to create pull requests. A one-time fine-grained token (Contents +
-           Workflows + Pull requests + Secrets = write) pushes the update AND opens the
-           PR (gh runs as the user, bypassing the Actions-PR setting). The page seals it
-           in the browser, stores it as the TOOLING_UPDATE_TOKEN secret, then restarts
-           the update -- no trip to repository settings. -->
+      <!-- Inline recovery for an update the repo's built-in token can't apply on its
+           own. TWO causes, same fix: (a) the release changes .github/workflows/** which
+           the built-in token may not push, or (b) a protected default branch blocks the
+           Actions bot from writing / opening a PR. A one-time fine-grained token
+           (Contents + Workflows + Pull requests + Secrets = write) applies the update
+           (it can push workflow files and, on a protected branch, open a PR as the
+           user). The page seals it in the browser, stores it as the TOOLING_UPDATE_TOKEN
+           secret, then restarts the update -- no trip to repository settings. -->
       <div class="tokpanel" id="wfTokPanel" style="display:none">
-        <h3>Finish the update &mdash; add a one-time token to open the pull request</h3>
-        <p class="note">The update is built, but the repository&rsquo;s built-in token couldn&rsquo;t open its
-          <strong>pull request</strong> &mdash; either this release touches GitHub <strong>workflow files</strong> the
-          built-in token can&rsquo;t push, or this repository doesn&rsquo;t allow GitHub Actions to open pull requests.
-          A one-time token below pushes the update <strong>and opens the PR for you</strong>, finishing right here.</p>
+        <h3>Finish the update &mdash; add a one-time token</h3>
+        <p class="note">The update is built, but the repository&rsquo;s built-in token couldn&rsquo;t apply it &mdash;
+          either this release touches GitHub <strong>workflow files</strong> the built-in token can&rsquo;t push, or it
+          isn&rsquo;t allowed to write to this branch. A one-time token below <strong>applies the update for you</strong>,
+          finishing right here.</p>
         <ol>
           <li><a id="wfTokCreate" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a fine-grained token &#8599;</a> &mdash; opens with the name, owner, and <strong>Contents + Workflows + Pull requests + Secrets = Read and write</strong> already filled in.</li>
           <li><strong>Repository access</strong> &rarr; Only select repositories &rarr; add <code id="wfTokRepo"></code>. <span class="note">(The one step GitHub can&rsquo;t pre-fill from a link.)</span></li>
@@ -292,7 +321,6 @@
         <div class="status" id="wfTokStatus"></div>
       </div>
       <div class="status" id="cmdStatus" style="margin-bottom:4px"></div>
-      <p class="hint" id="updateHowto"></p>
       <details id="cliDetails" style="margin-top:14px">
         <summary style="cursor:pointer">Prefer the command line?</summary>
         <div style="margin-top:12px">
@@ -315,8 +343,23 @@
           </div>
         </div>
       </details>
-      <p class="hint" style="margin-top:12px">After the pull request merges, your dashboard badge turns green and
+      <p class="hint" style="margin-top:12px">When the update finishes, your dashboard badge turns green and
         the pipeline runs the updated capabilities.</p>
+    </section>
+
+    <section id="notesSec" style="display:none">
+      <details id="notesReveal">
+        <summary>
+          <span class="notes-h2" id="notesTitle">What's changed</span>
+          <span class="notes-meta" id="notesMeta"></span>
+        </summary>
+        <p class="hint" id="notesHint">Release notes between your version and the latest, newest first.</p>
+        <div id="latestNote"></div>
+        <details id="allNotes" style="display:none">
+          <summary id="allNotesSummary"></summary>
+          <div id="allNotesBody"></div>
+        </details>
+      </details>
     </section>
   </div>
 
@@ -345,6 +388,13 @@
         c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
     }
     function rawUrl(repo, ref, path) { return `https://raw.githubusercontent.com/${repo}/${ref}/${path}`; }
+    // A repository's page on GitHub, and that repo NAME as a clickable <code> chip.
+    // Used everywhere a repo name is shown (the source repo, the repo being
+    // upgraded, token hints, …) so the name always links to the repository.
+    function ghUrl(repo) { return "https://github.com/" + encodeURI(String(repo || "")); }
+    function repoCode(repo) {
+      return repo ? `<a class="repo-link" href="${esc(ghUrl(repo))}" target="_blank" rel="noopener"><code>${esc(repo)}</code></a>` : "";
+    }
     async function fetchJson(url) {
       const r = await fetch(url, { cache: "no-store" });
       if (!r.ok) throw new Error("HTTP " + r.status);
@@ -422,12 +472,15 @@
         `<span class="vpill">This repo&nbsp; v${esc(cur)}</span>` +
         `<span class="arrow">&rarr;</span>` +
         `<span class="vpill new">Latest&nbsp; v${esc(latest)}</span>` +
-        (state.repo ? `<span style="color:var(--fg-muted);font-size:.82em">&nbsp; (${esc(state.repo)})</span>` : "");
+        (state.repo ? `<span style="color:var(--fg-muted);font-size:.82em">&nbsp; (${repoCode(state.repo)})</span>` : "");
     }
 
     function renderNotes() {
       const m = state.missing;
       $("notesSec").style.display = "";
+      $("notesTitle").textContent = "What's changed";
+      $("notesMeta").textContent = `${m.length} update${m.length > 1 ? "s" : ""} \u00b7 v${state.from || "?"} \u2192 v${state.latest}`;
+      $("notesHint").textContent = "Release notes between your version and the latest, newest first.";
       $("latestNote").innerHTML = releaseCard(m[0]);
       if (m.length > 1) {
         const det = $("allNotes");
@@ -442,12 +495,10 @@
     function renderHistory() {
       const all = state.releases || [];
       if (!all.length) return;
-      const sec = $("notesSec");
-      sec.style.display = "";
-      const h2 = sec.querySelector("h2");
-      if (h2) h2.textContent = "Release history";
-      const hint = sec.querySelector(".hint");
-      if (hint) hint.textContent = "Every published release, newest first.";
+      $("notesSec").style.display = "";
+      $("notesTitle").textContent = "Release history";
+      $("notesMeta").textContent = `${all.length} release${all.length > 1 ? "s" : ""}`;
+      $("notesHint").textContent = "Every published release, newest first.";
       $("latestNote").innerHTML = releaseCard(all[0]);
       if (all.length > 1) {
         const det = $("allNotes");
@@ -531,8 +582,12 @@
     // (including while the PR waits for the user to approve + merge) so a duplicate
     // update can never be started; it unlocks only once the update finishes or
     // fails. Progress is mirrored to localStorage so a reload restores the live view.
-    const PH = { IDLE: 0, DISPATCH: 1, QUEUED: 2, RUNNING: 3, OPENING: 4, REVIEW: 5, DONE: 6, ERROR: -1 };
-    const PROG_KEY = "lvci_update_progress";
+    // DISPATCH..RUNNING = building the update on Actions; APPLYING = the run
+    // finished and we're determining how it landed; most repos get a DIRECT push to
+    // the default branch (no PR) -> PUBLISHING (Pages deploy) -> DONE. A protected
+    // default branch falls back to a PR the user merges -> REVIEW (your turn).
+    const PH = { IDLE: 0, DISPATCH: 1, QUEUED: 2, RUNNING: 3, APPLYING: 4, REVIEW: 5, PUBLISHING: 6, DONE: 7, ERROR: -1 };
+    const PROG_KEY = "lvci_update_progress2";
     const prog = { phase: PH.IDLE, ver: "", runId: 0, runUrl: "", prUrl: "", prNum: 0, ts: 0, timers: [] };
 
     function authHeaders(extra) {
@@ -565,7 +620,7 @@
       const card = $("upProg"); if (!card) return;
       if (prog.phase === PH.IDLE) { card.hidden = true; return; }
       card.hidden = false;
-      const active = { [PH.DISPATCH]: 1, [PH.QUEUED]: 2, [PH.RUNNING]: 2, [PH.OPENING]: 3, [PH.REVIEW]: 4, [PH.DONE]: 5, [PH.ERROR]: 0 }[prog.phase] || 0;
+      const active = { [PH.DISPATCH]: 1, [PH.QUEUED]: 2, [PH.RUNNING]: 2, [PH.APPLYING]: 3, [PH.REVIEW]: 3, [PH.PUBLISHING]: 4, [PH.DONE]: 5, [PH.ERROR]: 0 }[prog.phase] || 0;
       card.querySelectorAll("#upSteps li").forEach((li, i) => {
         const n = i + 1; li.classList.remove("active", "done", "wait");
         if (prog.phase === PH.DONE) { li.classList.add("done"); return; }
@@ -575,18 +630,23 @@
       });
       const bar = $("upBar");
       if (bar) bar.className = "up-bar" + (prog.phase === PH.REVIEW ? " wait" : prog.phase === PH.DONE ? " done" : prog.phase === PH.ERROR ? " err" : "");
-      const active_auto = prog.phase >= PH.DISPATCH && prog.phase <= PH.OPENING;
+      const active_auto = (prog.phase >= PH.DISPATCH && prog.phase <= PH.APPLYING) || prog.phase === PH.PUBLISHING;
       const spin = $("upSpin"); if (spin) spin.hidden = !active_auto;
       card.setAttribute("aria-busy", String(active_auto));
       const title = $("upTitle");
       if (title) title.textContent =
         prog.phase === PH.DONE ? ("Updated to v" + prog.ver) :
         prog.phase === PH.REVIEW ? "Almost there \u2014 your turn" :
+        prog.phase === PH.PUBLISHING ? ("Publishing v" + prog.ver + "\u2026") :
         prog.phase === PH.ERROR ? "Update didn\u2019t start" :
         ("Updating to v" + prog.ver + "\u2026");
-      const rp = $("upRepo"); if (rp) rp.textContent = state.repo || "";
+      const rp = $("upRepo"); if (rp) rp.innerHTML = state.repo ? `<a href="${esc(ghUrl(state.repo))}" target="_blank" rel="noopener">${esc(state.repo)}</a>` : "";
       if (msg != null) { const m = $("upMsg"); if (m) m.innerHTML = msg; }
       const links = [];
+      if (prog.phase === PH.DONE) {
+        const dash = clientPagesUrl();
+        if (dash) links.push(`<a class="primary" href="${esc(dash)}">Go to your dashboard &#8599;</a>`);
+      }
       if (prog.prUrl) links.push(`<a href="${esc(prog.prUrl)}" target="_blank" rel="noopener">Open pull request${prog.prNum ? " #" + prog.prNum : ""} &#8599;</a>`);
       if (prog.runUrl) links.push(`<a href="${esc(prog.runUrl)}" target="_blank" rel="noopener">Open the workflow run &#8599;</a>`);
       const lz = $("upLinks"); if (lz) lz.innerHTML = links.join("");
@@ -608,14 +668,14 @@
 
     function setPhase(phase, msg) {
       prog.phase = phase;
-      // Lock every in-flight phase (dispatch -> review) so a user who lands on
+      // Lock every in-flight phase (dispatch -> publishing) so a user who lands on
       // an update already in progress cannot start a duplicate.
-      lockUpdateControls(phase >= PH.DISPATCH && phase <= PH.REVIEW);
+      lockUpdateControls(phase >= PH.DISPATCH && phase <= PH.PUBLISHING);
       renderProgress(msg);
       // Errors aren't resumable; only persist the live automatic/review phases.
       if (phase === PH.IDLE || phase === PH.DONE || phase === PH.ERROR) clearProg(); else saveProg();
-      // Keep the dashboard's version badge in sync (phases dispatch..review).
-      if (phase >= PH.DISPATCH && phase <= PH.REVIEW) {
+      // Keep the dashboard's version badge in sync (phases dispatch..publishing).
+      if (phase >= PH.DISPATCH && phase <= PH.PUBLISHING) {
         try { localStorage.setItem("lvci_updating", JSON.stringify({ v: prog.ver, ts: Date.now(), repo: state.repo })); } catch (_) {}
         try { if (window.parent && window.parent !== window && window.parent.lvciMarkUpdating) window.parent.lvciMarkUpdating(prog.ver); } catch (_) {}
       } else {
@@ -667,14 +727,14 @@
     }
 
     function startPrPoll() {
-      if (prog.phase !== PH.OPENING) setPhase(PH.OPENING, "The workflow is opening the pull request&hellip;");
-      pollForPr(prog.ver, 0);
+      if (prog.phase !== PH.APPLYING) setPhase(PH.APPLYING, "Applying the update to your repository&hellip;");
+      pollOutcome(prog.ver, 0);
     }
 
     function dispatchUpdate() {
       const ver = state.target || state.latest || "";
       if (!ver) return;
-      if (prog.phase >= PH.DISPATCH && prog.phase <= PH.REVIEW) return; // already running — no duplicates
+      if (prog.phase >= PH.DISPATCH && prog.phase <= PH.PUBLISHING) return; // already running — no duplicates
       if (deploying) { showDeploying(deploying); return; }             // a merged update is still publishing
       if (!getTok()) { showTokenPanel(); return; }
       hideWfTokenPanel();
@@ -696,7 +756,7 @@
         let ghMsg = ""; try { const j = await r.json(); ghMsg = (j && j.message) || ""; } catch (_) {}
         let hint;
         if (r.status === 403) hint = `<strong>403</strong>: the token is missing the <strong>Actions: Read and write</strong> permission. On the token page open <strong>Permissions &rarr; Repository permissions &rarr; Actions &rarr; Read and write</strong> (selecting the repository is not enough), then <strong>Update</strong> and try again.`;
-        else if (r.status === 404) hint = `<strong>404</strong>: the token cannot see <code>${esc(state.repo)}</code> (or the update workflow is not installed). Grant it <strong>Repository access</strong> to this repo AND the <strong>Actions: Read and write</strong> permission.`;
+        else if (r.status === 404) hint = `<strong>404</strong>: the token cannot see ${repoCode(state.repo)} (or the update workflow is not installed). Grant it <strong>Repository access</strong> to this repo AND the <strong>Actions: Read and write</strong> permission.`;
         else if (r.status === 422) hint = `<strong>422</strong>: GitHub couldn&rsquo;t start the update${ghMsg ? ` &mdash; <em>${esc(ghMsg)}</em>` : ""}. This is a workflow issue, not your token &mdash; make sure this repo&rsquo;s update workflow is current (re-run the installer to refresh the tooling), then try again.`;
         else hint = `HTTP ${r.status}${ghMsg ? ` &mdash; ${esc(ghMsg)}` : ""}. If this persists, check the token has <strong>Actions: Read and write</strong> on this repository.`;
         setPhase(PH.IDLE);
@@ -798,7 +858,7 @@
       const v = (i && i.value || "").trim();
       if (!v) { if (i) i.focus(); return; }
       const btn = $("wfTokSave"); if (btn) btn.disabled = true;
-      setWfTokStatus(`Encrypting and saving the token to <code>${esc(state.repo)}</code>&hellip;`, null);
+      setWfTokStatus(`Encrypting and saving the token to ${repoCode(state.repo)}&hellip;`, null);
       writeToolingSecret(v)
         .then(() => {
           if (i) i.value = "";
@@ -815,8 +875,8 @@
           const s = e && e.status;
           let msg;
           if (s === 401) msg = "That token was rejected (401). Copy the whole <code>github_pat_&hellip;</code> value and try again.";
-          else if (s === 403) msg = `That token can&rsquo;t write <strong>Secrets</strong> on <code>${esc(state.repo)}</code>. On the token page set <strong>Secrets: Read and write</strong> (picking the repository alone isn&rsquo;t enough), regenerate, and paste it again.`;
-          else if (s === 404) msg = `That token can&rsquo;t see <code>${esc(state.repo)}</code>. Under <strong>Repository access</strong> choose <strong>Only select repositories</strong> and add this repository.`;
+          else if (s === 403) msg = `That token can&rsquo;t write <strong>Secrets</strong> on ${repoCode(state.repo)}. On the token page set <strong>Secrets: Read and write</strong> (picking the repository alone isn&rsquo;t enough), regenerate, and paste it again.`;
+          else if (s === 404) msg = `That token can&rsquo;t see ${repoCode(state.repo)}. Under <strong>Repository access</strong> choose <strong>Only select repositories</strong> and add this repository.`;
           else msg = "Couldn&rsquo;t save the token: " + esc(e && e.message || String(e));
           setWfTokStatus(msg, "err");
           if (btn) btn.disabled = false;
@@ -865,44 +925,88 @@
         .catch(() => {});
     }
 
-    // After dispatch, the workflow force-pushes branch ci/adopt-tooling-v<ver>
-    // (older tooling used ci/update-tooling-v<ver>) and opens (or updates) a PR.
-    // Poll the open PR list and match either branch so a real PR is never missed;
-    // if none appears the built-in token couldn't open the PR -> offer a one-time
-    // token inline (handled below).
-    function pollForPr(ver, tries) {
+    // The update is fetched + built by the server-side workflow, then APPLIED. Most
+    // repositories get a direct commit to the default branch (no PR): the workflow
+    // bumps .github/labview-ci/catalog.json there, so the committed version reaching
+    // the target is the signal the push landed. A protected default branch falls back
+    // to a pull request on ci/adopt-tooling-v<ver>. Poll for BOTH each tick so the
+    // happy (direct) path is detected the instant it lands; only when neither appears
+    // does the built-in token genuinely need a one-time token (handled below).
+    function contentsUrl(repo, ref) {
+      return `https://api.github.com/repos/${repo}/contents/.github/labview-ci/catalog.json?ref=${encodeURIComponent(ref)}`;
+    }
+    // True once the default branch's committed catalog version >= the target — i.e.
+    // the workflow committed the update straight to the branch (no PR needed).
+    function checkDirectPush(ver) {
+      return resolveBranch().then((branch) =>
+        fetch(contentsUrl(state.repo, branch) + "&_=" + Date.now(),
+          { cache: "no-store", headers: authHeaders({ "Accept": "application/vnd.github.raw" }) })
+          .then((r) => r.ok ? r.json() : null)
+          .then((c) => (c && c.version) ? cmpVer(c.version, ver) >= 0 : false)
+          .catch(() => false));
+    }
+    function pollOutcome(ver, tries) {
       tries = tries || 0;
       const branches = ["ci/adopt-tooling-v" + ver, "ci/update-tooling-v" + ver];
-      const url = `https://api.github.com/repos/${state.repo}/pulls?state=open&per_page=100`;
+      const pullsUrl = `https://api.github.com/repos/${state.repo}/pulls?state=open&per_page=100`;
       const pullsPage = `https://github.com/${state.repo}/pulls`;
-      fetch(url, { cache: "no-store", headers: authHeaders() })
-        .then((r) => r.ok ? r.json() : null)
-        .then((list) => {
-          const pr = Array.isArray(list)
-            ? list.find((p) => p && p.head && branches.indexOf(p.head.ref) !== -1)
-            : null;
-          if (pr) {
-            hideWfTokenPanel();
-            showReview(pr, ver, "");
-            pollPrMerged(pr.number, 0);
-            return;
-          }
-          if (tries < 12) { later(() => pollForPr(ver, tries + 1), 2500); return; }
-          // The run finished but opened no PR. Two causes, one fix: the built-in
-          // token either (a) couldn't push a workflow-file-only change, or (b) isn't
-          // allowed to open pull requests in this repo. A one-time TOOLING_UPDATE_TOKEN
-          // (Contents + Workflows + Pull requests + Secrets) pushes the update AND
-          // opens the PR as the user, so offer it inline; keep the run-summary link
-          // as a fallback for anything else.
-          showWfTokenRecovery();
-          setPhase(PH.REVIEW,
-            `The update ran, but no pull request opened &mdash; the repository&rsquo;s built-in token either can&rsquo;t push a ` +
-            `<strong>workflow-file</strong> change or isn&rsquo;t allowed to <strong>open pull requests</strong> here. ` +
-            `<strong>Add a one-time token below</strong> and it pushes the update and opens the PR for you &mdash; no settings trip. ` +
-            `Prefer to do it by hand? Open the <a href="${esc(prog.runUrl || `https://github.com/${state.repo}/actions`)}" target="_blank" rel="noopener">workflow run</a> ` +
-            `(its summary has a direct &ldquo;open the pull request&rdquo; link) or check <a href="${esc(pullsPage)}" target="_blank" rel="noopener">Pull requests &rarr;</a>.`);
-        })
-        .catch(() => { if (tries < 12) later(() => pollForPr(ver, tries + 1), 2500); });
+      Promise.all([
+        fetch(pullsUrl, { cache: "no-store", headers: authHeaders() }).then((r) => r.ok ? r.json() : null).catch(() => null),
+        checkDirectPush(ver)
+      ]).then(([list, landed]) => {
+        // Direct push landed (committed catalog on the default branch hit the target).
+        if (landed) { hideWfTokenPanel(); startPublishPoll(ver); return; }
+        // Protected branch fell back to a PR — the user merges it (REVIEW).
+        const pr = Array.isArray(list)
+          ? list.find((p) => p && p.head && branches.indexOf(p.head.ref) !== -1)
+          : null;
+        if (pr) {
+          hideWfTokenPanel();
+          showReview(pr, ver, "");
+          pollPrMerged(pr.number, 0);
+          return;
+        }
+        if (tries < 12) { later(() => pollOutcome(ver, tries + 1), 2500); return; }
+        // The run finished but neither committed the update directly nor opened a PR:
+        // the built-in token couldn't push (a workflow-file-only change) or write to
+        // this branch. A one-time TOOLING_UPDATE_TOKEN (Contents + Workflows + Pull
+        // requests + Secrets) applies the update for you, so offer it inline; keep the
+        // run-summary link as a fallback for anything else.
+        showWfTokenRecovery();
+        setPhase(PH.REVIEW,
+          `The update ran, but it couldn&rsquo;t finish on its own &mdash; the repository&rsquo;s built-in token either can&rsquo;t push a ` +
+          `<strong>workflow-file</strong> change or isn&rsquo;t allowed to write to this branch. ` +
+          `<strong>Add a one-time token below</strong> and it applies the update for you &mdash; no settings trip. ` +
+          `Prefer to do it by hand? Open the <a href="${esc(prog.runUrl || `https://github.com/${state.repo}/actions`)}" target="_blank" rel="noopener">workflow run</a> ` +
+          `(its summary explains the one remaining step) or check <a href="${esc(pullsPage)}" target="_blank" rel="noopener">Pull requests &rarr;</a>.`);
+      }).catch(() => { if (tries < 12) later(() => pollOutcome(ver, tries + 1), 2500); });
+    }
+
+    // The update was applied (committed straight to the default branch). Watch the
+    // LIVE deployed catalog version until the new build publishes, then refresh.
+    function startPublishPoll(ver) {
+      setPhase(PH.PUBLISHING,
+        `Applied to your repository &mdash; now publishing <code>v${esc(ver)}</code> to your dashboard&hellip; ` +
+        `this is the GitHub&nbsp;Pages deploy and usually lands within a minute.`);
+      pollPublished(ver, Date.now());
+    }
+    function pollPublished(ver, start) {
+      fetchDeployedVer().then((dep) => {
+        if (dep && cmpVer(dep, ver) >= 0) {
+          setPhase(PH.DONE,
+            `&#10003; ${repoCode(state.repo)} is now running <code>v${esc(ver)}</code> &mdash; published and live. ` +
+            `Open your dashboard to explore what&rsquo;s new.`);
+          return;
+        }
+        if (Date.now() - start > 10 * 60 * 1000) {
+          setPhase(PH.DONE,
+            `<code>v${esc(ver)}</code> was applied to ${repoCode(state.repo)}. It&rsquo;s taking longer than usual to ` +
+            `publish to GitHub&nbsp;Pages &mdash; open your dashboard in a minute to see it, or check the ` +
+            `<a href="https://github.com/${esc(state.repo)}/actions" target="_blank" rel="noopener">Actions tab</a>.`);
+          return;
+        }
+        later(() => pollPublished(ver, start), 12000);
+      }).catch(() => later(() => pollPublished(ver, start), 12000));
     }
 
     // Once a PR exists, watch for the merge so the card can show "done" and stop
@@ -912,7 +1016,7 @@
       fetch(`https://api.github.com/repos/${state.repo}/pulls/${num}`, { cache: "no-store", headers: authHeaders() })
         .then(r => r.ok ? r.json() : null)
         .then(pr => {
-          if (pr && pr.merged_at) { setPhase(PH.DONE, `Merged &mdash; <code>v${esc(prog.ver)}</code> is now installed. The dashboard badge turns green on its next refresh.`); return; }
+          if (pr && pr.merged_at) { startPublishPoll(prog.ver); return; }
           if (pr && pr.state === "closed") { resetProgress(); return; }
           if (tries < 40) later(() => pollPrMerged(num, tries + 1), 8000);
         })
@@ -967,7 +1071,7 @@
           renderJobs(j && j.jobs);
           stopJobsTimer();
           // Keep refreshing while the run is still active and the panel is open.
-          if (prog.phase >= PH.QUEUED && prog.phase <= PH.OPENING && det.open && !det.hidden) {
+          if (prog.phase >= PH.QUEUED && prog.phase <= PH.APPLYING && det.open && !det.hidden) {
             jobsTimer = later(refreshJobs, 5000);
           }
         })
@@ -1025,11 +1129,17 @@
     // (checked against the REAL deployed catalog, not the possibly-stale ?from=), and
     // lock the controls until the new build lands.
     let deploying = "", deployTimer = 0, deployStart = 0;
-    function deployedCatalogUrl() {
+    // The repo-being-upgraded's own GitHub Pages site (its dashboard root). Used
+    // for the deployed-catalog check AND the "Go to your dashboard" / "Back" links.
+    function clientPagesUrl() {
       const parts = (state.repo || "/").split("/"), owner = parts[0], name = parts[1];
       if (!owner || !name) return "";
       const host = owner.toLowerCase() + ".github.io";
-      return (name.toLowerCase() === host ? `https://${host}/` : `https://${host}/${name}/`) + "catalog.json";
+      return name.toLowerCase() === host ? `https://${host}/` : `https://${host}/${name}/`;
+    }
+    function deployedCatalogUrl() {
+      const root = clientPagesUrl();
+      return root ? root + "catalog.json" : "";
     }
     function fetchDeployedVer() {
       const u = deployedCatalogUrl();
@@ -1092,9 +1202,26 @@
         deployTimer = setTimeout(pollDeploying, 15000);
       }).catch(() => { deployTimer = setTimeout(pollDeploying, 15000); });
     }
+    // A direct-push update (no PR) committed to the default branch that the live
+    // dashboard hasn't deployed yet. Detect from the default branch's head commit:
+    // a recent "adopt LabVIEW CI tooling v<ver>" whose version is ahead of deployed.
+    function findDirectPushPublishing() {
+      return resolveBranch().then((branch) =>
+        fetch(`https://api.github.com/repos/${state.repo}/commits/${encodeURIComponent(branch)}`,
+          { cache: "no-store", headers: authHeaders() })
+          .then((r) => r.ok ? r.json() : null)
+          .then((c) => {
+            const msg = (c && c.commit && c.commit.message) || "";
+            const when = c && c.commit && c.commit.committer && c.commit.committer.date;
+            const recent = when && (Date.now() - new Date(when).getTime()) < 25 * 60 * 1000;
+            const m = /adopt LabVIEW CI tooling v(\d+\.\d+\.\d+)/i.exec(msg);
+            if (!recent || !m) return "";
+            return fetchDeployedVer().then((dep) => (cmpVer(m[1], dep || "0") > 0) ? m[1] : "");
+          }).catch(() => ""));
+    }
     function detectInFlight() {
       if (prog.phase !== PH.IDLE) return;            // a local resume already owns the view
-      Promise.all([findOpenUpdatePr(), findActiveRun(), findDeployingUpdate()]).then(([hit, run, dep]) => {
+      Promise.all([findOpenUpdatePr(), findActiveRun(), findDeployingUpdate(), findDirectPushPublishing()]).then(([hit, run, dep, dep2]) => {
         if (prog.phase !== PH.IDLE) return;          // a resume landed while we polled
         if (hit) {
           const pr = hit.pr;
@@ -1115,7 +1242,8 @@
           pollRun(0);
           return;
         }
-        if (dep) showDeploying(dep);   // merged + publishing: lock until the new build lands
+        const publishing = dep || dep2;     // a merged PR OR a direct push, now deploying
+        if (publishing) showDeploying(publishing);   // lock until the new build lands
       });
     }
 
@@ -1129,9 +1257,10 @@
       prog.ver = s.ver || state.target || state.latest || "";
       prog.ts = s.ts || Date.now(); prog.runId = s.runId || 0; prog.runUrl = s.runUrl || "";
       prog.prUrl = s.prUrl || ""; prog.prNum = s.prNum || 0;
-      if (prog.prNum) { setPhase(PH.REVIEW, `Resuming&hellip; pull request <a href="${esc(prog.prUrl)}" target="_blank" rel="noopener">#${prog.prNum}</a> is open. <strong>Merge it</strong> to finish updating to <code>v${esc(prog.ver)}</code>. <span class="up-note">Most updates have no checks to wait for &mdash; you can merge right away.</span>`); pollPrMerged(prog.prNum, 0); }
+      if (s.phase === PH.PUBLISHING) { startPublishPoll(prog.ver); }
+      else if (prog.prNum) { setPhase(PH.REVIEW, `Resuming&hellip; pull request <a href="${esc(prog.prUrl)}" target="_blank" rel="noopener">#${prog.prNum}</a> is open. <strong>Merge it</strong> to finish updating to <code>v${esc(prog.ver)}</code>. <span class="up-note">Most updates have no checks to wait for &mdash; you can merge right away.</span>`); pollPrMerged(prog.prNum, 0); }
       else if (prog.runId || s.phase >= PH.QUEUED) { setPhase(PH.RUNNING, "Resuming&hellip; checking the update workflow&rsquo;s progress."); pollRun(0); }
-      else { setPhase(PH.OPENING, "Resuming&hellip; waiting for the pull request."); startPrPoll(); }
+      else { startPrPoll(); }
     }
 
     function renderUpdateButton() {
@@ -1159,16 +1288,16 @@
       }
       refreshTokForget();
       $("updateHowto").innerHTML =
-        `<strong>Update now</strong> starts the <strong>Apply LabVIEW CI update</strong> workflow for you and opens a ` +
-        `pull request adopting <code>v${esc(ver)}</code>. You then <strong>merge</strong> it to finish &mdash; it normally ` +
-        `has no checks to wait for (see the numbered steps above). The first time, paste a ` +
-        `fine-grained token with <strong>Actions: Read and write</strong> (the dialog walks you through it; the same ` +
-        `token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses). Prefer not to use a token? ` +
+        `<strong>Update now</strong> starts the <strong>Apply LabVIEW CI update</strong> workflow, which commits ` +
+        `<code>v${esc(ver)}</code> <strong>straight to your repository</strong> &mdash; no pull request to merge (see the ` +
+        `steps above). The first time, paste a fine-grained token with <strong>Actions: Read and write</strong> (the dialog ` +
+        `walks you through it; the same token the dashboard&rsquo;s &ldquo;Run now&rdquo; uses). Prefer not to use a token? ` +
         `<a href="${esc(ghUrl)}" target="_blank" rel="noopener">Open the workflow on GitHub</a> and click <strong>Run workflow</strong>.`;
     }
 
     function showUpToDate() {
-      $("sub").innerHTML = `This repository is running the latest LabVIEW CI tooling.`;
+      const lbl = $("targetRepoLabel"); if (lbl) lbl.textContent = "Up to date \u2014";
+      $("sub").innerHTML = `${repoCode(state.repo)} is running the latest LabVIEW CI tooling.`;
       $("versionLine").innerHTML =
         `<span class="uptodate">&#10003; Up to date &mdash; v${esc(state.from || state.latest)} is the latest version.</span>`;
     }
@@ -1217,6 +1346,14 @@
       state.srcRepo = qp.get("src") || "";
       state.srcRef = qp.get("ref") || "";
 
+      // Surface the repo being upgraded immediately (and keep its name clickable),
+      // and point "Back to dashboard" at THAT repo's own dashboard, not the source.
+      if (state.repo) {
+        const tn = $("targetRepoName"); if (tn) { tn.textContent = state.repo; tn.href = ghUrl(state.repo); }
+        const tr = $("targetRepo"); if (tr) tr.hidden = false;
+        const dash = clientPagesUrl(); const bl = $("backLink"); if (bl && dash) bl.href = dash;
+      }
+
       const consumer = await loadConsumerCatalog();
       if (consumer) {
         if (!state.from) state.from = consumer.version || "";
@@ -1254,7 +1391,7 @@
       const source = await loadSourceCatalog(state.srcRepo, state.srcRef);
       if (!source) {
         ls.className = "status err";
-        ls.innerHTML = `Could not reach the source repository (<code>${esc(state.srcRepo)}</code>) to check for updates. ` +
+        ls.innerHTML = `Could not reach the source repository (${repoCode(state.srcRepo)}) to check for updates. ` +
           `Try again later, or view it on <a href="https://github.com/${esc(state.srcRepo)}" target="_blank" rel="noopener">GitHub</a>.`;
         $("sub").textContent = "Could not check for updates.";
         renderVersionLine();
@@ -1281,8 +1418,9 @@
       }
 
       const n = state.missing.length;
-      $("sub").innerHTML = `${n} newer release${n > 1 ? "s are" : " is"} available from ` +
-        `<code>${esc(state.srcRepo)}</code>. Review the changes, then update.`;
+      const lbl = $("targetRepoLabel"); if (lbl) lbl.textContent = "Updating";
+      $("sub").innerHTML = `${repoCode(state.repo)} has ${n} newer release${n > 1 ? "s" : ""} available ` +
+        `from ${repoCode(state.srcRepo)}. Update below; expand <strong>What&rsquo;s changed</strong> for the notes.`;
       ls.className = "status";
       ls.textContent = "";
 

@@ -55,9 +55,19 @@
     .copy{position:absolute;top:8px;right:8px;padding:4px 10px;font-size:.72em;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--fg);cursor:pointer}
     .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
     button.primary{padding:9px 16px;font-size:.9em;font-weight:600;border:1px solid transparent;border-radius:6px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
     .status{font-size:.82em;color:var(--muted);margin-top:8px;min-height:1.2em}
     .status.ok{color:var(--accent)}.status.err{color:#cf222e}
+    .tokpanel{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface2);margin:10px 0 12px;font-size:.84em}
+    .tokpanel[hidden]{display:none}
+    .tokpanel input{width:100%;margin:8px 0;padding:8px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
     .subhead{font-weight:600;font-size:.9em;margin:14px 0 6px}
+    .thresholds{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:10px;margin-top:10px}
+    .threshold{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+    .threshold strong{display:block;font-size:.84em;margin-bottom:4px}
+    .threshold small{display:block;color:var(--muted);font-size:.74em;min-height:2.8em}
+    .threshold input{width:100%;margin-top:8px;padding:8px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.9em}
+    @media(max-width:700px){.thresholds{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -86,8 +96,29 @@
     </section>
 
     <section>
-      <h2>3. Review &amp; apply</h2>
-      <p class="hint">Download the updated config and commit it, or copy the <code class="inl">unitTests</code> block into your existing <code class="inl">.github/labview-ci.yml</code>.</p>
+      <h2>3. Badge thresholds</h2>
+      <p class="hint">The dashboard badge shows the percentage of tests that failed. Colours use pass-rate thresholds, which is the usual way to define test-health gates.</p>
+      <div class="thresholds">
+        <label class="threshold"><strong>Green</strong><small>Pass rate at or above this value.</small><input id="thrGreen" type="number" min="0" max="100" step="1" value="100"></label>
+        <label class="threshold"><strong>Yellow</strong><small>Pass rate at or above this value, but below Green.</small><input id="thrYellow" type="number" min="0" max="100" step="1" value="80"></label>
+        <label class="threshold"><strong>Red</strong><small>Pass rate below this value.</small><input id="thrRed" type="number" min="0" max="100" step="1" value="80"></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>4. Review &amp; apply</h2>
+      <p class="hint">Save &amp; Apply queues the <code class="inl">Reconfigure</code> workflow with the dashboard's stored token. The workflow updates only the <code class="inl">unitTests</code> block and opens a pull request to review. Download/copy options remain available for manual changes.</p>
+      <div class="actions">
+        <button class="primary" id="applyUnitTests" type="button">Save &amp; Apply</button>
+        <a id="wfLink" href="https://github.com/actions/workflows/reconfigure.yml" target="_blank" rel="noopener">View workflow</a>
+      </div>
+      <div class="status" id="applyStatus"></div>
+      <div class="tokpanel" id="tokPanel" hidden>
+        <div id="tokMsg">Applying needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository.</div>
+        <a id="tokCreate" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a token</a>
+        <input id="tokInput" type="password" placeholder="github_pat_..." autocomplete="off" spellcheck="false">
+        <button class="primary" id="tokSave" type="button">Save &amp; apply</button>
+      </div>
       <div class="actions">
         <button class="primary" id="dlYaml">Download labview-ci.yml</button>
         <span class="status" id="dlStatus"></span>
@@ -101,6 +132,7 @@
   (() => {
     "use strict";
     const SOURCE_FALLBACK = { repo: "elijah286/LabVIEW-CI-with-Containers", ref: "main" };
+    const TOK_KEY = "lvci_dispatch_token";
 
     // Framework catalog for this page. `soon` tools render a disabled tab.
     const TOOLS = [
@@ -110,13 +142,15 @@
       { id: "vi-tester", name: "VI Tester",
         conv: "VI Tester tests are <b>TestCase classes</b> (<code>.lvclass</code> inheriting from <code>TestCase</code>). The runner discovers and runs every TestCase within the locations below.",
         ph: "e.g. tests/  or  source/**/*.lvclass" },
-      { id: "utf",       name: "Unit Test Framework", soon: true,
-        conv: "NI Unit Test Framework uses <code>.lvtest</code> files, each targeting one VI. Headless execution support is coming soon.",
-        ph: "e.g. tests/" },
+      { id: "utf",       name: "Unit Test Framework",
+        conv: "NI Unit Test Framework tests are <code>.lvtest</code> files inside a project, each targeting one VI. Point the runner at the folder (or the <code>.lvproj</code>) that holds them; it runs every <code>.lvtest</code> in that project headlessly and reports pass/fail.",
+        ph: "e.g. tests/  or  source/Tests/MyTests.lvproj" },
     ];
     const DEFAULTS = () => TOOLS.reduce((o,t)=>(o[t.id]={enabled:false,locations:[]},o),{});
+    const DEFAULT_THRESHOLDS = () => ({ passedPercent: { greenAtLeast: 100, yellowAtLeast: 80, redBelow: 80 } });
 
     let state = DEFAULTS();
+    let thresholds = DEFAULT_THRESHOLDS();
     let activeTab = "caraya";
 
     const $ = (id) => document.getElementById(id);
@@ -124,37 +158,73 @@
     async function fetchText(u){ const r=await fetch(u,{cache:"no-store"}); if(!r.ok) throw new Error("HTTP "+r.status); return r.text(); }
 
     // ---- minimal labview-ci.yml unitTests parser (our own simple format) -----
-    // Reads the `unitTests:` block: per-tool `enabled:` + `locations:` list.
+    // Reads the `unitTests:` block: per-tool `enabled:` + `locations:` list, plus
+    // the optional pass-rate threshold policy that colours the failed-% badge.
     function parseUnitTests(text){
-      const out = DEFAULTS();
+      const tools = DEFAULTS();
+      const parsedThresholds = DEFAULT_THRESHOLDS();
       const lines = text.split(/\r?\n/);
       let i = 0;
       // find top-level "unitTests:"
       while (i < lines.length && !/^unitTests:\s*$/.test(lines[i])) i++;
-      if (i >= lines.length) return out;
+      if (i >= lines.length) return { tools, thresholds: parsedThresholds };
       i++;
-      let tool = null, inLocs = false;
+      let tool = null, inLocs = false, inTools = false, inThresholds = false, inPassed = false;
       for (; i < lines.length; i++){
         const line = lines[i];
         if (/^\S/.test(line)) break;                       // dedent to top level → done
         let m;
-        if ((m = line.match(/^\s{4,6}([A-Za-z0-9_\-]+):\s*$/)) && /^\s{4}\S/.test(line)){
-          tool = out[m[1]] ? m[1] : null; inLocs = false; continue;
+        if (/^\s{2}tools:\s*$/.test(line)){ inTools = true; inThresholds = false; tool = null; inLocs = false; continue; }
+        if (/^\s{2}thresholds:\s*$/.test(line)){ inThresholds = true; inTools = false; tool = null; inLocs = false; continue; }
+        if (inThresholds){
+          if (/^\s{4}(passedPercent|passPercent|passRate):\s*$/.test(line)){ inPassed = true; continue; }
+          if (inPassed && (m = line.match(/^\s{6}(greenAtLeast|yellowAtLeast|redBelow):\s*([^#\s]+)/))){
+            parsedThresholds.passedPercent[m[1]] = clampPct(m[2], parsedThresholds.passedPercent[m[1]]); continue;
+          }
+          if (/^\s{0,5}\S/.test(line)) inPassed = false;
+        }
+        if (inTools && (m = line.match(/^\s{4}([A-Za-z0-9_\-]+):\s*$/))){
+          tool = tools[m[1]] ? m[1] : null; inLocs = false; continue;
         }
         if (tool){
-          if ((m = line.match(/^\s{6,}enabled:\s*(true|false)/))){ out[tool].enabled = m[1]==="true"; inLocs=false; continue; }
-          if (/^\s{6,}locations:\s*\[\s*\]/.test(line)){ out[tool].locations=[]; inLocs=false; continue; }
-          if (/^\s{6,}locations:\s*$/.test(line)){ inLocs=true; out[tool].locations=[]; continue; }
-          if (inLocs && (m = line.match(/^\s{8,}-\s*["']?([^"'\n]+?)["']?\s*$/))){ out[tool].locations.push(m[1]); continue; }
+          if ((m = line.match(/^\s{6,}enabled:\s*(true|false)/))){ tools[tool].enabled = m[1]==="true"; inLocs=false; continue; }
+          if (/^\s{6,}locations:\s*\[\s*\]/.test(line)){ tools[tool].locations=[]; inLocs=false; continue; }
+          if (/^\s{6,}locations:\s*$/.test(line)){ inLocs=true; tools[tool].locations=[]; continue; }
+          if (inLocs && (m = line.match(/^\s{8,}-\s*["']?([^"'\n]+?)["']?\s*$/))){ tools[tool].locations.push(m[1]); continue; }
           if (inLocs && /^\s{6}\S/.test(line)) inLocs=false;
         }
       }
+      return { tools, thresholds: normalizeThresholds(parsedThresholds) };
+    }
+
+    function clampPct(value, fallback){
+      const n = Math.round(Number(value));
+      return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : fallback;
+    }
+    function normalizeThresholds(src){
+      const cur = src && src.passedPercent || {};
+      const out = DEFAULT_THRESHOLDS();
+      out.passedPercent.greenAtLeast = clampPct(cur.greenAtLeast, out.passedPercent.greenAtLeast);
+      out.passedPercent.yellowAtLeast = clampPct(cur.yellowAtLeast, out.passedPercent.yellowAtLeast);
+      out.passedPercent.redBelow = clampPct(cur.redBelow, out.passedPercent.redBelow);
+      out.passedPercent.greenAtLeast = Math.max(out.passedPercent.greenAtLeast, out.passedPercent.yellowAtLeast);
+      out.passedPercent.redBelow = Math.min(out.passedPercent.redBelow, out.passedPercent.yellowAtLeast);
       return out;
     }
 
     // ---- YAML generation -----------------------------------------------------
     function genBlock(){
-      const lines = ["unitTests:", "  tools:"];
+      thresholds = normalizeThresholds(thresholds);
+      const p = thresholds.passedPercent;
+      const lines = [
+        "unitTests:",
+        "  thresholds:",
+        "    passedPercent:",
+        `      greenAtLeast: ${p.greenAtLeast}`,
+        `      yellowAtLeast: ${p.yellowAtLeast}`,
+        `      redBelow: ${p.redBelow}`,
+        "  tools:"
+      ];
       for (const t of TOOLS){
         const s = state[t.id];
         lines.push(`    ${t.id}:`);
@@ -238,6 +308,81 @@
 
     function update(){ $("blockPreview").textContent = genBlock(); }
 
+    function renderThresholds(){
+      thresholds = normalizeThresholds(thresholds);
+      const p = thresholds.passedPercent;
+      $("thrGreen").value = p.greenAtLeast;
+      $("thrYellow").value = p.yellowAtLeast;
+      $("thrRed").value = p.redBelow;
+    }
+
+    function unitTestsInput(){
+      const tools = {};
+      for (const t of TOOLS){
+        const s = state[t.id] || { enabled:false, locations:[] };
+        tools[t.id] = { enabled: !!s.enabled, locations: (s.locations||[]).map(x=>x.trim()).filter(Boolean) };
+      }
+      thresholds = normalizeThresholds(thresholds);
+      return JSON.stringify({ tools, thresholds });
+    }
+
+    function workflowUrl(){
+      const repo = $("repo").value;
+      return repo.includes("/") ? "https://github.com/" + repo + "/actions/workflows/reconfigure.yml" : "https://github.com/actions/workflows/reconfigure.yml";
+    }
+    function token(){ try { return localStorage.getItem(TOK_KEY) || ""; } catch (_) { return ""; } }
+    function tokenUrl(){
+      const repo = $("repo").value;
+      const owner = (repo.split("/")[0]) || "";
+      const qp = new URLSearchParams();
+      qp.set("name", "LabVIEW CI dispatch");
+      qp.set("description", "Dispatch LabVIEW CI configuration changes for " + repo);
+      if (owner) qp.set("target_name", owner);
+      qp.set("actions", "write");
+      return "https://github.com/settings/personal-access-tokens/new?" + qp.toString();
+    }
+    function setApplyStatus(html, kind){
+      const st = $("applyStatus"); if (!st) return;
+      st.innerHTML = html || "";
+      st.className = "status" + (kind ? " " + kind : "");
+    }
+    function showTokenPanel(msg){
+      const p = $("tokPanel"); if (!p) return;
+      const m = $("tokMsg"); if (m) m.innerHTML = msg || "Applying needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository.";
+      const a = $("tokCreate"); if (a) a.href = tokenUrl();
+      p.hidden = false;
+      const inp = $("tokInput"); if (inp) inp.focus();
+    }
+    function hideTokenPanel(){ const p = $("tokPanel"); if (p) p.hidden = true; }
+    async function dispatchReconfigure(){
+      const repo = $("repo").value, ref = $("branch").value || "main";
+      if (!repo.includes("/")){ setApplyStatus("Choose a repository before applying.", "err"); return; }
+      if (!token()){ showTokenPanel(); setApplyStatus("Paste a token to queue the Reconfigure workflow."); return; }
+      const btn = $("applyUnitTests");
+      if (btn){ btn.disabled = true; btn.textContent = "Queuing..."; }
+      setApplyStatus("Queuing the Reconfigure workflow...");
+      try{
+        const r = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/reconfigure.yml/dispatches", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token(), "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
+          body: JSON.stringify({ ref, inputs: { unit_tests: unitTestsInput() } })
+        });
+        if (btn){ btn.disabled = false; btn.textContent = "Save & Apply"; }
+        if (r.status === 204){
+          hideTokenPanel();
+          setApplyStatus("Queued Reconfigure. It will open a pull request when the settings file is updated. <a href=\"" + workflowUrl() + "\" target=\"_blank\" rel=\"noopener\">View runs</a>.", "ok");
+          return;
+        }
+        if (r.status === 401){ try { localStorage.removeItem(TOK_KEY); } catch (_) {} showTokenPanel("That token was rejected. Paste a valid fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setApplyStatus("Token rejected (401).", "err"); return; }
+        if (r.status === 403){ showTokenPanel("The saved token cannot dispatch workflows here. Grant <strong>Actions: Read and write</strong> for <code class=\"inl\">" + esc(repo) + "</code>."); setApplyStatus("Dispatch forbidden (403).", "err"); return; }
+        if (r.status === 404){ showTokenPanel("The saved token cannot see <code class=\"inl\">" + esc(repo) + "</code>, or this repo does not have <code class=\"inl\">reconfigure.yml</code> installed."); setApplyStatus("Workflow not found or repo not accessible (404).", "err"); return; }
+        setApplyStatus("Dispatch failed (HTTP " + r.status + ").", "err");
+      }catch(e){
+        if (btn){ btn.disabled = false; btn.textContent = "Save & Apply"; }
+        setApplyStatus("Network error: " + esc(String(e && e.message || e)), "err");
+      }
+    }
+
     function download(name, text){
       const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type:"text/plain"}));
       a.download=name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
@@ -259,7 +404,8 @@
       try{
         loadedYaml = await fetchText(rawUrl(repo, ref, ".github/labview-ci.yml"));
         const parsed = parseUnitTests(loadedYaml);
-        for (const t of TOOLS) if (parsed[t.id]) state[t.id] = parsed[t.id];
+        for (const t of TOOLS) if (parsed.tools[t.id]) state[t.id] = parsed.tools[t.id];
+        thresholds = parsed.thresholds;
         st.className="status ok"; st.textContent = `Loaded current settings from ${repo}@${ref}.`;
       }catch(_){
         st.className="status"; st.textContent = "No existing config found — showing defaults to download & commit.";
@@ -271,7 +417,22 @@
       const t = detectTarget();
       $("repo").value=t.repo; $("branch").value=t.ref;
       $("repoLabel").textContent=t.repo; $("branchLabel").textContent=t.ref;
-      renderTabs(); renderPanels(); update();
+      const wf = $("wfLink"); if (wf) wf.href = workflowUrl();
+      renderTabs(); renderPanels(); renderThresholds(); update();
+      ["thrGreen", "thrYellow", "thrRed"].forEach(id => $(id).addEventListener("change", () => {
+        thresholds.passedPercent.greenAtLeast = clampPct($("thrGreen").value, thresholds.passedPercent.greenAtLeast);
+        thresholds.passedPercent.yellowAtLeast = clampPct($("thrYellow").value, thresholds.passedPercent.yellowAtLeast);
+        thresholds.passedPercent.redBelow = clampPct($("thrRed").value, thresholds.passedPercent.redBelow);
+        renderThresholds(); update();
+      }));
+      $("applyUnitTests").addEventListener("click", dispatchReconfigure);
+      $("tokSave").addEventListener("click", () => {
+        const inp = $("tokInput"); const v = (inp && inp.value || "").trim();
+        if (!v){ if (inp) inp.focus(); return; }
+        try { localStorage.setItem(TOK_KEY, v); } catch (_) {}
+        dispatchReconfigure();
+      });
+      $("tokInput").addEventListener("keydown", (e) => { if (e.key === "Enter"){ e.preventDefault(); $("tokSave").click(); } });
       $("dlYaml").addEventListener("click", ()=>{ download("labview-ci.yml", genFullYaml()); const s=$("dlStatus"); s.className="status ok"; s.textContent="labview-ci.yml downloaded — place at .github/labview-ci.yml"; });
       $("copyBlock").addEventListener("click", async ()=>{ try{ await navigator.clipboard.writeText(genBlock()); $("copyBlock").textContent="Copied!"; setTimeout(()=>$("copyBlock").textContent="Copy",1400);}catch(_){} });
       loadCurrent(t.repo, t.ref).catch(()=>{});

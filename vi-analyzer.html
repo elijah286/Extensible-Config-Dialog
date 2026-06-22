@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<!--
+  .github/pages/vi-analyzer.html
+  Dedicated VI Analyzer pipeline-configuration page for an ALREADY-INSTALLED repo.
+  It does NOT edit any VI Analyzer test settings - those are authored in LabVIEW's
+  VI Analyzer tool (Tools > VI Analyzer > Analyze VIs..., Save Configuration) and
+  committed to the repo as .viancfg files. This page only tells the automated
+  pipeline three things:
+    1. which VIs get analyzed at all;
+    2. which committed .viancfg applies to a specific VI or folder;
+    3. which .viancfg (if any) is the default when nothing else matches.
+  Saved to config.viAnalyzer in .github/labview-ci.yml. The page can dispatch the
+  Reconfigure workflow with the dashboard's stored token; the workflow writes the
+  file and opens a PR (only the VI Analyzer settings change - every other setting
+  is preserved). Pure static page, no backend.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VI Analyzer - LabVIEW CI</title>
+  <script>window.LVCI={context:'vianalyzer'};</script>
+  <script src="lvci-header.js" defer></script>
+  <style>
+    :root{
+      --bg:#0d1117;--surface:#161b22;--surface2:#0d1117;--border:#30363d;
+      --fg:#e6edf3;--fg-muted:#8b949e;--link:#58a6ff;--accent:#238636;--accent-fg:#fff;
+      --chip:#21262d;--code:#010409;--warn:#9a6700;
+    }
+    @media(prefers-color-scheme:light){
+      :root{
+        --bg:#ffffff;--surface:#f6f8fa;--surface2:#fff;--border:#d0d7de;
+        --fg:#1f2328;--fg-muted:#57606a;--link:#0969da;--accent:#1f883d;--accent-fg:#fff;
+        --chip:#eaeef2;--code:#f6f8fa;--warn:#9a6700;
+      }
+    }
+    *{box-sizing:border-box}
+    body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:var(--bg);color:var(--fg);line-height:1.5}
+    a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+    .wrap{max-width:980px;margin:0 auto;padding:24px 20px 64px}
+    header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+    h1{font-size:1.5em;margin:0}
+    .sub{color:var(--fg-muted);font-size:.9em;margin:4px 0 20px}
+    .back{font-size:.85em}
+    section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:18px}
+    section h2{font-size:1.02em;margin:0 0 4px}
+    .hint{color:var(--fg-muted);font-size:.82em;margin:0 0 14px}
+    .field{max-width:560px}
+    label.fl{display:block;font-size:.8em;color:var(--fg-muted);margin-bottom:5px}
+    input[type=text],select{width:100%;padding:8px 10px;background:var(--surface2);color:var(--fg);
+         border:1px solid var(--border);border-radius:6px;font-size:.92em;font-family:inherit}
+    .subhead{font-weight:600;font-size:.9em;margin:14px 0 6px}
+    code.inl{background:var(--chip);padding:1px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
+    .codebox{position:relative;background:var(--code);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px}
+    pre{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;white-space:pre-wrap;word-break:break-word;color:var(--fg);max-height:280px;overflow:auto}
+    .copy{position:absolute;top:8px;right:8px;padding:4px 10px;font-size:.72em;border:1px solid var(--border);
+         border-radius:6px;background:var(--surface);color:var(--fg);cursor:pointer}
+    .copy:hover{border-color:var(--link)}
+    button.ghost,button.primary{padding:9px 16px;font-size:.9em;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg);cursor:pointer}
+    button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .applyrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:8px 0 10px}
+    .status{font-size:.82em;color:var(--fg-muted);margin-top:8px;min-height:1.2em}
+    .status.err{color:#cf222e}.status.ok{color:var(--accent)}
+    .tokpanel{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface2);margin:10px 0 12px;font-size:.84em}
+    .tokpanel[hidden]{display:none}
+    .tokpanel input{width:100%;margin:8px 0;padding:8px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .callout{border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;
+         padding:13px 16px;margin:0 0 16px;background:var(--surface2);font-size:.86em;line-height:1.6}
+    .callout strong{color:var(--fg)}
+    .callout ul{margin:8px 0 0;padding-left:20px}
+    .callout li{margin:3px 0}
+    .note{font-size:.82em;color:var(--fg-muted);margin:0 0 12px}
+    .warnnote{border:1px solid var(--warn);background:rgba(154,103,0,.10);color:var(--fg);
+         border-radius:8px;padding:10px 13px;font-size:.82em;margin:0 0 14px}
+    /* VI Analyzer rule rows */
+    .viarule{border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--surface2)}
+    .viarule .viarhead{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px}
+    .viarule .viarhead select{flex:1 1 260px;min-width:200px}
+    .viarule .rmrule{margin-left:auto}
+    .viapaths{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+    .viapaths:empty{display:none}
+    .viachip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--bg);
+      border-radius:16px;padding:3px 6px 3px 11px;font-size:.8em}
+    .viachip code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.95em}
+    .viachip .x{background:none;border:none;color:var(--fg-muted);cursor:pointer;font-size:1.1em;line-height:1;padding:0 2px}
+    .viachip .x:hover{color:#f85149}
+    .viaaddpath{display:flex;gap:8px;flex-wrap:wrap}
+    .viaaddpath input{flex:1 1 260px;min-width:200px}
+    .viascope{display:inline-block;font-size:.72em;border-radius:4px;padding:1px 6px;margin-left:4px}
+    .viascope.folder{background:rgba(88,166,255,.16);color:var(--link)}
+    .viascope.file{background:rgba(46,160,67,.16);color:#3fb950}
+    .viaempty{color:var(--fg-muted);font-style:italic}
+    .addrule{margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>VI Analyzer</h1>
+        <div class="sub">Configuring <code class="inl" id="targetRepo">this repository</code></div>
+      </div>
+    </header>
+
+    <div class="callout">
+      <strong>Test settings live in your <code class="inl">.viancfg</code> files - this page does not change them.</strong>
+      You create and edit VI Analyzer test configurations in LabVIEW
+      (<em>Tools &rsaquo; VI Analyzer &rsaquo; Analyze VIs&hellip;</em>, choose the tests and exclusions, then
+      <strong>Save Configuration</strong>) and commit the resulting <code class="inl">.viancfg</code> files to this
+      repository. This page only tells the <strong>automated pipeline</strong>:
+      <ul>
+        <li>which VIs get analyzed at all;</li>
+        <li>which committed <code class="inl">.viancfg</code> applies to a specific VI or folder;</li>
+        <li>which <code class="inl">.viancfg</code> (if any) is used by default when nothing else matches.</li>
+      </ul>
+    </div>
+
+    <div class="warnnote" id="viaOffNote" hidden>VI Analyzer is not currently an enabled activity for this repository.
+      These mappings are saved, but nothing runs until VI Analyzer is turned on in
+      <strong>Configure Workers &rsaquo; Pipeline</strong>.</div>
+
+    <section>
+      <h2>Default configuration</h2>
+      <p class="hint">Applied to every VI that isn't matched by a rule below. The
+        <strong>built-in full suite</strong> runs all default VI Analyzer tests; pick a committed
+        <code class="inl">.viancfg</code> to use its tests instead, or choose
+        <strong>don't test by default</strong> so only files matched by a rule are analyzed.</p>
+      <div class="note" id="viaConfigNote"></div>
+      <div class="field">
+        <label class="fl" for="viaDefault">Default test configuration</label>
+        <select id="viaDefault"></select>
+      </div>
+    </section>
+
+    <section>
+      <h2>Per-folder &amp; per-file configurations</h2>
+      <p class="hint">Assign a specific <code class="inl">.viancfg</code> to a subset of your code &mdash; choose
+        individual VIs and/or whole folders. Files matched by a rule are analyzed with that configuration
+        <em>instead of</em> the default. Choose <strong>Exclude</strong> to skip the selected files entirely
+        (some VIs not being tested is fine). When a file matches more than one rule, the first rule listed wins.</p>
+      <div id="viaRules"></div>
+      <div class="addrule">
+        <button class="ghost" id="viaAddRule" type="button">+ Add a configuration rule</button>
+      </div>
+      <datalist id="viaPathSuggest"></datalist>
+    </section>
+
+    <section>
+      <h2>Save and apply</h2>
+      <p class="hint">With a valid dashboard token, save these settings by queuing the <code class="inl">Reconfigure</code>
+        workflow. It updates <strong>only</strong> the VI Analyzer settings in
+        <code class="inl">.github/labview-ci.yml</code> (every other setting is preserved) and opens a pull request to
+        review. The command below is a backup if the browser token is missing or rejected.</p>
+      <div class="applyrow">
+        <button class="primary" id="applyVia" type="button">Save and apply</button>
+        <a id="wfLink" href="https://github.com/actions/workflows/reconfigure.yml" target="_blank" rel="noopener">View workflow</a>
+      </div>
+      <div class="status" id="applyStatus"></div>
+      <div class="tokpanel" id="tokPanel" hidden>
+        <div id="tokMsg">Saving needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository.</div>
+        <a id="tokCreate" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a token</a>
+        <input id="tokInput" type="password" placeholder="github_pat_..." autocomplete="off" spellcheck="false">
+        <button class="primary" id="tokSave" type="button">Save and apply</button>
+      </div>
+      <div class="subhead">Command fallback</div>
+      <p class="hint">Use this backup path if the browser has no valid token, or if you prefer to dispatch the workflow from GitHub's CLI.</p>
+      <div class="codebox">
+        <button class="copy" id="copyGh">Copy</button>
+        <pre id="ghCmd"></pre>
+      </div>
+      <div class="status" id="loadStatus"></div>
+    </section>
+  </div>
+
+  <script>
+  (() => {
+    "use strict";
+    const SOURCE_FALLBACK = { repo: "elijah286/LabVIEW-CI-with-Containers", ref: "main" };
+    const TOK_KEY = "lvci_dispatch_token";
+
+    let catalog = null;
+    let repo = "";
+    let ref = "main";
+    // viaDefault = "builtin" (full default suite), "none" (don't test unmatched VIs),
+    // or a committed .viancfg path applied to every unmatched VI.
+    // viaRules = [{ config: "<path>"|"none", paths: [string] }] - a config (or "none"
+    // = exclude) mapped to specific files/folders; first match wins.
+    let viaDefault = "";
+    let viaRules = [];
+    let viaConfigs = [];            // discovered .viancfg paths in the repo
+    let viaPathSuggest = [];        // discovered folders + VIs (datalist suggestions)
+    let viaDefaultTouched = false;  // user explicitly chose a default
+    let activities = null;          // null until the manifest is read
+
+    const $ = (id) => document.getElementById(id);
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    function source() { return (catalog && catalog.source) || SOURCE_FALLBACK; }
+    function rawUrl(r, rf, path) { return `https://raw.githubusercontent.com/${r}/${rf}/${path}`; }
+    async function fetchJson(url) { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }
+    async function fetchText(url) { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); }
+
+    async function loadCatalog() {
+      const cands = ["./catalog.json", "./labview-ci/catalog.json",
+        rawUrl(SOURCE_FALLBACK.repo, SOURCE_FALLBACK.ref, ".github/labview-ci/catalog.json")];
+      for (const u of cands) { try { return await fetchJson(u); } catch (_) {} }
+      return { source: SOURCE_FALLBACK };
+    }
+
+    function detectTarget() {
+      const params = new URLSearchParams(location.search);
+      const qRepo = (params.get("repo") || "").trim();
+      let r = (params.get("ref") || "").trim();
+      let rp = qRepo.includes("/") ? qRepo : "";
+      if (!rp) {
+        const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+        if (m) {
+          const owner = m[1];
+          const dir = location.pathname.split("/").filter(s => s && !s.includes("."));
+          rp = dir.length ? owner + "/" + dir[0] : owner + "/" + owner + ".github.io";
+        }
+      }
+      if (!rp.includes("/")) { const s = source(); rp = s.repo; if (!r) r = s.ref; }
+      return { repo: rp, ref: r || "main" };
+    }
+
+    // ---- minimal config.viAnalyzer parser ----------------------------------
+    function parseViAnalyzerBlock(text) {
+      const out = { default: "", rules: [] };
+      const lines = text.split(/\r?\n/);
+      let i = 0;
+      for (; i < lines.length; i++) { if (/^\s{2}viAnalyzer:\s*$/.test(lines[i])) { i++; break; } }
+      if (i >= lines.length) return out;
+      let curRule = null, inRules = false;
+      for (; i < lines.length; i++) {
+        const line = lines[i];
+        if (/^\s{0,3}\S/.test(line)) break;
+        let m;
+        if ((m = line.match(/^\s{4}default:\s*"?([^"\s]+)"?/))) { out.default = m[1]; inRules = false; continue; }
+        if (/^\s{4}rules:\s*$/.test(line)) { inRules = true; continue; }
+        if (inRules) {
+          if ((m = line.match(/^\s{6}-\s*config:\s*"?([^"]+?)"?\s*$/))) { curRule = { config: m[1].trim(), paths: [] }; out.rules.push(curRule); continue; }
+          if (curRule && (m = line.match(/^\s{8}paths:\s*"?([^"]*?)"?\s*$/))) { curRule.paths = m[1].split("|").map(s => s.trim()).filter(Boolean); continue; }
+        }
+      }
+      return out;
+    }
+    function parseActivities(text) {
+      const acts = []; let inActs = false;
+      for (const line of text.split(/\r?\n/)) {
+        if (/^\s*activities:\s*$/.test(line)) { inActs = true; continue; }
+        if (inActs) {
+          const m = line.match(/^\s*-\s*(\S+)/);
+          if (m) { acts.push(m[1]); continue; }
+          if (/^\S/.test(line)) inActs = false;
+        }
+      }
+      return acts;
+    }
+
+    // ---- rendering ---------------------------------------------------------
+    function isViaFolder(p) { return !/\.(vi|ctl|lvclass|lvlib)$/i.test(p); }
+    function renderViaDefault() {
+      const sel = $("viaDefault"); if (!sel) return;
+      const cur = viaDefault || "builtin";
+      const opts = [["builtin", "Built-in full test suite \u2014 every default VI Analyzer test"]];
+      viaConfigs.forEach(p => opts.push([p, "Use " + p]));
+      opts.push(["none", "Don't test by default \u2014 only rule-matched files are analyzed"]);
+      if (cur && !opts.some(o => o[0] === cur)) opts.push([cur, cur + " (not found in repo)"]);
+      sel.innerHTML = "";
+      opts.forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; sel.appendChild(o); });
+      sel.value = cur;
+    }
+    function viaRuleConfigOptions(rule) {
+      const opts = [];
+      viaConfigs.forEach(p => opts.push([p, "Use " + p]));
+      if (rule.config && rule.config !== "none" && !viaConfigs.includes(rule.config)) opts.push([rule.config, "Use " + rule.config + " (not found)"]);
+      opts.push(["none", "Exclude \u2014 don't test these files"]);
+      return opts;
+    }
+    function renderViaRules() {
+      const host = $("viaRules"); if (!host) return; host.innerHTML = "";
+      if (!viaRules.length) {
+        host.innerHTML = '<div class="viaempty">No rules \u2014 the default configuration applies to every VI. Add a rule to use a different <code class="inl">.viancfg</code> on specific files or folders, or to exclude files.</div>';
+        return;
+      }
+      viaRules.forEach((rule, ri) => {
+        const box = document.createElement("div"); box.className = "viarule";
+        const head = document.createElement("div"); head.className = "viarhead";
+        const sel = document.createElement("select");
+        const opts = viaRuleConfigOptions(rule);
+        opts.forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; sel.appendChild(o); });
+        sel.value = (rule.config && opts.some(o => o[0] === rule.config)) ? rule.config : (viaConfigs[0] || "none");
+        rule.config = sel.value;
+        sel.addEventListener("change", () => { rule.config = sel.value; renderViaRules(); update(); });
+        head.appendChild(sel);
+        const rm = document.createElement("button"); rm.type = "button"; rm.className = "ghost rmrule"; rm.textContent = "Remove rule";
+        rm.addEventListener("click", () => { viaRules.splice(ri, 1); renderViaRules(); update(); });
+        head.appendChild(rm);
+        box.appendChild(head);
+        const chips = document.createElement("div"); chips.className = "viapaths";
+        rule.paths.forEach((p, pi) => {
+          const chip = document.createElement("span"); chip.className = "viachip";
+          const folder = isViaFolder(p);
+          chip.innerHTML = "<code>" + escapeHtml(p) + "</code><span class=\"viascope " + (folder ? "folder" : "file") + "\">" + (folder ? "folder" : "file") + "</span>";
+          const x = document.createElement("button"); x.type = "button"; x.className = "x"; x.title = "Remove"; x.textContent = "\u00d7";
+          x.addEventListener("click", () => { rule.paths.splice(pi, 1); renderViaRules(); update(); });
+          chip.appendChild(x); chips.appendChild(chip);
+        });
+        box.appendChild(chips);
+        const add = document.createElement("div"); add.className = "viaaddpath";
+        const inp = document.createElement("input"); inp.type = "text"; inp.setAttribute("list", "viaPathSuggest");
+        inp.placeholder = "add a file or folder (e.g. src/Drivers or Main.vi)";
+        const addBtn = document.createElement("button"); addBtn.type = "button"; addBtn.className = "ghost"; addBtn.textContent = "Add path";
+        const doAdd = () => {
+          const v = inp.value.trim().replace(/^\/+|\/+$/g, "");
+          if (!v) return;
+          if (!rule.paths.includes(v)) rule.paths.push(v);
+          inp.value = ""; renderViaRules(); update();
+        };
+        addBtn.addEventListener("click", doAdd);
+        inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); doAdd(); } });
+        add.appendChild(inp); add.appendChild(addBtn);
+        box.appendChild(add);
+        host.appendChild(box);
+      });
+    }
+    function renderAll() {
+      const off = $("viaOffNote");
+      if (off) off.hidden = !(activities && activities.length && !activities.includes("vi-analyzer"));
+      const note = $("viaConfigNote");
+      if (note) {
+        note.innerHTML = viaConfigs.length
+          ? ("Found " + viaConfigs.length + " <code class=\"inl\">.viancfg</code> file" + (viaConfigs.length === 1 ? "" : "s") + " in the repository.")
+          : "No <code class=\"inl\">.viancfg</code> files found yet \u2014 CI uses the built-in full test suite. Author a configuration in LabVIEW (Tools \u203a VI Analyzer), <strong>Save Configuration</strong>, and commit the <code class=\"inl\">.viancfg</code>; it then appears here.";
+      }
+      const dl = $("viaPathSuggest");
+      if (dl) dl.innerHTML = viaPathSuggest.map(p => "<option value=\"" + escapeHtml(p) + "\">").join("");
+      renderViaDefault();
+      renderViaRules();
+    }
+
+    // ---- output ------------------------------------------------------------
+    function viaInputs() {
+      const def = viaDefault || "builtin";
+      const rules = viaRules.filter(r => r.config && r.paths.length)
+        .map(r => (r.config === "none" ? "none" : r.config) + "::" + r.paths.map(p => p.replace(/[|]/g, "")).join("|"))
+        .join(";");
+      return { def, rules };
+    }
+    function genGhCmd() {
+      const r = repo.includes("/") ? ` -R ${repo}` : "";
+      const ci = viaInputs();
+      return `gh workflow run reconfigure.yml${r} \\\n` +
+        `  -f via_default="${ci.def}"` +
+        (ci.rules ? ` \\\n  -f via_rules="${ci.rules}"` : "");
+    }
+    function workflowUrl() { return repo.includes("/") ? "https://github.com/" + repo + "/actions/workflows/reconfigure.yml" : "https://github.com/actions/workflows/reconfigure.yml"; }
+    function update() {
+      $("ghCmd").textContent = genGhCmd();
+      const wf = $("wfLink"); if (wf) wf.href = workflowUrl();
+    }
+    function token() { try { return localStorage.getItem(TOK_KEY) || ""; } catch (_) { return ""; } }
+    function tokenUrl() {
+      const owner = (repo.split("/")[0]) || "";
+      const qp = new URLSearchParams();
+      qp.set("name", "LabVIEW CI dispatch");
+      qp.set("description", "Dispatch LabVIEW CI configuration changes for " + repo);
+      if (owner) qp.set("target_name", owner);
+      qp.set("actions", "write");
+      return "https://github.com/settings/personal-access-tokens/new?" + qp.toString();
+    }
+    function setApplyStatus(html, kind) {
+      const st = $("applyStatus"); if (!st) return;
+      st.innerHTML = html || "";
+      st.className = "status" + (kind ? " " + kind : "");
+    }
+    function showTokenPanel(msg) {
+      const p = $("tokPanel"); if (!p) return;
+      const m = $("tokMsg"); if (m) m.innerHTML = msg || "Saving needs a fine-grained token with <strong>Actions: Read and write</strong> for this repository.";
+      const a = $("tokCreate"); if (a) a.href = tokenUrl();
+      p.hidden = false;
+      const inp = $("tokInput"); if (inp) inp.focus();
+    }
+    function hideTokenPanel() { const p = $("tokPanel"); if (p) p.hidden = true; }
+    async function dispatchReconfigure() {
+      if (!repo.includes("/")) { setApplyStatus("Choose a repository before applying.", "err"); return; }
+      if (!token()) { showTokenPanel(); setApplyStatus("Paste a token to queue the Reconfigure workflow."); return; }
+      const btn = $("applyVia");
+      if (btn) { btn.disabled = true; btn.textContent = "Queuing..."; }
+      setApplyStatus("Queuing the Reconfigure workflow...");
+      const ci = viaInputs();
+      const inputs = { via_default: ci.def, via_rules: ci.rules || "" };
+      try {
+        const r = await fetch("https://api.github.com/repos/" + repo + "/actions/workflows/reconfigure.yml/dispatches", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token(), "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
+          body: JSON.stringify({ ref: ref || "main", inputs })
+        });
+        if (btn) { btn.disabled = false; btn.textContent = "Save and apply"; }
+        if (r.status === 204) {
+          hideTokenPanel();
+          setApplyStatus("Queued Reconfigure. It will open a pull request when the settings file is updated. <a href=\"" + workflowUrl() + "\" target=\"_blank\" rel=\"noopener\">View runs</a>.", "ok");
+          return;
+        }
+        if (r.status === 401) { try { localStorage.removeItem(TOK_KEY); } catch (_) {} showTokenPanel("That token was rejected. Paste a valid fine-grained token with <strong>Actions: Read and write</strong> for this repository."); setApplyStatus("Token rejected (401).", "err"); return; }
+        if (r.status === 403) { showTokenPanel("The saved token cannot dispatch workflows here. Grant <strong>Actions: Read and write</strong> for <code class=\"inl\">" + escapeHtml(repo) + "</code>."); setApplyStatus("Dispatch forbidden (403).", "err"); return; }
+        if (r.status === 404) { showTokenPanel("The saved token cannot see <code class=\"inl\">" + escapeHtml(repo) + "</code>, or this repo does not have <code class=\"inl\">reconfigure.yml</code> installed."); setApplyStatus("Workflow not found or repo not accessible (404).", "err"); return; }
+        setApplyStatus("Dispatch failed (HTTP " + r.status + ").", "err");
+      } catch (e) {
+        if (btn) { btn.disabled = false; btn.textContent = "Save and apply"; }
+        setApplyStatus("Network error: " + escapeHtml(String(e && e.message || e)), "err");
+      }
+    }
+
+    // Best-effort discovery of the repo's .viancfg configs + folder/VI path
+    // suggestions (unauthenticated; silent on failure / rate-limit).
+    async function discover() {
+      try {
+        const url = "https://api.github.com/repos/" + repo + "/git/trees/" + encodeURIComponent(ref || "main") + "?recursive=1";
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) return;
+        const data = await r.json();
+        const isTooling = (p) => /^(\.github|ci-out|build)\//i.test(p);
+        viaConfigs = (data.tree || []).filter(t => t.type === "blob" && /\.viancfg$/i.test(t.path) && !isTooling(t.path)).map(t => t.path).sort();
+        const folders = [], vis = [];
+        (data.tree || []).forEach(t => {
+          if (isTooling(t.path)) return;
+          if (t.type === "tree") folders.push(t.path);
+          else if (t.type === "blob" && /\.(vi|ctl|lvclass|lvlib)$/i.test(t.path)) vis.push(t.path);
+        });
+        viaPathSuggest = folders.sort().concat(vis.sort());
+        if (!viaDefaultTouched && !viaDefault) viaDefault = viaConfigs[0] || "builtin";
+        renderAll(); update();
+      } catch (_) {}
+    }
+
+    async function loadCurrent() {
+      const st = $("loadStatus");
+      try {
+        const yaml = await fetchText(rawUrl(repo, ref, ".github/labview-ci.yml"));
+        const via = parseViAnalyzerBlock(yaml);
+        activities = parseActivities(yaml);
+        viaDefault = via.default || "";
+        viaRules = (via.rules || []).map(r => ({ config: r.config, paths: (r.paths || []).slice() }));
+        viaDefaultTouched = false;
+        st.className = "status ok";
+        st.textContent = "Loaded current VI Analyzer settings from " + repo + "@" + ref + ".";
+      } catch (_) {
+        activities = null;
+        st.className = "status";
+        st.textContent = "No existing config found for " + repo + " (the pipeline may not be installed yet) \u2014 showing defaults.";
+      }
+      renderAll(); update();
+      discover();
+    }
+
+    function wire() {
+      $("viaDefault").addEventListener("change", () => { viaDefault = $("viaDefault").value; viaDefaultTouched = true; update(); });
+      $("viaAddRule").addEventListener("click", () => { viaRules.push({ config: viaConfigs[0] || "none", paths: [] }); renderViaRules(); update(); });
+      const cp = $("copyGh");
+      cp.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText($("ghCmd").textContent); cp.textContent = "Copied!"; setTimeout(() => cp.textContent = "Copy", 1400); } catch (_) {}
+      });
+      $("applyVia").addEventListener("click", dispatchReconfigure);
+      $("tokSave").addEventListener("click", () => {
+        const inp = $("tokInput"); const v = (inp && inp.value || "").trim();
+        if (!v) { if (inp) inp.focus(); return; }
+        try { localStorage.setItem(TOK_KEY, v); } catch (_) {}
+        dispatchReconfigure();
+      });
+      $("tokInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("tokSave").click(); } });
+    }
+
+    (async function init() {
+      if (window.top !== window.self) { const bl = $("backLink"); if (bl) bl.style.display = "none"; }
+      catalog = await loadCatalog();
+      const tgt = detectTarget();
+      repo = tgt.repo; ref = tgt.ref;
+      const tr = $("targetRepo"); if (tr && repo) tr.textContent = repo;
+      wire(); renderAll(); update();
+      if (repo.includes("/")) loadCurrent().catch(() => {});
+    })();
+  })();
+  </script>
+</body>
+</html>

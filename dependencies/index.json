@@ -1,0 +1,319 @@
+{
+  "schema": 1,
+  "repo": "elijah286/Extensible-Config-Dialog",
+  "sha": "0a863f95e6c0c54f855d3666ca39c6e923359669",
+  "revisions": [
+    {
+      "sha": "0a863f95e6c0c54f855d3666ca39c6e923359669",
+      "short": "0a863f9",
+      "message": "Add LabVIEW CI pipeline",
+      "author": "Elijah Kerry",
+      "date": "2026-06-22T20:37:14Z"
+    },
+    {
+      "sha": "473795b812528d019744c922a7508245b6825856",
+      "short": "473795b",
+      "message": "Add LabVIEW CI pipeline",
+      "author": "Elijah Kerry",
+      "date": "2026-06-19T00:45:49Z"
+    },
+    {
+      "sha": "2050eb42b65f7702864d7f35cc0ca82cee0481f2",
+      "short": "2050eb4",
+      "message": "Add LabVIEW CI pipeline",
+      "author": "Elijah Kerry",
+      "date": "2026-06-17T14:55:11Z"
+    },
+    {
+      "sha": "dcc643584eb7fcac429fca3e9700fbac71b9d02c",
+      "short": "dcc6435",
+      "message": "Merge pull request #4 from elijah286/fix/update-tooling-to-v2-1-1",
+      "author": "Elijah Kerry",
+      "date": "2026-06-17T04:01:49Z"
+    },
+    {
+      "sha": "a21bf524bf66536037d119f088627c65f644cae0",
+      "short": "a21bf52",
+      "message": "chore: update LabVIEW CI tooling from v2.1.0 to v2.1.1",
+      "author": "elijah286",
+      "date": "2026-06-17T04:01:32Z"
+    },
+    {
+      "sha": "6133e9657f8d98f775849ff123f86c0ab356f34d",
+      "short": "6133e96",
+      "message": "Merge pull request #3 from elijah286/ci/install-labview-ci",
+      "author": "Elijah Kerry",
+      "date": "2026-06-17T03:50:43Z"
+    },
+    {
+      "sha": "106cf4c9a058d0b732462f2967ecf6f1599f4d16",
+      "short": "106cf4c",
+      "message": "ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, snapshots, custom-image)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-17T03:49:35Z"
+    },
+    {
+      "sha": "44488d7b6f58bb679371757fee333ba557b15d7d",
+      "short": "44488d7",
+      "message": "Merge pull request #2 from elijah286/ci/install-labview-ci",
+      "author": "Elijah Kerry",
+      "date": "2026-06-17T02:40:06Z"
+    },
+    {
+      "sha": "d6fee1a88102276a800591ed833acef6890d8824",
+      "short": "d6fee1a",
+      "message": "ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, snapshots, custom-image)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-17T02:39:48Z"
+    },
+    {
+      "sha": "aea0ad4cc0937b75c2e5cef0eb8e02a962d9f914",
+      "short": "aea0ad4",
+      "message": "Merge pull request #1 from elijah286/ci/install-labview-ci",
+      "author": "Elijah Kerry",
+      "date": "2026-06-17T02:11:54Z"
+    },
+    {
+      "sha": "a47907250c91220900dd6e0f5712f2a527d3f976",
+      "short": "a479072",
+      "message": "ci: install LabVIEW CI pipeline (dashboard, masscompile, vi-analyzer, vidiff, snapshots, custom-image)",
+      "author": "Elijah Kerry",
+      "date": "2026-06-16T20:59:21Z"
+    },
+    {
+      "sha": "0a2a2d86605a88408c92e3a79c509751c5ac34e1",
+      "short": "0a2a2d8",
+      "message": "Update README.md",
+      "author": "Elijah Kerry",
+      "date": "2020-01-07T16:14:04Z"
+    },
+    {
+      "sha": "a1d42c6f00c0ce23b1b8fa6d45e5fe65458c846d",
+      "short": "a1d42c6",
+      "message": "Update README.md",
+      "author": "Elijah Kerry",
+      "date": "2020-01-07T16:07:24Z"
+    },
+    {
+      "sha": "b8074f6ba674f508124db019630c98184badee81",
+      "short": "b8074f6",
+      "message": "Update README.md",
+      "author": "Elijah Kerry",
+      "date": "2020-01-07T15:07:57Z"
+    },
+    {
+      "sha": "5788f8a860d2d8dacb85fa8e25fea3dec134ad00",
+      "short": "5788f8a",
+      "message": "Update README.md",
+      "author": "Elijah Kerry",
+      "date": "2020-01-07T14:47:17Z"
+    },
+    {
+      "sha": "334b5637852c47b8349c5eadfb1489452eb5f5fc",
+      "short": "334b563",
+      "message": "Update README.md",
+      "author": "Elijah Kerry",
+      "date": "2020-01-07T14:43:49Z"
+    },
+    {
+      "sha": "eda0c3664816b161888630d731c7f452e376040f",
+      "short": "eda0c36",
+      "message": "Update README.md",
+      "author": "Elijah Kerry",
+      "date": "2020-01-07T14:43:18Z"
+    },
+    {
+      "sha": "684bfe1f19a1917d12b60a8be9776f0358fb4b11",
+      "short": "684bfe1",
+      "message": "Update README.md",
+      "author": "Elijah Kerry",
+      "date": "2020-01-07T14:41:08Z"
+    },
+    {
+      "sha": "05f6f9b8c6e103b449f4c74d5c212c89dddd6252",
+      "short": "05f6f9b",
+      "message": "Create README.md",
+      "author": "Elijah Kerry",
+      "date": "2020-01-07T14:40:03Z"
+    },
+    {
+      "sha": "5d92203dcb9e26e63d3f61a123c313cb14d49ebe",
+      "short": "5d92203",
+      "message": "package spec",
+      "author": "elijahkerry",
+      "date": "2018-05-27T18:28:05Z"
+    },
+    {
+      "sha": "7b10515d1488b217118a64102382bcbdb27e01b5",
+      "short": "7b10515",
+      "message": "built successfully",
+      "author": "elijahkerry",
+      "date": "2018-03-20T05:36:43Z"
+    },
+    {
+      "sha": "688fa810950414efe8e44f6be11ed31d33589e5c",
+      "short": "688fa81",
+      "message": "changed  access scope of get path",
+      "author": "elijahkerry",
+      "date": "2018-03-20T05:34:54Z"
+    },
+    {
+      "sha": "dc16184ff0f53055cca00b6c644f2c69a9a6f12c",
+      "short": "dc16184",
+      "message": "Better support for an API",
+      "author": "elijahkerry",
+      "date": "2018-03-09T19:31:25Z"
+    },
+    {
+      "sha": "f284f1ee1de37bbbde515d887b07b7e56f0bc334",
+      "short": "f284f1e",
+      "message": "minor improvements",
+      "author": "elijahkerry",
+      "date": "2018-03-07T05:17:32Z"
+    },
+    {
+      "sha": "4e8d2e03d9d528d354e03833a49998f94411cb38",
+      "short": "4e8d2e0",
+      "message": "Moving over from SVN",
+      "author": "elijah286",
+      "date": "2016-07-25T02:22:17Z"
+    }
+  ],
+  "config": {
+    "use": "",
+    "actions": {},
+    "vipc": []
+  },
+  "vipc": [
+    {
+      "path": "github/labview/vipm/ci-tooling.vipc",
+      "configured": false,
+      "packages": [],
+      "error": "[Errno 2] No such file or directory: 'github/labview/vipm/ci-tooling.vipc'"
+    },
+    {
+      "path": "vipc",
+      "configured": false,
+      "packages": [],
+      "error": "[Errno 2] No such file or directory: 'vipc'"
+    }
+  ],
+  "nipm": [
+    {
+      "name": "LabVIEW",
+      "source": "NI Package Manager",
+      "labview": true,
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "details": "LabVIEW runtime and development packages from the NI feeds."
+    },
+    {
+      "name": "VI Analyzer support",
+      "source": "NI Package Manager",
+      "packages": {
+        "windows": [
+          "ni-viawin-labview-support"
+        ],
+        "linux": [
+          "ni-vialin-labview-support"
+        ]
+      },
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "details": "NI VI Analyzer support package used by the analyzer runners."
+    },
+    {
+      "name": "NI Unit Test Framework",
+      "source": "NI Package Manager",
+      "packages": {
+        "windows": [
+          "ni-utf-labview-support"
+        ]
+      },
+      "platforms": [
+        "windows"
+      ],
+      "details": "NI UTF support package used by the Windows unit-test runner."
+    },
+    {
+      "name": "VI Package Manager",
+      "source": "NI Package Manager",
+      "packages": {
+        "windows": [
+          "ni-vipm"
+        ]
+      },
+      "platforms": [
+        "windows"
+      ],
+      "details": "NI-published VIPM package that enables VIPC application during Windows worker builds."
+    }
+  ],
+  "system": [
+    {
+      "name": "VI Browser 2.0 toimages runner",
+      "source": "Repository Go code",
+      "path": ".github/labview/toimages/main.go",
+      "details": "Batch runner compiled from repo Go source; Linux uses the toimages GHCR image and Windows builds runner.exe in the workflow.",
+      "platforms": {
+        "windows": {
+          "present": true,
+          "label": "workflow-built"
+        },
+        "linux": {
+          "present": true,
+          "label": "toimages image"
+        }
+      }
+    },
+    {
+      "name": "lvctl render engine",
+      "source": "Repository Go code + embedded VIs",
+      "path": ".github/labview/toimages/_ni/labview/lvctl",
+      "details": "Renderer used by VI Browser 2.0 to drive LabVIEW and emit position-aware frame JSON.",
+      "platforms": {
+        "windows": {
+          "present": true,
+          "label": "workflow-built"
+        },
+        "linux": {
+          "present": true,
+          "label": "toimages image"
+        }
+      }
+    }
+  ],
+  "columns": [
+    {
+      "key": "windows",
+      "label": "Windows",
+      "platform": "windows",
+      "defaultTag": "latest",
+      "tag": "latest",
+      "ready": false,
+      "packages": [],
+      "nipkg_ready": false,
+      "nipkg_packages": [],
+      "labview_version": "",
+      "version": "latest"
+    },
+    {
+      "key": "linux",
+      "label": "Linux",
+      "platform": "linux",
+      "tag": "base",
+      "ready": true,
+      "packages": [],
+      "version": "pending",
+      "unsupported": true,
+      "nipkg_ready": true,
+      "nipkg_packages": [],
+      "nipkg_version": "linux-c6484cf4d66a",
+      "labview_version": "2026"
+    }
+  ]
+}

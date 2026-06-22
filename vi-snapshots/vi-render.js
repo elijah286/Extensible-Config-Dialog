@@ -137,7 +137,11 @@
     host.style.width = (group.rect.Width || 0) + 'px';
     host.style.height = (group.rect.Height || 0) + 'px';
 
-    // Each case gets its own absolutely-stacked layer; only one is shown.
+    // Each case gets its own absolutely-stacked layer; only one is shown. The
+    // host is NOT clipped (overflow:visible): each case image is already sized to
+    // the slot (100% x 100%), and leaving the host unclipped keeps every
+    // structure's selector tab visible — it sits just ABOVE the frame, and nested
+    // structures' tabs would otherwise be clipped by an ancestor structure.
     const caseLayers = group.cases.map((ci) => {
       const cl = el('div', 'lvr-case', host);
       paintFrame(frames, ci, cl, stageState);
@@ -217,7 +221,15 @@
     const end = () => { dragging = false; viewport.classList.remove('lvr-grabbing'); };
     viewport.addEventListener('pointerup', end);
     viewport.addEventListener('pointercancel', end);
-    viewport.addEventListener('dblclick', (e) => zoomAt(zoom > 1 ? 1 : 2, e.clientX, e.clientY));
+    viewport.addEventListener('dblclick', (e) => {
+      // Double-clicking a case selector ('lvr-sel') or the Fit button ('lvr-reset')
+      // must NOT zoom: paging quickly through a structure's cases lands two clicks
+      // on the same arrow, which the browser reports as a dblclick that bubbles
+      // here. The click handlers stopPropagation, but dblclick is a separate event,
+      // so guard it the same way pointerdown does or the diagram randomly zooms in.
+      if (e.target.closest('.lvr-sel') || e.target.closest('.lvr-reset')) return;
+      zoomAt(zoom > 1 ? 1 : 2, e.clientX, e.clientY);
+    });
     stageState.zoomAt = zoomAt;
     stageState.reset = () => { zoom = 1; panX = 0; panY = 0; apply(); };
     stageState.fit = (w, h) => {
@@ -312,7 +324,7 @@
 .lvr-stage{position:absolute;top:0;left:0;transform-origin:0 0}
 .lvr-layer{position:absolute;top:0;left:0}
 .lvr-img{display:block;max-width:none;-webkit-user-drag:none;user-select:none}
-.lvr-struct{position:absolute;outline:1px dashed rgba(31,111,235,.35);outline-offset:0;overflow:hidden}
+.lvr-struct{position:absolute;outline:1px dashed rgba(31,111,235,.35);outline-offset:0}
 .lvr-case{position:absolute;top:0;left:0;width:100%;height:100%}
 .lvr-case .lvr-img{width:100%;height:100%}
 .lvr-reset{position:absolute;top:10px;right:10px;z-index:6;border:1px solid #d0d7de;
@@ -333,11 +345,9 @@
 .lvr-sel__lbl{padding:0 4px;min-width:30px;text-align:center;font-variant-numeric:tabular-nums}
 .lvr-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   color:#8b949e;font:14px -apple-system,'Segoe UI',sans-serif}
-@media (prefers-color-scheme:dark){
-  .lvr-viewport{background:#0d1117;background-image:radial-gradient(#1b2330 1px,transparent 1px)}
-  .lvr-reset{background:rgba(22,27,34,.92);color:#e6edf3;border-color:#30363d}
-  .lvr-reset:hover{background:#21262d}
-}`;
+/* The diagram viewing area stays WHITE even in dark mode: LabVIEW block diagrams
+   are drawn on a white canvas, so a dark backdrop would clash with the PNGs and
+   make wires/labels hard to read. Only the page chrome around it follows the theme. */`;
     (doc.head || doc.documentElement).appendChild(s);
   }
 
