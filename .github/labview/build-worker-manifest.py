@@ -8,11 +8,11 @@ A "worker version" is a short content hash of the inputs that produced the image
 exactly what that worker contains so a dashboard revision can link straight to
 "what was installed in the worker that ran my CI":
 
-  * platform (windows / linux) and the resolved LabVIEW version
+    * platform (windows / linux / linux-beta) and the resolved LabVIEW version
   * the NI base image reference and its resolved digest
   * the full nipkg package list captured from the built image
-  * every applied VIPC and the VI Package names it pins (parsed from the .vipc,
-    which is a ZIP whose config.xml lists the packages) — Windows only
+    * every applied VIPC and the VI Package names it pins (parsed from the .vipc,
+        which is a ZIP whose config.xml lists the packages)
   * build provenance (timestamp, source commit, Actions run URL)
 
 Outputs (under --out-dir):
@@ -219,10 +219,7 @@ def render_html(m: dict, pages_url: str) -> str:
             blocks.append(f"<p><code>{esc(v['file'])}</code></p><div>{pills}</div>")
         vipc_section = "\n".join(blocks)
     else:
-        vipc_section = (
-            '<p class="muted">None. VIPM/VIPC is Windows-only; this worker applies '
-            "no VI Package Configuration.</p>"
-        )
+        vipc_section = '<p class="muted">None. This worker applies no VI Package Configuration.</p>'
 
     # nipkg section
     if m["nipkg_raw"].strip():
@@ -268,7 +265,7 @@ def render_html(m: dict, pages_url: str) -> str:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="Generate CI worker manifest (HTML + JSON).")
-    ap.add_argument("--platform", required=True, choices=["windows", "linux"])
+    ap.add_argument("--platform", required=True, choices=["windows", "linux", "linux-beta"])
     ap.add_argument("--version", required=True, help="Worker version, e.g. win-abc123def456")
     ap.add_argument("--labview-version", default="")
     ap.add_argument("--base-image", default="")

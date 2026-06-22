@@ -26,8 +26,7 @@ on:
         default: ''
 
 env:
-  # Use NI base Linux image until custom image build is fixed
-  LABVIEW_CONTAINER_IMAGE: nationalinstruments/labview:latest-linux
+  LABVIEW_CONTAINER_IMAGE: ''
   PAGES_URL: ${{ vars.PAGES_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
 
 permissions:
@@ -76,11 +75,53 @@ jobs:
           git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
           git checkout FETCH_HEAD -- .github/labview .github/workflows
 
-      - name: Wait for worker image build
+      - name: Resolve Linux container image name
+        env:
+          IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
+          ACTION_ID: vi-analyzer
+        run: |
+          selected=$(python3 - <<'PY'
+          import os, pathlib, re
+          action_id = os.environ.get('ACTION_ID', '')
+          cfg = pathlib.Path('.github/labview-ci.yml')
+          use = ''
+          actions = {}
+          if cfg.exists():
+              section = ''
+              for line in cfg.read_text(encoding='utf-8').splitlines():
+                  if re.match(r'^\s*container:\s*$', line): section = 'container'; continue
+                  if section == 'container':
+                      match = re.match(r'^\s{4}use:\s*"?([^"#]+)"?', line)
+                      if match: use = match.group(1).strip()
+                      if re.match(r'^\s{4}actions:\s*$', line): section = 'actions'; continue
+                  elif section == 'actions':
+                      match = re.match(r'^\s{6}([A-Za-z0-9_.-]+):\s*"?([^"#]+)"?', line)
+                      if match: actions[match.group(1)] = match.group(2).strip()
+                      if re.match(r'^\s{0,4}\S', line): section = 'container'
+          print(actions.get(action_id) or use or '')
+          PY
+          )
+          owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          name="${IMAGE_OVERRIDE:-${GITHUB_REPOSITORY##*/}-labview}"
+          name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+          case "$selected" in
+            ''|base|none) image="nationalinstruments/labview:latest-linux" ;;
+            latest) image="ghcr.io/${owner}/${name}:linux-beta-latest" ;;
+            linux-beta-*) image="ghcr.io/${owner}/${name}:${selected}" ;;
+            *) image="ghcr.io/${owner}/${name}:linux-beta-${selected}" ;;
+          esac
+          echo "LABVIEW_CONTAINER_IMAGE=$image" >> "$GITHUB_ENV"
+          echo "Using Linux container image: $image"
+
+      - name: Wait for Linux Beta worker image build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          bash .github/labview/wait-for-worker-image.sh "${{ steps.sha.outputs.sha }}" "${{ github.event.before }}"
+          if [ "$LABVIEW_CONTAINER_IMAGE" = "nationalinstruments/labview:latest-linux" ]; then
+            echo "Using the stable NI Linux base image; no Linux Beta worker build to wait for."
+            exit 0
+          fi
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.sha.outputs.sha }}" "${{ github.event.before }}" "Build LabVIEW CI Image - Linux Beta"
 
       - name: Pull LabVIEW Linux container
         run: docker pull ${{ env.LABVIEW_CONTAINER_IMAGE }}
@@ -96,6 +137,10 @@ jobs:
         run: |
           set -uo pipefail
           IMG="${{ env.LABVIEW_CONTAINER_IMAGE }}"
+          if [ "$IMG" != "nationalinstruments/labview:latest-linux" ]; then
+            echo "Custom Linux worker image selected ($IMG); its manifest is published by the Linux Beta image build."
+            exit 0
+          fi
           mkdir -p ci-out/worker "ci-out/workers-pages/workers/linux"
           DIGEST=$(docker inspect --format '{{index .RepoDigests 0}}' "$IMG" 2>/dev/null || true)
           HEX=$(printf '%s' "$DIGEST" | sed -n 's/.*sha256:\([0-9a-f]\{64\}\).*/\1/p')
