@@ -7,7 +7,7 @@ on:
       - '**.ctl'
       - '!.github/**'
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - '**.vi'
       - '**.ctl'
@@ -74,14 +74,14 @@ jobs:
             -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"VIDiff in progress\",\"context\":\"CI / VIDiff (linux)\"}"
 
       - name: Checkout head commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ steps.shas.outputs.head }}
           fetch-depth: 0
           path: head
 
       - name: Checkout base commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ steps.shas.outputs.base }}
           path: base
@@ -90,8 +90,15 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         working-directory: head
         run: |
-          git fetch --no-tags origin main
+          git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
           git checkout FETCH_HEAD -- .github/labview .github/workflows
+
+      - name: Wait for worker image build
+        working-directory: head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.shas.outputs.head }}" "${{ github.event.before }}"
 
       - name: Get list of changed VI/CTL files
         id: changed
@@ -145,7 +152,7 @@ jobs:
           JSON
 
       - name: Upload VIDiff report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vidiff-linux-${{ steps.shas.outputs.head }}
           path: |

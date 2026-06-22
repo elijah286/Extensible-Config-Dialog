@@ -11,7 +11,7 @@ name: Integrate Configurator — Pages
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - '.github/pages/integrate.html'
       - '.github/pages/configure.html'
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Stage configurator + catalog
         run: |
@@ -46,7 +46,7 @@ jobs:
           cp .github/labview/vipm/ci-tooling.packages.json out/ci-tooling.packages.json
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: out

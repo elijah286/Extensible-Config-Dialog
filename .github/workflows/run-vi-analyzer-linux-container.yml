@@ -10,7 +10,7 @@ on:
       - '**.lvclass'
       - '!.github/**'
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - '**.vi'
       - '**.ctl'
@@ -65,7 +65,7 @@ jobs:
             -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"VI Analyzer (Linux) in progress\",\"context\":\"CI / VI Analyzer (Linux)\"}"
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ steps.sha.outputs.sha }}
           fetch-depth: 0
@@ -73,8 +73,14 @@ jobs:
       - name: Restore CI scripts from main
         if: github.event.inputs.commit_sha != ''
         run: |
-          git fetch --no-tags origin main
+          git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
           git checkout FETCH_HEAD -- .github/labview .github/workflows
+
+      - name: Wait for worker image build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.sha.outputs.sha }}" "${{ github.event.before }}"
 
       - name: Pull LabVIEW Linux container
         run: docker pull ${{ env.LABVIEW_CONTAINER_IMAGE }}
@@ -138,14 +144,14 @@ jobs:
         continue-on-error: true
 
       - name: Upload report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vi-analyzer-linux-report-${{ steps.sha.outputs.sha }}
           path: ${{ github.workspace }}/ci-out/vi-analyzer/
           if-no-files-found: warn
 
       - name: Deploy report to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/vi-analyzer
@@ -154,7 +160,7 @@ jobs:
 
       - name: Publish worker manifest to GitHub Pages
         if: steps.worker.outputs.version != ''
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ci-out/workers-pages

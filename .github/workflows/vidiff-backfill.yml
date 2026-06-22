@@ -35,13 +35,13 @@ jobs:
 
     steps:
       - name: Checkout repository (full history)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       # Seed the set of already-generated reports so we never redo a commit.
       - name: Checkout deployed VIDiff (gh-pages) for incremental skip
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         continue-on-error: true
         with:
           ref: gh-pages
@@ -78,7 +78,7 @@ jobs:
 
       - name: Deploy VIDiff reports to GitHub Pages
         if: steps.verify.outputs.ok == 'true'
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/vidiff-backfill

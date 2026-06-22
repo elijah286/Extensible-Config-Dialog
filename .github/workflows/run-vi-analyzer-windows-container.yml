@@ -10,7 +10,7 @@ on:
       - '**.lvclass'
       - '!.github/**'
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - '**.vi'
       - '**.ctl'
@@ -22,6 +22,14 @@ on:
     inputs:
       commit_sha:
         description: 'Commit SHA to analyze (leave blank for current HEAD)'
+        required: false
+        default: ''
+      files:
+        description: 'Re-run only these VIs (pipe-delimited repo paths). Blank = the whole revision.'
+        required: false
+        default: ''
+      config:
+        description: 'A committed .viancfg to use for a single-VI re-run (requires files).'
         required: false
         default: ''
 
@@ -41,6 +49,7 @@ permissions:
   pages: write
   statuses: write
   packages: read
+  actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
 
 # Serialize report deploys to gh-pages. peaceiris/actions-gh-pages clones, commits,
 # and pushes the branch; two report jobs pushing at once make the loser's push bounce
@@ -72,6 +81,7 @@ jobs:
           fi
 
       - name: Post pending status
+        if: github.event.inputs.files == ''
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -83,7 +93,7 @@ jobs:
             -d "{\"state\":\"pending\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"VI Analyzer in progress\",\"context\":\"CI / VI Analyzer\"}"
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ steps.sha.outputs.sha }}
           fetch-depth: 0
@@ -92,21 +102,20 @@ jobs:
         if: github.event.inputs.commit_sha != ''
         shell: bash
         run: |
-          git fetch --no-tags origin main
+          git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
           git checkout FETCH_HEAD -- .github/labview .github/workflows
 
       # GHCR rejects upper-case repository names. The Configure dialog writes the
       # selected container tag to config.container.use in .github/labview-ci.yml
       # (default "latest"); when present, this revision is analyzed inside that tag
       # of the project's custom worker image, so the project's baked VIPC
-      # dependencies are available. When absent we fall back to the version tag
-      # (the original behavior). Runs after checkout so it can read the revision's
-      # own config.
+      # dependencies are available. When absent we use the shared repo worker's
+      # latest tag so Windows action runners default to the same container. Runs
+      # after checkout so it can read the revision's own config.
       - name: Resolve container image name
         shell: bash
         env:
           IMAGE_OVERRIDE: ${{ vars.LABVIEW_IMAGE_NAME }}
-          IMAGE_TAG: ${{ vars.LABVIEW_VERSION || '2026' }}
           BASE_IMAGE: nationalinstruments/labview:latest-windows
         run: |
           owner=$(printf '%s' "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
@@ -114,9 +123,8 @@ jobs:
           name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
           custom="ghcr.io/${owner}/${name}"
           # Per-action container selection. config.container.actions.<id> wins, then
-          # the project-wide config.container.use. With neither set VI Analyzer keeps
-          # its default (the custom image at the version tag) since the full test set
-          # needs the custom image. "base" forces the bare NI image for this action;
+          # the project-wide config.container.use. With neither set VI Analyzer uses
+          # the shared custom worker image at :latest. "base" forces the bare NI image;
           # "latest"/"<tag>" select that tag of the custom worker image.
           ACTION_ID="vi-analyzer"
           CFG=.github/labview-ci.yml
@@ -143,7 +151,7 @@ jobs:
             fi
           fi
           if [ -z "$sel" ]; then
-            img="${custom}:${IMAGE_TAG}"
+            img="${custom}:latest"
           elif [ "$sel" = "base" ] || [ "$sel" = "none" ]; then
             img="${BASE_IMAGE}"
           elif [ "$sel" = "latest" ]; then
@@ -156,18 +164,10 @@ jobs:
 
       - name: Ensure Docker daemon is running
         shell: powershell
-        run: |
-          $svc = Get-Service -Name docker -ErrorAction SilentlyContinue
-          if ($null -eq $svc) {
-            throw 'Docker service not found on this runner.'
-          }
-          if ($svc.Status -ne 'Running') {
-            Start-Service docker
-          }
-          docker version
+        run: ./.github/labview/ensure-docker.ps1
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -184,37 +184,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
-          SHA="${{ steps.sha.outputs.sha }}"
-          WF="Build LabVIEW CI Image"
-          BEFORE="${{ github.event.before }}"
-          changed=false
-          if [ -n "${BEFORE:-}" ] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
-            if git diff --name-only "$BEFORE" "$SHA" \
-                 | grep -Eq '(\.vipc$|^\.github/docker/labview-ci\.Dockerfile$|^\.github/labview/vipm/)'; then
-              changed=true
-            fi
-          fi
-          if [ "$changed" != "true" ]; then
-            echo "No worker-affecting change in this push; not waiting."
-            exit 0
-          fi
-          echo "Worker inputs changed - waiting for '$WF' to finish for $SHA."
-          appear_deadline=$(( $(date +%s) + 300 ))
-          overall_deadline=$(( $(date +%s) + 1800 ))
-          seen=false
-          api="repos/${{ github.repository }}/actions/runs?head_sha=$SHA&per_page=50"
-          while :; do
-            total=$(gh api "$api" --jq "[.workflow_runs[]|select(.name==\"$WF\")]|length" 2>/dev/null || echo 0)
-            pending=$(gh api "$api" --jq "[.workflow_runs[]|select(.name==\"$WF\")|select(.status!=\"completed\")]|length" 2>/dev/null || echo 0)
-            now=$(date +%s)
-            if [ "${total:-0}" -gt 0 ]; then seen=true; fi
-            if [ "$seen" = "true" ] && [ "${pending:-0}" -eq 0 ]; then echo "Worker image build complete."; break; fi
-            if [ "$seen" != "true" ] && [ "$now" -ge "$appear_deadline" ]; then echo "Build did not appear in time; proceeding."; break; fi
-            if [ "$now" -ge "$overall_deadline" ]; then echo "Timed out waiting; proceeding."; break; fi
-            echo "  ... still waiting (total=$total pending=$pending)"
-            sleep 20
-          done
+          bash .github/labview/wait-for-worker-image.sh "${{ steps.sha.outputs.sha }}" "${{ github.event.before }}"
 
       - name: Pull LabVIEW container image
         id: pull
@@ -250,9 +220,18 @@ jobs:
         if: steps.pull.outcome == 'success'
         shell: powershell
         id: analyze
+        env:
+          VIA_FILES: ${{ github.event.inputs.files }}
+          VIA_CONFIG: ${{ github.event.inputs.config }}
         run: |
+          # VIA_FILES / VIA_CONFIG are passed through to the container by NAME
+          # (docker -e VAR), so a single-VI re-run's paths/config never get spliced
+          # into the command line; the runner reads them as env fallbacks for
+          # -FilesFilter / -ConfigOverride. Empty -> a normal whole-revision run.
           docker run --rm `
             -e "GITHUB_REPOSITORY=${{ github.repository }}" `
+            -e VIA_FILES `
+            -e VIA_CONFIG `
             -v "${{ github.workspace }}:C:\workspace" `
             $Env:LABVIEW_CONTAINER_IMAGE `
             powershell -NonInteractive -ExecutionPolicy Bypass `
@@ -266,7 +245,10 @@ jobs:
         id: report
         shell: bash
         run: |
-          if [ -f "${{ github.workspace }}/ci-out/vi-analyzer/index.html" ]; then
+          # A whole-revision run writes index.html (single config) or
+          # passes/manifest.json (multi-configuration); a single-VI re-run writes
+          # index.html. Either form means a report was produced.
+          if [ -f "${{ github.workspace }}/ci-out/vi-analyzer/index.html" ] || [ -f "${{ github.workspace }}/ci-out/vi-analyzer/passes/manifest.json" ]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -276,26 +258,38 @@ jobs:
         if: steps.report.outputs.exists == 'true'
         shell: bash
         continue-on-error: true   # a formatting hiccup must never block deploying the native report
+        env:
+          IN_FILES: ${{ github.event.inputs.files }}
         run: |
           # Transform the dense native VI Analyzer report into a navigable one:
           # keeps the original as raw.html, writes summary.json, and replaces
           # index.html with a grouped/filterable report whose per-VI snapshots are
           # resolved client-side from the VI Browser gallery (vi-snapshots/<sha>/).
+          # A multi-configuration run is merged from passes/; a single-VI re-run
+          # deploys one level deeper (reruns/<slug>) so its links use ../../.. .
           REPORT_DIR="${{ github.workspace }}/ci-out/vi-analyzer"
+          if [ -n "$IN_FILES" ]; then
+            SRC=(--in "$REPORT_DIR/index.html"); PAGES_BASE="../../.."
+          elif [ -f "$REPORT_DIR/passes/manifest.json" ]; then
+            SRC=(--passes-dir "$REPORT_DIR/passes"); PAGES_BASE="../.."
+          else
+            SRC=(--in "$REPORT_DIR/index.html"); PAGES_BASE="../.."
+          fi
           python .github/labview/build-analyzer-report.py \
-            --in        "$REPORT_DIR/index.html" \
-            --out       "$REPORT_DIR" \
-            --sha       "${{ steps.sha.outputs.sha }}" \
-            --platform  windows \
-            --repo      "${{ github.repository }}" \
-            --pages-url "${{ env.PAGES_URL }}" \
+            "${SRC[@]}" \
+            --out        "$REPORT_DIR" \
+            --pages-base "$PAGES_BASE" \
+            --sha        "${{ steps.sha.outputs.sha }}" \
+            --platform   windows \
+            --repo       "${{ github.repository }}" \
+            --pages-url  "${{ env.PAGES_URL }}" \
             --commit-msg "$(git log -1 --pretty=%s   ${{ steps.sha.outputs.sha }})" \
             --author     "$(git log -1 --pretty=%an  ${{ steps.sha.outputs.sha }})" \
             --date       "$(git log -1 --pretty=%cI  ${{ steps.sha.outputs.sha }})"
 
       - name: Upload report artifact
         if: steps.report.outputs.exists == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vi-analyzer-report-${{ steps.sha.outputs.sha }}
           path: ${{ github.workspace }}/ci-out/vi-analyzer/
@@ -313,17 +307,36 @@ jobs:
           git config --global core.longpaths true
           git config --system core.longpaths true || true
 
+      - name: Resolve report destination
+        id: dest
+        if: steps.report.outputs.exists == 'true'
+        shell: bash
+        env:
+          IN_FILES: ${{ github.event.inputs.files }}
+          IN_CONFIG: ${{ github.event.inputs.config }}
+        run: |
+          # A single-VI re-run is published under the revision's report at
+          # reruns/<slug> (slug must match the report page's rrSlug), so it never
+          # overwrites the revision's canonical VI Analyzer report.
+          SHA="${{ steps.sha.outputs.sha }}"
+          if [ -n "$IN_FILES" ]; then
+            SLUG=$(printf '%s' "${IN_CONFIG}__${IN_FILES}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-80)
+            echo "dir=vi-analyzer/${SHA}/reruns/${SLUG}" >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=vi-analyzer/${SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy report to GitHub Pages
         if: steps.report.outputs.exists == 'true'
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ${{ github.workspace }}/ci-out/vi-analyzer
-          destination_dir: vi-analyzer/${{ steps.sha.outputs.sha }}
+          destination_dir: ${{ steps.dest.outputs.dir }}
           keep_files: true
 
       - name: Post commit status
-        if: always()
+        if: always() && github.event.inputs.files == ''
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -347,7 +360,7 @@ jobs:
       # Surface which worker ran this revision as its own commit status; the
       # dashboard renders it as the "Win Worker" column linking to the manifest.
       - name: Post worker version status
-        if: always() && steps.pull.outcome == 'success' && steps.worker.outputs.version != ''
+        if: always() && steps.pull.outcome == 'success' && steps.worker.outputs.version != '' && github.event.inputs.files == ''
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
