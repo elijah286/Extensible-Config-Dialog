@@ -23,6 +23,7 @@
 #            (no JSON => that VI simply stays on the 1.0 view).
 
 name: VI Snapshots JSON
+run-name: VI Browser 2.0 Linux ${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}${{ github.event.inputs.force == 'true' && ' force' || '' }}
 
 on:
   workflow_dispatch:
@@ -36,12 +37,16 @@ on:
         description: "Commit SHA whose VIs should be rendered in head mode; blank = the dispatched ref's HEAD"
         required: false
         default: ""
+      force:
+        description: "Re-render VI Browser 2.0 JSON even when outputs already exist"
+        required: false
+        default: "false"
   workflow_run:
     workflows: ["VI Snapshots and VI Browser"]
     types: [completed]
 
 concurrency:
-  group: vi-snapshots-json-${{ github.ref }}
+  group: vi-snapshots-json-${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: true
 
 permissions:
@@ -151,6 +156,7 @@ jobs:
           # workflow_dispatch passes mode and target_sha; workflow_run has none -> dispatched ref HEAD.
           MODE: ${{ github.event.inputs.mode || 'head' }}
           TARGET_SHA: ${{ github.event.inputs.target_sha || github.sha }}
+          FORCE: ${{ github.event.inputs.force || 'false' }}
           IMAGE: ${{ steps.pull.outputs.image }}
           OUT: ${{ github.workspace }}/ci-out/vi-snapshots
           GHP: ${{ github.workspace }}/_ghp

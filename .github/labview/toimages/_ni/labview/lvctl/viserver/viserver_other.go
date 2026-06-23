@@ -1,5 +1,7 @@
-//go:build !windows
-
+// Package viserver speaks the LabVIEW VI Server TCP protocol on every platform
+// (Linux, macOS, and Windows). LabVIEW must have VI Server TCP enabled
+// (server.tcp.enabled=True in labview.ini / labview.conf); the engine then
+// attaches over 127.0.0.1:3363, the same transport the Linux container uses.
 package viserver
 
 import (
@@ -70,6 +72,23 @@ func Connect() (*Session, error) {
 		slog.Debug("Attached to existing LabVIEW instance", "addr", addr)
 		return &Session{tcp: tc}, nil
 	}
+
+	// When LABVIEW_HOST is set, an external supervisor (e.g. the Windows render
+	// entrypoint) owns the LabVIEW process and we must ATTACH, not launch. The
+	// TCP port can be open before VI Server finishes its handshake, so retry the
+	// full handshake instead of giving up after a single dial.
+	if os.Getenv("LABVIEW_HOST") != "" {
+		slog.Info("LABVIEW_HOST set; waiting for external LabVIEW VI Server handshake", "addr", addr, "firstErr", err)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		tc, herr := waitForHandshake(ctx, addr)
+		if herr != nil {
+			return nil, fmt.Errorf("could not attach to external LabVIEW VI Server at %s: %w", addr, herr)
+		}
+		slog.Info("Attached to external LabVIEW instance", "addr", addr)
+		return &Session{tcp: tc}, nil
+	}
+
 	slog.Debug("No existing LabVIEW VI Server found, launching...", "addr", addr, "err", err)
 
 	// Launch LabVIEW.

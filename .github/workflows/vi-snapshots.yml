@@ -32,6 +32,10 @@ on:
         description: "backfill: stop launching new renders after N minutes (resume next run)"
         required: false
         default: '300'
+      force:
+        description: "Re-render snapshots even when content-addressed outputs already exist"
+        required: false
+        default: 'false'
 
 concurrency:
   group: vi-snapshots-${{ github.ref }}
@@ -179,6 +183,7 @@ jobs:
             -MaxCommits        ${{ github.event.inputs.max_commits || '0' }} `
             -MaxVIs            ${{ github.event.inputs.max_vis || '0' }} `
             -TimeBudgetMinutes ${{ github.event.inputs.time_budget_minutes || '300' }} `
+            -Force             '${{ github.event.inputs.force || 'false' }}' `
             -EmitFramesJson    '${{ steps.vbcfg.outputs.emit_frames_json }}'
         continue-on-error: true
 
