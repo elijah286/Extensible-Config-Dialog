@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "platform": "linux",
+  "version": "linux-8a3f6613f8b8",
+  "labview_version": "2026",
+  "base_image": "nationalinstruments/labview:latest-linux",
+  "base_digest": "ghcr.io/elijah286/extensible-config-dialog-labview@sha256:af587e9d97fde2d81bfb4219b9c3129d4484346ae2bf9401abc9d5a578cca893",
+  "image_ref": "ghcr.io/elijah286/extensible-config-dialog-labview:linux-8a3f6613f8b8",
+  "build_date": "2026-06-23T03:41:09Z",
+  "git_sha": "e836cd65de404b3cc30df6f6a411db4b4b31a905",
+  "run_url": "https://github.com/elijah286/Extensible-Config-Dialog/actions/runs/28000416365",
+  "vipc": [],
+  "nipkg_raw": "",
+  "nipkg_packages": []
+}
