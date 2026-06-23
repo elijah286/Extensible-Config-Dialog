@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/Extensible-Config-Dialog",
-  "sha": "7b586b4a788416074d7ffa142a0b05705f0fa8af",
+  "sha": "e836cd65de404b3cc30df6f6a411db4b4b31a905",
   "revisions": [
+    {
+      "sha": "e836cd65de404b3cc30df6f6a411db4b4b31a905",
+      "short": "e836cd6",
+      "message": "Add LabVIEW CI pipeline",
+      "author": "Elijah Kerry",
+      "date": "2026-06-23T03:37:29Z"
+    },
     {
       "sha": "7b586b4a788416074d7ffa142a0b05705f0fa8af",
       "short": "7b586b4",
@@ -193,16 +200,33 @@
   },
   "vipc": [
     {
-      "path": "github/labview/vipm/ci-tooling.vipc",
-      "configured": false,
-      "packages": [],
-      "error": "[Errno 2] No such file or directory: 'github/labview/vipm/ci-tooling.vipc'"
+      "path": ".github/labview/vipm/ci-tooling.vipc",
+      "role": "core",
+      "capability": "",
+      "configured": true,
+      "packages": [
+        "dataflow_g_lib_g_image-0.5.0.1",
+        "jki_lib_caraya-1.4.4.148",
+        "jki_vi_tester",
+        "ni_lib_utf_junit_report-1.0.1.43"
+      ],
+      "error": ""
     },
     {
-      "path": "vipc",
-      "configured": false,
-      "packages": [],
-      "error": "[Errno 2] No such file or directory: 'vipc'"
+      "path": ".vipc",
+      "role": "project",
+      "capability": "",
+      "configured": true,
+      "packages": [
+        "oglib_appcontrol-4.1.0.7",
+        "oglib_array-4.1.1.14",
+        "oglib_error-4.2.0.23",
+        "oglib_file-4.0.1.22",
+        "oglib_lvdata-4.2.0.21",
+        "oglib_string-4.1.0.12",
+        "oglib_variantconfig-4.0.0.5"
+      ],
+      "error": ""
     }
   ],
   "nipm": [
@@ -247,21 +271,30 @@
       "details": "NI UTF support package used by the Windows unit-test runner."
     },
     {
+      "name": "JKI Dragon",
+      "source": "NI Package Manager",
+      "packages": {
+        "windows": [
+          "jki-dragon"
+        ]
+      },
+      "platforms": [
+        "windows"
+      ],
+      "details": "JKI Dragon dependency-management tooling installed from the LabVIEW 2026 NI Package Manager feed."
+    },
+    {
       "name": "VI Package Manager",
       "source": "NI Package Manager",
       "packages": {
         "windows": [
           "ni-vipm"
-        ],
-        "linux": [
-          "ni-vipm"
         ]
       },
       "platforms": [
-        "windows",
-        "linux"
+        "windows"
       ],
-      "details": "NI-published VIPM package that enables VIPC application during worker builds."
+      "details": "NI-published Windows VIPM package that enables VIPC application during worker builds. Linux installs VIPM from the native Debian package during its worker build."
     }
   ],
   "system": [
@@ -272,8 +305,8 @@
       "details": "Batch runner compiled from repo Go source; Linux uses the toimages GHCR image and Windows builds runner.exe in the workflow.",
       "platforms": {
         "windows": {
-          "present": true,
-          "label": "workflow-built"
+          "present": false,
+          "label": ""
         },
         "linux": {
           "present": true,
@@ -288,8 +321,8 @@
       "details": "Renderer used by VI Browser 2.0 to drive LabVIEW and emit position-aware frame JSON.",
       "platforms": {
         "windows": {
-          "present": true,
-          "label": "workflow-built"
+          "present": false,
+          "label": ""
         },
         "linux": {
           "present": true,
@@ -312,6 +345,7 @@
         "ni_lib_utf_junit_report-1.0.1.43",
         "wovalab_lib_antidoc_cli-3.3.0.117"
       ],
+      "failed_packages": [],
       "nipkg_ready": true,
       "nipkg_packages": [
         {
@@ -434,28 +468,15 @@
       "key": "linux",
       "label": "Linux",
       "platform": "linux",
-      "tag": "base",
+      "defaultTag": "latest",
+      "tag": "latest",
       "ready": true,
       "packages": [],
-      "version": "pending",
-      "unsupported": true,
+      "failed_packages": [],
       "nipkg_ready": true,
       "nipkg_packages": [],
-      "nipkg_version": "linux-c6484cf4d66a",
-      "labview_version": "2026"
-    },
-    {
-      "key": "linuxBeta",
-      "label": "Linux Beta",
-      "platform": "linux-beta",
-      "tag": "latest",
-      "defaultTag": "latest",
-      "ready": false,
-      "packages": [],
-      "nipkg_ready": false,
-      "nipkg_packages": [],
-      "labview_version": "",
-      "version": "latest"
+      "labview_version": "2026",
+      "version": "linux-c6484cf4d66a"
     }
   ]
 }
