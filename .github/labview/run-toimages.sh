@@ -27,6 +27,7 @@
 #   WS               repo worktree root (full history; checkout fetch-depth 0)
 #   MODE             head | backfill                      (default: head)
 #   TARGET_SHA       head mode: commit to render          (default: HEAD)
+#   FORCE            true/1/yes/on = re-render matching blobs even if JSON exists
 #   IMAGE            the private toimages image (required)
 #   OUT              staging dir, e.g. .../ci-out/vi-snapshots   (required)
 #   GHP              gh-pages checkout dir with push creds (optional; no live
@@ -43,6 +44,7 @@ IMAGE=${IMAGE:?IMAGE (private toimages image)}
 OUT=${OUT:?OUT (staging dir)}
 GHP=${GHP:-}
 TARGET_SHA=${TARGET_SHA:-}
+FORCE=${FORCE:-false}
 MAX_COMMITS=${MAX_COMMITS:-0}
 TIME_BUDGET_MIN=${TIME_BUDGET_MIN:-110}
 WORKLIST_SH=${WORKLIST_SH:-"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/build-json-worklist.sh"}
@@ -51,6 +53,12 @@ BYBLOB="$OUT/by-blob"
 mkdir -p "$BYBLOB"
 WT_ROOT="${RUNNER_TEMP:-/tmp}/lvci-toimages-wt"
 mkdir -p "$WT_ROOT"
+case "$FORCE" in
+  [Tt][Rr][Uu][Ee]|1|[Yy][Ee][Ss]|[Oo][Nn]) FORCE_RENDER=1 ;;
+  *) FORCE_RENDER=0 ;;
+esac
+EMPTY_EXISTING="$OUT/.force-empty-existing"
+if [ "$FORCE_RENDER" = "1" ]; then rm -rf "$EMPTY_EXISTING" && mkdir -p "$EMPTY_EXISTING"; fi
 
 # ── Seed staging with already-rendered JSON (only .json - the .html belong to the
 #    1.0 pipeline) so done blobs are skipped instantly and dedup works across the
@@ -60,17 +68,18 @@ if [ -n "$GHP" ] && [ -d "$GHP/vi-snapshots/by-blob" ]; then
     rel=${f#"$GHP/vi-snapshots/by-blob/"}
     mkdir -p "$BYBLOB/$(dirname "$rel")"
     cp -n "$f" "$BYBLOB/$rel" 2>/dev/null || true
-  done < <(find "$GHP/vi-snapshots/by-blob" -type f -name '*.json' -print0)
+  done < <(find "$GHP/vi-snapshots/by-blob" -type f -name '*.json' ! -name '*.windows.json' -print0)
 fi
-seeded=$(find "$BYBLOB" -type f -name '*.json' 2>/dev/null | wc -l | tr -d ' ')
+seeded=$(find "$BYBLOB" -type f -name '*.json' ! -name '*.windows.json' 2>/dev/null | wc -l | tr -d ' ')
 echo "Seeded $seeded already-rendered blob(s)."
+echo "Force render: $FORCE_RENDER"
 
 # ── Write a flat, sorted index of every rendered .json blob (mirrors 1.0 blobs.json). ──
 write_index() {
   python3 - "$BYBLOB" "$1" <<'PY'
 import os, sys
 byblob, out = sys.argv[1], sys.argv[2]
-blobs = sorted({fn[:-5] for _r, _d, fs in os.walk(byblob) for fn in fs if fn.endswith('.json')})
+blobs = sorted({fn[:-5] for _r, _d, fs in os.walk(byblob) for fn in fs if fn.endswith('.json') and not fn.endswith('.windows.json')})
 with open(out, 'w', encoding='utf-8') as fh:
     fh.write('[' + ','.join('"%s"' % b for b in blobs) + ']')
 PY
@@ -80,7 +89,9 @@ PY
 publish() {
   [ -n "$GHP" ] && [ -d "$GHP/.git" ] || return 0
   mkdir -p "$GHP/vi-snapshots/by-blob"
-  cp -rn "$BYBLOB/." "$GHP/vi-snapshots/by-blob/" 2>/dev/null || true
+  if [ "$FORCE_RENDER" = "1" ]; then cp -Rf "$BYBLOB/." "$GHP/vi-snapshots/by-blob/" 2>/dev/null || true
+  else cp -rn "$BYBLOB/." "$GHP/vi-snapshots/by-blob/" 2>/dev/null || true
+  fi
   write_index "$GHP/vi-snapshots/json-blobs.json"
   git -C "$GHP" add vi-snapshots/by-blob vi-snapshots/json-blobs.json >/dev/null 2>&1 || true
   git -C "$GHP" diff --cached --quiet && return 0
@@ -120,7 +131,8 @@ for sha in "${COMMITS[@]}"; do
   wl="$OUT/worklist.tsv"
   # Enumerate this commit's not-yet-rendered .vi blobs (reuses the worklist builder;
   # it skips any blob that already has a .json under $BYBLOB).
-  bash "$WORKLIST_SH" "$WS" "$sha" "$BYBLOB" "$wl"
+  existing="$BYBLOB"; [ "$FORCE_RENDER" = "1" ] && existing="$EMPTY_EXISTING"
+  bash "$WORKLIST_SH" "$WS" "$sha" "$existing" "$wl"
   n=$(wc -l < "$wl" 2>/dev/null | tr -d ' '); n=${n:-0}
   if [ "$n" -eq 0 ]; then echo "[$short] nothing new to render."; continue; fi
   if [ "$(date +%s)" -gt "$deadline" ]; then
@@ -148,7 +160,7 @@ for sha in "${COMMITS[@]}"; do
 
   git -C "$WS" worktree remove --force "$wt" >/dev/null 2>&1 || rm -rf "$wt"
 
-  rendered=$(find "$BYBLOB" -type f -name '*.json' 2>/dev/null | wc -l | tr -d ' ')
+  rendered=$(find "$BYBLOB" -type f -name '*.json' ! -name '*.windows.json' 2>/dev/null | wc -l | tr -d ' ')
   echo "[$short] total rendered blobs now: $rendered."
   publish
 done
@@ -156,5 +168,5 @@ done
 # Final index for the authoritative deploy step, plus a last best-effort publish.
 write_index "$OUT/json-blobs.json"
 publish
-total=$(find "$BYBLOB" -type f -name '*.json' 2>/dev/null | wc -l | tr -d ' ')
+total=$(find "$BYBLOB" -type f -name '*.json' ! -name '*.windows.json' 2>/dev/null | wc -l | tr -d ' ')
 echo "toimages orchestration done. Rendered blobs total: $total."

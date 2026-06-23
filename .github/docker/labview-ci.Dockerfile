@@ -129,6 +129,18 @@ RUN $ErrorActionPreference = 'Continue'; `
       Remove-Item $vipmSetup -Force -ErrorAction SilentlyContinue `
     }
 
+# Install JKI Dragon from the NI Package Manager feed. Dragon is the first
+# NIPM-delivered dependency-management component baked into the Windows worker;
+# unlike optional VIPM add-ons, this is required so the worker manifest and
+# Dependencies page can prove the NIPM dependency-management lane is present.
+ARG DRAGON_PACKAGE=jki-dragon
+RUN Write-Host "Installing JKI Dragon from the NI feed: $env:DRAGON_PACKAGE"; `
+    nipkg install --accept-eulas -y $env:DRAGON_PACKAGE; `
+    if ($LASTEXITCODE -ne 0) { throw "JKI Dragon package '$($env:DRAGON_PACKAGE)' did not install (exit $LASTEXITCODE)." }; `
+    if (Test-Path 'C:\ProgramData\National Instruments\NI Package Manager\cache') { `
+      Remove-Item -Path 'C:\ProgramData\National Instruments\NI Package Manager\cache\*' -Force -Recurse -ErrorAction SilentlyContinue `
+    }
+
 # Install Git so VIPM can verify repository visibility AND reach the community
 # package repository. VIPM 26.3 Community Edition shells out to a real `git` binary to
 # confirm the working directory is a PUBLIC Git repository before it installs anything;

@@ -58,6 +58,7 @@ param(
     [int]   $MaxCommits        = 0,
     [int]   $MaxVIs            = 0,
     [int]   $TimeBudgetMinutes = 300,
+    [string]$Force             = 'false',
     # Directory holding render-snapshots.ps1 + build-gallery.py. Defaults to the
     # in-repo location; a composite action passes its own bundled directory so the
     # consumer repo needs no copy of these scripts.
@@ -79,6 +80,7 @@ param(
 # explicitly via $LASTEXITCODE (or an explicit `throw`), so 'Continue' is safe.
 $ErrorActionPreference = 'Continue'
 $ProgressPreference    = 'SilentlyContinue'
+$ForceRender = $Force -match '^(?i:true|1|yes|on)$'
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 $WorkspaceRoot = (Resolve-Path $WorkspaceRoot).Path
@@ -130,6 +132,7 @@ foreach ($dir in @($ExistingByBlobDir, $ByBlobDir)) {
     }
 }
 Write-Host "Seeded $($Rendered.Count) already-rendered blob(s)."
+Write-Host "Force render: $ForceRender"
 
 # ── Determine commit list ────────────────────────────────────────────────────
 if ($Mode -eq 'head') {
@@ -173,7 +176,7 @@ $processed = 0
 try {
     foreach ($sha in $Commits) {
         $vimap    = Get-VimapForSha $sha
-        $worklist = @($vimap | Where-Object { -not $Rendered.Contains($_.Blob) })
+        $worklist = if ($ForceRender) { @($vimap) } else { @($vimap | Where-Object { -not $Rendered.Contains($_.Blob) }) }
 
         # Smoke-test cap: limit how many NEW VIs to render (0 = no limit). Lets a
         # validation run exercise the full pipeline quickly without rendering all VIs.

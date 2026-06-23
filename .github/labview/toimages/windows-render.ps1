@@ -5,10 +5,10 @@
     batch runner (runner.exe, built from .github/labview/toimages/main.go) which
     shells out to lvctl.exe per VI.
 
-  Linux drives LabVIEW over VI Server TCP under Xvfb; Windows drives the very same
-  lvctl engine over COM/ActiveX (viserver_windows.go) - no Xvfb, no TCP. The
-    Windows uses the Go lvctl transport to attach to or launch LabVIEW; this script
-    does not gate rendering on a separate PowerShell COM probe.
+  Linux drives LabVIEW over VI Server TCP under Xvfb; Windows now uses the SAME
+  VI Server TCP transport (no COM/ActiveX, no Xvfb): this script enables VI
+    Server TCP in LabVIEW.ini, launches LabVIEW, waits for 127.0.0.1:3363, then
+    runs the runner so lvctl attaches over TCP exactly like the Linux entrypoint.
 
   The runner writes <blob[:2]>/<blob>.json into -OutByBlob exactly like Linux;
   the calling workflow renames those to <blob>.windows.json on publish so the
@@ -39,8 +39,9 @@ function Resolve-LabVIEWPath([string]$Preferred) {
     throw 'LabVIEW.exe not found under C:\Program Files\National Instruments'
 }
 
-# Ensure the install's LabVIEW.ini has the scripting / dialog-suppression tokens a
-# headless COM-driven LabVIEW needs. Mirrors toimages-probe.ps1 (proven).
+# Ensure the install's LabVIEW.ini has the scripting / dialog-suppression tokens
+# AND the VI Server TCP keys a headless LabVIEW needs so lvctl can attach over
+# 127.0.0.1:3363 (the same transport the Linux container uses).
 function Enable-Scripting([string]$ExePath) {
     $ini = Join-Path (Split-Path -Parent $ExePath) 'LabVIEW.ini'
     $want = @{
@@ -48,6 +49,9 @@ function Enable-Scripting([string]$ExePath) {
         'AllowMultipleInstances' = 'True'; 'NIERAutoSendAndSuppressAllDialogs' = 'True'
         'neverShowLicensingStartupDialog' = 'True'; 'neverShowAddonLicensingStartup' = 'True'
         'SuppressRTConnectionDialogs' = 'True'; 'DWarnDialog' = 'False'; 'AutoSaveEnabled' = 'False'
+        'server.tcp.enabled' = 'True'; 'server.tcp.port' = '3363'
+        'server.tcp.serviceName' = '""'
+        'server.tcp.access' = '"+*"'; 'server.vi.access' = '"+*"'
     }
     $lines = @()
     if (Test-Path $ini) { $lines = @(Get-Content $ini) }
@@ -75,6 +79,9 @@ function Convert-DurationToSeconds([string]$Value) {
     if ($Value -match '^\s*(\d+)\s*s\s*$')  { return [int]$matches[1] }
     if ($Value -match '^\s*(\d+)\s*m\s*$')  { return [int]$matches[1] * 60 }
     if ($Value -match '^\s*(\d+)\s*h\s*$')  { return [int]$matches[1] * 3600 }
+    # A bare integer means seconds (e.g. render_timeout: 180). Do NOT fall through
+    # to [TimeSpan]::Parse, which reads a bare integer as DAYS.
+    if ($Value -match '^\s*(\d+)\s*$')       { return [int]$matches[1] }
     try { return [int][Math]::Ceiling(([TimeSpan]::Parse($Value)).TotalSeconds) }
     catch { return 300 }
 }
@@ -85,6 +92,34 @@ function Write-LogFile([string]$Label, [string]$Path) {
         Get-Content $Path -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
         Write-Host "--- end $Label ---"
     }
+}
+
+# Launch LabVIEW and wait until its VI Server TCP port accepts a connection, the
+# Windows counterpart of docker-entrypoint.sh's launch+wait. Returns $true once
+# 127.0.0.1:$Port is listening, $false if it never comes up within $WaitSeconds.
+function Start-LabVIEWVIServer([string]$ExePath, [int]$Port, [int]$WaitSeconds) {
+    Write-Host "Launching LabVIEW with VI Server TCP on 127.0.0.1:$Port (wait up to $WaitSeconds s) ..."
+    Start-Process -FilePath $ExePath -WindowStyle Minimized | Out-Null
+    $deadline = (Get-Date).AddSeconds($WaitSeconds)
+    while ((Get-Date) -lt $deadline) {
+        $ok = $false
+        $client = New-Object System.Net.Sockets.TcpClient
+        try {
+            $iar = $client.BeginConnect('127.0.0.1', $Port, $null, $null)
+            if ($iar.AsyncWaitHandle.WaitOne(1000)) {
+                if ($client.Connected) { $client.EndConnect($iar); $ok = $true }
+            }
+        } catch { }
+        finally { $client.Close() }
+        if ($ok) {
+            Write-Host "VI Server TCP is accepting connections on 127.0.0.1:$Port."
+            return $true
+        }
+        Start-Sleep -Seconds 2
+    }
+    Write-Host "ERROR: LabVIEW VI Server did not open 127.0.0.1:$Port within $WaitSeconds second(s)."
+    Write-Host "       The server.tcp.* keys in LabVIEW.ini were likely not honored by this LabVIEW."
+    return $false
 }
 
 Write-Host "=== VI Browser 2.0 Windows render ==="
@@ -100,11 +135,16 @@ New-Item -ItemType Directory -Force -Path $OutByBlob | Out-Null
 New-Item -ItemType Directory -Force -Path $CacheDir  | Out-Null
 Enable-Scripting $lvExe
 
-# Match the Linux ownership boundary: the Go runner shells out to lvctl, and
-# lvctl owns LabVIEW attach/launch/readiness using its Windows transport. A
-# separate PowerShell COM readiness probe can block a valid Go fallback path.
-Write-Host "Starting Go toimages batch runner..."
+# Mirror docker-entrypoint.sh (Linux): bring up ONE LabVIEW with VI Server TCP
+# enabled, wait for 127.0.0.1:3363, then run the batch runner. lvctl ATTACHES to
+# that LabVIEW over TCP per VI (it never launches its own), exactly like Linux.
 Kill-LabVIEW
+if (-not (Start-LabVIEWVIServer $lvExe 3363 $ComReadySeconds)) {
+    Kill-LabVIEW
+    exit 1
+}
+$env:LABVIEW_HOST = '127.0.0.1:3363'
+Write-Host "Starting Go toimages batch runner..."
 $env:WORKSPACE       = $Workspace
 $env:WORKLIST        = $Worklist
 $env:OUT_BY_BLOB     = $OutByBlob
@@ -123,7 +163,14 @@ $runnerOut = Join-Path $env:TEMP 'lvci-toimages-runner.stdout.log'
 $runnerErr = Join-Path $env:TEMP 'lvci-toimages-runner.stderr.log'
 Remove-Item $runnerOut, $runnerErr -Force -ErrorAction SilentlyContinue
 $runnerProcess = Start-Process -FilePath $Runner -NoNewWindow -PassThru -RedirectStandardOutput $runnerOut -RedirectStandardError $runnerErr
-if (-not $runnerProcess.WaitForExit($BatchTimeoutSeconds * 1000)) {
+# Cache the OS process handle immediately. Without this, a process started with
+# -PassThru reports a $null ExitCode after it exits (a long-standing PowerShell
+# quirk), which would make a perfectly good render look like a failure.
+$null = $runnerProcess.Handle
+# WaitForExit(int) takes milliseconds in an Int32; clamp so a large timeout can
+# never overflow Int32 (which would throw before the render is ever awaited).
+$waitMs = [int][Math]::Min([double]$BatchTimeoutSeconds * 1000.0, [double][int]::MaxValue)
+if (-not $runnerProcess.WaitForExit($waitMs)) {
     Write-Host "Go toimages batch runner timed out after $BatchTimeoutSeconds second(s)"
     Stop-Process -Id $runnerProcess.Id -Force -ErrorAction SilentlyContinue
     Kill-LabVIEW
@@ -131,24 +178,35 @@ if (-not $runnerProcess.WaitForExit($BatchTimeoutSeconds * 1000)) {
     Write-LogFile 'runner stderr' $runnerErr
     exit 124
 }
+# Block until the process is fully reaped so ExitCode is committed before we read it.
+$runnerProcess.WaitForExit()
 $runnerProcess.Refresh()
 $runnerExit = $runnerProcess.ExitCode
-if ($null -eq $runnerExit) {
-    Write-Host 'Go toimages batch runner exited but did not report an exit code; treating as failed.'
-    $runnerExit = 1
-}
 Write-LogFile 'runner stdout' $runnerOut
 Write-LogFile 'runner stderr' $runnerErr
-Write-Host "Runner exit code: $runnerExit"
 
 # Best-effort: leave LabVIEW closed so the container can stop cleanly.
 Kill-LabVIEW
 
 $produced = @(Get-ChildItem -Path $OutByBlob -Recurse -Filter '*.json' -ErrorAction SilentlyContinue).Count
 Write-Host "=== done: $produced frame JSON file(s) under $OutByBlob ==="
-if (($runnerExit -eq 0) -and ($worklistCount -gt 0) -and ($produced -eq 0)) {
+
+if ($null -eq $runnerExit) {
+    # Even with the handle cached this should not happen, but never discard a
+    # good render over an unreadable exit code: fall back to the render's real
+    # success signal -- whether the expected frame JSON files were produced.
+    if ($produced -gt 0) {
+        Write-Host "Runner did not report an exit code, but $produced frame JSON file(s) were produced; treating as success."
+        $runnerExit = 0
+    } else {
+        Write-Host 'Go toimages batch runner exited without an exit code and produced no output; treating as failed.'
+        $runnerExit = 1
+    }
+}
+elseif (($runnerExit -eq 0) -and ($worklistCount -gt 0) -and ($produced -eq 0)) {
     Write-Host 'Non-empty worklist produced zero frame JSON files; treating as failed.'
     $runnerExit = 1
 }
+Write-Host "Runner exit code: $runnerExit"
 # Mirror the runner's contract: exit non-zero only if the runner itself failed.
 exit $runnerExit

@@ -1,11 +1,178 @@
 {
   "schemaVersion": 1,
-  "version": "3.38.5",
+  "version": "3.41.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {
+        "version": "3.41.4",
+        "date": "2026-06-22",
+        "title": "Parse NIPM worker manifests from the package columns",
+        "type": "patch",
+        "summary": "Windows worker manifests now parse `nipkg list` rows from the package-name and version columns instead of treating the final description word as the version. This keeps NIPM-delivered dependencies such as JKI Dragon in the structured manifest data used by the Dependencies table.",
+        "highlights": [
+          "Captures NIPM packages whose rows include architecture and long descriptions.",
+          "Allows the NI Packages dependency table to verify JKI Dragon from the rebuilt Windows worker manifest.",
+          "Preserves the raw `nipkg list` output for auditability while fixing the machine-readable package list."
+        ]
+      },
+      {
+        "version": "3.41.3",
+        "date": "2026-06-22",
+        "title": "Use desktop width in Populate History rows",
+        "type": "patch",
+        "summary": "Populate History activity rows now keep counts, platform toggles, and Skip/Fill/Re-run controls on one horizontal desktop line, while preserving a stacked layout for mobile widths.",
+        "highlights": [
+          "Uses a three-column desktop grid for ordinary activities and a four-column grid for Windows/Linux activities.",
+          "Keeps the segmented controls right-aligned without forcing desktop rows into a tall vertical control lane.",
+          "Moves the stacked count/platform/control layout behind a mobile-width breakpoint so narrow screens still read cleanly."
+        ]
+      },
+      {
+        "version": "3.41.2",
+        "date": "2026-06-22",
+        "title": "Align Populate History activity controls",
+        "type": "patch",
+        "summary": "Populate History activity rows now keep Skip/Fill/Re-run controls in a consistent right-side lane, including rows that also show Windows/Linux platform toggles.",
+        "highlights": [
+          "Changed the activity rows from wrapping flex layout to a fixed grid so mode controls align consistently.",
+          "Rows with platform selectors place Windows/Linux choices above the same right-aligned mode control instead of pushing some controls left.",
+          "Compact layouts stack controls cleanly without reserving an empty platform row for single-platform activities."
+        ]
+      },
+      {
+        "version": "3.41.1",
+        "date": "2026-06-23",
+        "title": "Label and isolate VI Browser 2.0 snapshot reruns",
+        "summary": "Manual VI Browser 2.0 snapshot reruns now show the target revision in the GitHub Actions run name, and the Windows/Linux 2.0 snapshot workflows scope concurrency by target revision instead of using one global queue per workflow. Re-running several selected revisions no longer appears as a stack of identical runs and no longer risks canceling different target revisions in the same batch.",
+        "highlights": [
+          "Adds target-SHA run names to Windows and Linux VI Browser 2.0 snapshot runs",
+          "Scopes 2.0 snapshot workflow concurrency by target revision so different selected commits do not cancel each other",
+          "Keeps duplicate reruns for the same target revision cancelable while making multi-revision history reruns clear in Actions"
+        ]
+      },
+      {
+        "version": "3.41.0",
+        "date": "2026-06-23",
+        "title": "Optional dependency-change CI + a dashboard filter for dependency-only revisions",
+        "summary": "Changing a committed .vipc still rebuilds the worker container as before; now you can also opt in to re-running the build/test/doc pipeline against the rebuilt image, so the project is re-validated whenever its dependencies change. A new dashboard toggle filters out revisions whose only change is an external dependency (.vipc/.vip). Both are off by default and set on the Configure page (config.triggers.onDependencyChange).",
+        "highlights": [
+          "Configure > When dependencies change: opt in to re-run Mass Compile, VI Analyzer, Unit Tests and Antidoc for a revision after a .vipc change (VIDiff and Snapshots are skipped - a dependency-only change touches no VIs). Off by default.",
+          "build-labview-image.yml dispatches those activities once the worker image has rebuilt - only when config.triggers.onDependencyChange is true, and only on a real project .vipc push (not the monthly base rebuild).",
+          "Dashboard: a new \"Include dependency-only revisions\" toggle hides revisions that only bump external dependencies; its default follows whether dependency-change CI is enabled."
+        ]
+      },
+      {
+              "version": "3.40.0",
+              "date": "2026-06-22",
+              "title": "Windows worker installs JKI Dragon from NI Package Manager",
+              "summary": "The Windows LabVIEW worker image now installs JKI Dragon from the LabVIEW 2026 NI Package Manager feed during image build. Dragon is treated as a required NIPM-delivered dependency-management component, captured by the worker manifest through nipkg list, and shown on the Dependencies page's NI Packages tab so users can verify it is present in the rebuilt container.",
+              "highlights": [
+                      "Installs the NIPM package jki-dragon into the Windows worker image and fails the image build if Dragon cannot be installed.",
+                      "Adds JKI Dragon to the generated and static NI Packages dependency table entries.",
+                      "Relies on the existing worker manifest nipkg_packages capture so the Dependencies page proves Dragon is present after the container is rebuilt."
+              ]
+      },
+      {
+        "version": "3.39.4",
+        "date": "2026-06-22",
+        "title": "Dependencies page: declutter the header and link workers to GHCR",
+        "summary": "The Dependencies page drops the Worker summary card and the two informational notes (the config.container summary and the 'columns resolve to worker manifests' line) that did not add value during normal use. Each worker column header (Windows, Linux) is now a link straight to that worker's image in the GitHub Container Registry. The status line is kept only for real errors (no repository, no revisions).",
+        "highlights": [
+          "Removes the Worker card and the config-summary / status info boxes from the top of the Dependencies page",
+          "Windows and Linux column headers link to the worker image package in GHCR"
+        ]
+      },
+      {
+        "version": "3.39.3",
+        "date": "2026-06-22",
+        "title": "Keep example VIPC in the Linux-proven artifact shape",
+        "summary": "The Linux and Linux Beta image builds now keep example/Dependencies.vipc in the exact 10-package artifact shape that native Linux VIPM has already applied successfully. Version 3.39.2 moved G Image into the core tooling VIPC, but removing it from the example VIPC made Linux VIPM reject that project VIPC as invalid during image build. This patch keeps the core-tooling ownership change while restoring the example VIPC artifact shape needed by the Linux VIPM installer.",
+        "highlights": [
+          "Restores example/Dependencies.vipc to the Linux-proven 10-package VIPC artifact after the 3.39.2 reduction failed in Linux Beta",
+          "Leaves G Image in ci-tooling.vipc for tooling ownership, while also preserving the project VIPC shape Linux VIPM accepts",
+          "Unblocks the stable Linux and Linux Beta worker image builds triggered by VIPC changes"
+        ]
+      },
+      {
+        "version": "3.39.2",
+        "date": "2026-06-22",
+        "title": "G Image moves into the core CI tooling VIPC",
+        "summary": "dataflow_g_lib_g_image (G Image) is used by the VI Browser snapshot generator to embed rendered images, so it is action-runner tooling rather than a project dependency. It is added to the core ci-tooling.vipc (baked into every worker that renders snapshots) and removed from the example project's VIPC, so no individual project has to declare it.",
+        "highlights": [
+          "ci-tooling.vipc now bakes dataflow_g_lib_g_image alongside the unit-test and JUnit reporting packages",
+          "example/Dependencies.vipc no longer declares G Image"
+        ]
+      },
+      {
+        "version": "3.39.1",
+        "date": "2026-06-22",
+        "title": "Restore Linux-applicable example VIPC artifact",
+        "summary": "The Linux and Linux Beta worker image builds now stage a known-good example/Dependencies.vipc artifact again. The dependency cleanup in 3.39.0 reduced that VIPC to project-only packages, but native Linux VIPM rejected the reduced file as an invalid VI package configuration during image build. This patch restores the previously proven VIPC blob so VIPM can apply the repository dependencies while the source-of-truth cleanup remains in place for the dedicated tooling and capability VIPCs.",
+        "highlights": [
+          "Restores example/Dependencies.vipc to the exact artifact previously applied successfully by the VIPM-enabled Linux worker build",
+          "Unblocks Build LabVIEW CI Image - Linux and Build LabVIEW CI Image - Linux Beta after VIPM rejected the reduced VIPC file",
+          "Keeps the 3.39.0 dependency model for core tooling and opt-in capability VIPCs while avoiding a broken Linux image build"
+        ]
+      },
+      {
+        "version": "3.39.0",
+        "date": "2026-06-22",
+        "title": "Dependency management cleaned up around VIPC files as the source of truth",
+        "summary": "Worker dependencies are now driven entirely by the VIPC files committed to a repository. ci-tooling.vipc is the core set every action runner needs (unit-test frameworks plus UTF/JUnit reporting); each project keeps its own dependencies in its project VIPC (the example keeps its OpenG and G Image libraries); and a new VIPM capability such as Antidoc gets its own opt-in VIPC under .github/labview/<capability>/ that is baked into the worker only when that capability is installed. The Dependencies page now finds ci-tooling.vipc correctly, labels each VIPC core / capability / project, says 'this file does not specify any packaged dependencies' for an empty VIPC, and shows each package as installed (green check), N/A (not applied on that platform), or an install error (red marker). The Configure dialog drops its Container & Dependencies tab -- the VIPC files in the repo are the single source of truth for what is installed.",
+        "highlights": [
+          "ci-tooling.vipc is the core action-runner dependency set; Antidoc moves to its own opt-in .github/labview/antidoc/antidoc.vipc, baked only when the Antidoc capability is installed",
+          "The example project keeps only its own OpenG and G Image libraries in example/Dependencies.vipc; the shared UTF/JUnit reporting packages are owned by the CI tooling",
+          "Dependencies page: fixes ci-tooling.vipc detection, adds core/capability/project labels and an empty-file message, and shows installed / N/A / error per package",
+          "Configure dialog removes the Container & Dependencies tab; worker dependencies are changed only by editing the repository's VIPC files"
+        ]
+      },
+      {
+        "version": "3.38.9",
+        "date": "2026-06-22",
+        "title": "Main Linux worker now installs VIPM and applies VIPC files",
+        "summary": "The native VIPM/VIPC flow proven in the Linux Beta lane is now the main Linux worker path. Linux Mass Compile, VI Analyzer, and VIDiff default to the shared GHCR Linux worker, the stable Linux image build publishes linux-* tags and workers/linux manifests, and the Dependencies page no longer describes Linux VIPC support as pending.",
+        "highlights": [
+          "Promotes the VIPM-enabled Linux image to the standard linux-latest worker used by Linux container jobs",
+          "Generates workers/linux manifests from the VIPM-applied Linux build so the Dependencies page reports stable Linux VIPC coverage",
+          "Removes active Apply to New Repo and Dependencies page wording that described Linux VIPC support as coming or experimental"
+        ]
+      },
+      {
+        "version": "3.38.8",
+        "date": "2026-06-22",
+        "title": "Linux Beta image installs native VIPM before applying VIPC files",
+        "summary": "The experimental Linux Beta worker now installs VIPM from JKI's documented Linux .deb instead of looking for an NI Package Manager package that is Windows-only in the tested feeds. The VIPC apply step also sets up Xvfb, marks the LabVIEW container runtime, starts LabVIEW headless, activates VIPM with the documented --name flag, refreshes package sources, applies staged repository VIPC files with `vipm install -y`, and lists installed packages afterward.",
+        "highlights": [
+          "Downloads and installs the documented VIPM Linux Debian package from JKI's CDN during the Linux Beta image build",
+          "Sets up DISPLAY/Xvfb and starts LabVIEW headless before applying repository VIPC files",
+          "Uses the documented VIPM CLI flow: activate, refresh, install -y <vipc>, and list --installed"
+        ]
+      },
+      {
+        "version": "3.38.7",
+        "date": "2026-06-22",
+        "title": "Linux Beta image reports NI package-source diagnostics when VIPM is unavailable",
+        "summary": "The experimental Linux Beta image now turns the current apt package miss into an explicit package-source diagnostic: apt sources, apt-cache search results, installed NI Debian packages, and NI feed architecture summaries. This documents whether the base image can install VIPM/VIPC support before the build reaches the VIPC apply step.",
+        "highlights": [
+          "Reports apt sources and apt-cache search output when ni-vialin-labview-support or ni-vipm cannot be installed on Linux",
+          "Captures installed NI Debian packages from the base image to show what Linux tooling is already present",
+          "Checks the LabVIEW 2026 and VIPM NI package feeds for available architectures so Linux VIPM availability is visible in the build log"
+        ]
+      },
+      {
+        "version": "3.38.6",
+        "date": "2026-06-22",
+        "title": "VI Browser snapshots render on the Windows worker using the cross-platform Go VI Server engine",
+        "summary": "The Windows VI snapshot render now drives LabVIEW through the same TCP VI Server Go engine used on Linux instead of the removed COM/ActiveX path, and three Windows-only failures are fixed: a bare-integer render timeout (for example '180') was parsed as days and overflowed the millisecond WaitForExit before the render could start, the Windows container frame copy used an unreliable contents-form docker cp, and the GitHub Pages publish could lose a race against other gh-pages writers.",
+        "highlights": [
+          "Windows snapshots render through the shared cross-platform VI Server Go engine, so the COM/ActiveX-only render files are removed",
+          "A bare-integer render_timeout is now read as seconds and the WaitForExit wait is clamped to Int32 milliseconds, so the render no longer fails before it begins",
+          "Frames are copied out of the Windows container through a fresh staging directory, and the JSON is published to GitHub Pages with a re-clone and retry loop that survives concurrent gh-pages pushes"
+        ]
+      },
       {
         "version": "3.38.5",
         "date": "2026-06-22",
@@ -2817,7 +2984,7 @@
     {
       "id": "custom-image",
       "name": "Shared LabVIEW container image",
-      "summary": "Builds a LabVIEW CI container image (NI base + VI Analyzer support + any repo .vipc dependencies) and publishes it to GHCR, named after the repo. Built once, pulled by the other jobs.",
+      "summary": "Builds LabVIEW CI container images (NI base + any repo .vipc dependencies) and publishes them to GHCR, named after the repo. Built once, pulled by the other jobs.",
       "status": "advanced",
       "recommended": false,
       "supportsOs": [
@@ -2841,59 +3008,11 @@
         ],
         "linux": [
           ".github/workflows/build-labview-linux-image.yml",
-          ".github/docker/labview-ci-linux.Dockerfile"
-        ]
-      },
-      "notes": "Only required if you want the full VI Analyzer test set or to bake .vipc dependencies into the worker. Any repo-root *.vipc is detected and baked automatically. Non-2026 LabVIEW versions need a matching nipkg feed URL (build-arg)."
-    },
-    {
-      "id": "linux-vipm",
-      "name": "Linux VIPM/VIPC support",
-      "summary": "Installs the Linux-side VIPM/VIPC helper used by the Linux Beta worker image to apply repository VIPC dependency files during the image build.",
-      "status": "experimental",
-      "recommended": false,
-      "supportsOs": [
-        "linux"
-      ],
-      "requires": [],
-      "recommends": [
-        "linux-beta-container"
-      ],
-      "statusContext": null,
-      "files": {
-        "any": [],
-        "windows": [],
-        "linux": [
+          ".github/docker/labview-ci-linux.Dockerfile",
           ".github/labview/vipm/install-vipc-linux.sh"
         ]
       },
-      "notes": "Experimental Linux VIPM execution is only used by the Linux Beta container lane. Stable Linux actions continue to run on the NI base image unless that Beta image is selected in Configure Workers."
-    },
-    {
-      "id": "linux-beta-container",
-      "name": "Linux Beta container image",
-      "summary": "Builds an isolated Linux Beta worker image that includes VI Analyzer support, VIPM, repository VIPC dependencies, and a workers/linux-beta manifest without changing the stable Linux base-image path.",
-      "status": "experimental",
-      "recommended": false,
-      "supportsOs": [
-        "linux"
-      ],
-      "requires": [
-        "linux-vipm"
-      ],
-      "recommends": [],
-      "statusContext": null,
-      "files": {
-        "any": [
-          ".github/labview/build-worker-manifest.py"
-        ],
-        "windows": [],
-        "linux": [
-          ".github/workflows/build-labview-linux-beta-image.yml",
-          ".github/docker/labview-ci-linux-beta.Dockerfile"
-        ]
-      },
-      "notes": "This publishes linux-beta-* and linux-beta-latest tags. Linux Mass Compile, VI Analyzer, and VIDiff use the stable NI base image until a Linux Beta tag is selected in Configure Workers."
+      "notes": "Required when you want to bake .vipc dependencies into the worker. Any configured VIPC file is detected and baked automatically; if no config is present, repository VIPC files outside .github are staged."
     },
     {
       "id": "snapshots-windows-2",
@@ -2966,7 +3085,9 @@
       "statusContext": "CI / Antidoc",
       "files": {
         "any": [
-          ".github/labview/build-antidoc-report.py"
+          ".github/labview/build-antidoc-report.py",
+          ".github/labview/antidoc/antidoc.vipc",
+          ".github/labview/antidoc/antidoc.packages.json"
         ],
         "windows": [
           ".github/workflows/run-antidoc-windows-container.yml",
@@ -2974,7 +3095,7 @@
         ],
         "linux": []
       },
-      "notes": "Antidoc is a VIPM package (wovalab_lib_antidoc_cli) baked into the custom worker image, so enable the Shared LabVIEW image and turn on 'Use Antidoc' in Configure. Documentation generation renders diagrams via a Kroki server at run time (Wovalab-hosted by default), so the doc-gen step needs network access."
+      "notes": "Antidoc's VIPM dependencies (wovalab_lib_antidoc_cli + its chain) live in their own opt-in VIPC, .github/labview/antidoc/antidoc.vipc, NOT in the core ci-tooling.vipc. The image build bakes that VIPC into the worker only when the Antidoc capability is installed (its run-antidoc workflow is present), so repos that do not generate docs never carry the dependency. Enable the Shared LabVIEW image so the worker is rebuilt with Antidoc. Documentation generation renders diagrams via a Kroki server at run time (Wovalab-hosted by default), so the doc-gen step needs network access."
     }
   ]
 }
