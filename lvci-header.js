@@ -215,7 +215,7 @@
     '.lvci-rev-step:hover:not(:disabled){color:#e6edf3;background:rgba(177,186,196,.12)}',
     '.lvci-rev-step:disabled{opacity:.4;cursor:default}',
     '@media(prefers-color-scheme:light){.lvci-ctxbar{background:rgba(246,248,250,.96);border-bottom-color:#d0d7de}.lvci-rev-step{border-color:#d0d7de;color:#57606a}.lvci-rev-step:hover:not(:disabled){color:#1f2328;background:rgba(80,90,100,.10)}}',
-    // Settings sub-nav: the per-repo configuration sections (Configure Workers / VI
+    // Settings sub-nav: the per-repo configuration sections (Configure Pipeline / VI
     // Analyzer / Unit Testing) as a tab strip in the context bar, so the settings
     // pages read as one navigable area instead of isolated pages.
     '.lvci-subnav{display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap}',
@@ -590,8 +590,7 @@
     'vi-analyzer-report': {
       prefix: 'vi-analyzer', cap: 'vi-analyzer', label: 'VI Analyzer',
       regenLabel: 'Re-run analysis', rawLabel: 'Native report', rawName: 'raw.html',
-      workflow: { windows: 'run-vi-analyzer-windows-container.yml',
-                  linux:   'run-vi-analyzer-linux-container.yml' }
+      workflow: { windows: 'run-vi-analyzer-windows-container.yml' }
     },
     'masscompile-report': {
       prefix: 'masscompile', cap: 'masscompile', label: 'Mass Compile',
@@ -718,45 +717,22 @@
     return (A[ctx] || []).filter(Boolean);
   }
   function buildSecondaryActions() {
-    // The per-repo configuration + Help entries, shared by every primary-chrome
-    // context so the Settings / Tools nav is consistent across pages (incl. the
-    // config pages themselves, where the current section also highlights).
-    var cfgMenu = [
-      { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
+    // One canonical Settings/Tools menu, IDENTICAL across every primary-chrome
+    // context so navigation is consistent everywhere - not just on the dashboard.
+    // The Settings vs Tools split is applied later by the nav renderer
+    // (SETTINGS_KINDS); Populate history + VI Browser renders fall under Tools.
+    // "Populate history" works from any page: on the dashboard it opens the
+    // dialog inline; on every other page runHistory() routes to the dashboard and
+    // opens it there (see runHistory()).
+    return [
+      { label: 'Populate history', svg: ICON.history, kind: 'runhistory' },
+      { label: 'Configure Pipeline', svg: ICON.configure, kind: 'configure' },
       { label: 'VI Analyzer', svg: ICON.vianalyzer, kind: 'vianalyzer' },
       { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
+      { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
       { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
       { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
-    ];
-    var A = {
-      'dashboard': [
-        { label: 'Populate history', svg: ICON.history, kind: 'runhistory' },
-        { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
-        { label: 'VI Analyzer', svg: ICON.vianalyzer, kind: 'vianalyzer' },
-        { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
-        { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
-        { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
-        { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
-      ],
-      'worker-manifest': cfgMenu,
-      'vi-browser': [
-        { label: 'Configure Workers', svg: ICON.configure, kind: 'configure' },
-        { label: 'VI Analyzer', svg: ICON.vianalyzer, kind: 'vianalyzer' },
-        { label: 'Unit Testing', svg: ICON.tests, kind: 'unittests' },
-        { label: 'VI Browser renders', svg: ICON.vibrowser, kind: 'vibrowser' },
-        { label: 'Clients', svg: ICON.clients, href: base + '/clients.html', source: true },
-        { label: 'About', svg: ICON.about, href: aboutUrl(), about: true, newTab: aboutExternal() }
-      ],
-      'report-viewer': cfgMenu,
-      'configure': cfgMenu,
-      'vianalyzer': cfgMenu,
-      'unit-tests-config': cfgMenu,
-      'integrate': cfgMenu,
-      'whats-new': cfgMenu,
-      'faq': cfgMenu,
-      'documentation': cfgMenu
-    };
-    return (A[ctx] || cfgMenu).filter(Boolean);
+    ].filter(Boolean);
   }
   function buildDashboardNavItems() {
     return [
@@ -836,7 +812,7 @@
       if (su) { window.open(su + 'integrate.html', '_blank', 'noopener'); return; }
     }
     var map = {
-      configure: { src: 'configure.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : ''), title: 'Configure Workers' },
+      configure: { src: 'configure.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : ''), title: 'Configure Pipeline' },
       vibrowser: { src: 'configure.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : '') + '#vi-browser', title: 'VI Browser renders' },
       vianalyzer: { src: 'vi-analyzer.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : ''), title: 'VI Analyzer' },
       unittests: { src: 'unit-tests.html' + (repo ? ('?repo=' + encodeURIComponent(repo)) : ''), title: 'Unit Testing' },
@@ -852,9 +828,18 @@
   //    generator, which exposes window.lvciRunHistory; this menu item is only
   //    offered on the dashboard context, where that hook is present. The guard
   //    keeps it inert anywhere the hook is absent (e.g. an older dashboard). ────
-  function runHistory() {
-    if (typeof window.lvciRunHistory === 'function') window.lvciRunHistory();
-    else window.location.href = base + '/';   // fall back to the dashboard
+  function runHistory(opts) {
+    // On the dashboard the dialog lives inline (window.lvciRunHistory); pass the
+    // optional {cap, sha, platform} straight through so it can open pre-selected
+    // to re-run a single document. On every OTHER page that hook is absent, so
+    // route to the dashboard and let it auto-open the dialog from the URL (the
+    // dashboard reads ?lvci-populate=1[&cap&sha&platform]).
+    if (typeof window.lvciRunHistory === 'function') { window.lvciRunHistory(opts || undefined); return; }
+    var u = base + '/?lvci-populate=1';
+    if (opts && opts.cap) u += '&cap=' + encodeURIComponent(opts.cap);
+    if (opts && opts.sha) u += '&sha=' + encodeURIComponent(opts.sha);
+    if (opts && opts.platform) u += '&platform=' + encodeURIComponent(opts.platform);
+    window.location.href = u;
   }
 
   // Settings sub-navigation: the per-repo configuration sections as a tab strip in
@@ -863,7 +848,7 @@
   // links (base + page + ?repo) so middle-/ctrl-click and the active state work.
   function makeSettingsNav() {
     var SECTIONS = [
-      { key: 'configure',  label: 'Configure Workers', file: 'configure.html' },
+      { key: 'configure',  label: 'Configure Pipeline', file: 'configure.html' },
       { key: 'vianalyzer', label: 'VI Analyzer',       file: 'vi-analyzer.html' },
       { key: 'unittests',  label: 'Unit Testing',      file: 'unit-tests.html' }
     ];
@@ -883,6 +868,52 @@
     wrap.appendChild(lbl); wrap.appendChild(subnav);
     return wrap;
   }
+
+  // ── Generic page sub-navigation: a context-bar tab strip a page declares via
+  //    window.LVCI.subnav so its in-page sub-views (e.g. the Dependencies page's
+  //    VIPM / NI Packages / System Components) navigate from the SAME shared
+  //    sub-header the Settings sections use, instead of a separate in-body tab
+  //    bar. This is what makes sub-item navigation consistent across documents.
+  //    The page keeps its panels in the body and switches them in response to
+  //    the 'lvci:subnav' event (detail.key) this fires; window.lvciSetSubnavActive
+  //    (key) lets the page reflect a programmatic change (deep link) back into
+  //    the strip. Shape: subnav = { label, active, tabs: [{ key, label }] }.
+  function makePageSubnav() {
+    var sn = cfg.subnav;
+    if (!sn || !sn.tabs || !sn.tabs.length) return null;
+    var wrap = document.createElement('div'); wrap.className = 'lvci-rev lvci-settings-ctx';
+    if (sn.label) { var lbl = document.createElement('span'); lbl.className = 'lvci-revlbl'; lbl.textContent = sn.label; wrap.appendChild(lbl); }
+    var subnav = document.createElement('div'); subnav.className = 'lvci-subnav'; subnav.id = 'lvci-page-subnav';
+    var active = sn.active || (sn.tabs[0] && sn.tabs[0].key);
+    sn.tabs.forEach(function (t) {
+      var a = document.createElement('a');
+      a.href = '#' + t.key;
+      a.setAttribute('role', 'tab');
+      a.setAttribute('data-subnav-key', t.key);
+      a.textContent = t.label;
+      if (t.key === active) { a.classList.add('on'); a.setAttribute('aria-current', 'page'); }
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        lvciSetSubnavActive(t.key);
+        try { window.dispatchEvent(new CustomEvent('lvci:subnav', { detail: { key: t.key } })); } catch (err) {}
+      });
+      subnav.appendChild(a);
+    });
+    wrap.appendChild(subnav);
+    return wrap;
+  }
+  // Reflect the active sub-view back into the header strip (the page calls this
+  // when it switches sub-views itself, e.g. restoring a deep link). Inert when
+  // the strip isn't present (a page without the header, or no subnav declared).
+  function lvciSetSubnavActive(key) {
+    var strip = document.getElementById('lvci-page-subnav'); if (!strip) return;
+    Array.prototype.forEach.call(strip.querySelectorAll('a[data-subnav-key]'), function (a) {
+      var on = a.getAttribute('data-subnav-key') === key;
+      a.classList.toggle('on', on);
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+  }
+  window.lvciSetSubnavActive = lvciSetSubnavActive;
 
   // ── Regenerate this revision's report: dispatch a fresh run for THIS commit,
   //    reusing the dashboard's token + optimistic queued bridge (so the
@@ -965,9 +996,14 @@
     });
   }
   function rerun() {
-    if (!repo || !cfg.sha) { setStatus('Regenerating needs a repository and commit.', 'err'); return; }
-    if (!tok()) { showTokenPanel(); setStatus('Paste a token to dispatch the run.', null); return; }
-    doDispatch();
+    // Re-running a per-revision report now goes through the dashboard's
+    // "Populate history" dialog, pre-selected to re-run THIS document (this
+    // revision + this activity), so every re-run shares one consistent flow and
+    // the user can confirm scope/platform before queuing. (The inline dispatch
+    // path - doDispatch + the header token panel - remains for any surface that
+    // still calls it directly; the report Re-run button now routes here.)
+    if (DOC && cfg.sha) { runHistory({ cap: DOC.cap, sha: cfg.sha, platform: cfg.platform }); return; }
+    runHistory();
   }
 
   // ── Action button factory ─────────────────────────────────────────────────
@@ -1603,6 +1639,19 @@
       '<a target="_blank" rel="noopener" href="https://github.com/' + repo + '/actions">Build LabVIEW CI Image \u2197</a>' +
       '<span class="lvci-dep-sub">.</span></span>';
 
+    // Persistent "dependencies pending" banner — shown on every page (read from
+    // deps-pending.json published by the dashboard build) until the repo's worker
+    // container(s) are updated with its declared VIPC/Dragon dependencies. Unlike
+    // the transient rebuild bar above, this stays up until the update completes.
+    var pendbar = document.createElement('div');
+    pendbar.id = 'lvci-pendbar';
+    pendbar.className = 'lvci-depbar';
+    pendbar.setAttribute('role', 'alert');
+    pendbar.innerHTML =
+      '<span class="lvci-dep-txt"><strong>\u26A0\uFE0F Dependencies need to be installed into your containers. </strong>' +
+      '<span class="lvci-dep-sub">Your project declares dependencies that are not yet baked into the worker container(s); container CI may error or show broken code until you update them. </span>' +
+      '<a href="' + navBase + '/dependencies.html">Review &amp; update dependencies \u2197</a></span>';
+
     // Global attention bar (failure banner) — hidden until the activity poll
     // finds a workflow whose newest run failed; names it + links to the run.
     var alertBar = document.createElement('div');
@@ -1626,7 +1675,7 @@
     // On config pages it instead holds the Settings sub-nav (section tabs).
     var ctxbar = null;
     var isSettings = (NAV_ACTIVE[ctx] === 'settings');
-    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard' || isSettings) { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); if (isSettings) ctxbar.appendChild(makeSettingsNav()); }
+    if (revBar || ctx === 'vi-browser' || ctx === 'dashboard' || isSettings || cfg.subnav) { ctxbar = document.createElement('div'); ctxbar.id = 'lvci-ctxbar'; ctxbar.className = 'lvci-ctxbar'; if (revBar) ctxbar.appendChild(revBar.wrap); if (isSettings) ctxbar.appendChild(makeSettingsNav()); var pageSub = makePageSubnav(); if (pageSub) ctxbar.appendChild(pageSub); }
 
     // ── Mount at the very top of <body> ──────────────────────────────────────
     // Some pages use <body> ITSELF as a full-height flex/grid layout container
@@ -1663,6 +1712,7 @@
     document.body.insertBefore(hdr, menu);
     if (ctxbar) document.body.insertBefore(ctxbar, menu);     // persistent context bar (revision selector) under the header
     document.body.insertBefore(depbar, menu);                 // dependency/container rebuild bar
+    document.body.insertBefore(pendbar, menu);                // persistent "dependencies pending" bar
     document.body.insertBefore(alertBar, menu);               // global attention bar, directly under the header
     if (rebuild) document.body.insertBefore(rebuild, menu);   // directly under the bar
 
@@ -1670,6 +1720,25 @@
     // Signal pages that the header (and its #lvci-ctxbar context bar) is mounted,
     // so a page can move its own revision selector / controls into the shared bar.
     try { window.lvciHeaderReady = true; document.dispatchEvent(new CustomEvent('lvci:ready')); } catch (e) {}
+
+    // Persistent pending-dependencies banner (every page): the dashboard build
+    // publishes deps-pending.json at the Pages root when the repo declares VIPC/
+    // Dragon dependencies that are not yet baked into its worker container(s).
+    try {
+      fetch(base + '/deps-pending.json', { cache: 'no-cache' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || !d.pending) return;
+          var total = (d.packages || []).length + (d.dragon || []).length;
+          if (total) {
+            var sub = pendbar.querySelector('.lvci-dep-sub');
+            if (sub) sub.textContent = 'Your project declares ' + total + ' dependency item' + (total === 1 ? '' : 's') +
+              ' (in VIPC or .dragon files) not yet baked into the worker container(s); container CI may error or show broken code until you update them. ';
+          }
+          pendbar.classList.add('show');
+        })
+        .catch(function () {});
+    } catch (e) {}
 
     // VI Browser owns #commit-select and moves it into this context bar on the
     // lvci:ready event above. Document switching now lives in the Dashboard menu,
