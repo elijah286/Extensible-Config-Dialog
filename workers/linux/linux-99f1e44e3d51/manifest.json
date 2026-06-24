@@ -1,0 +1,21 @@
+{
+  "schema": 2,
+  "platform": "linux",
+  "version": "linux-99f1e44e3d51",
+  "labview_version": "2026",
+  "base_image": "ghcr.io/elijah286/labview-ci-with-containers-labview:linux-2026",
+  "base_digest": "sha256:f8205b5d7702eed527cd6094584bd0f66e8e729b5b75e06570520a48d7e9c48a",
+  "seed_image": "",
+  "seed_digest": "",
+  "worker_layer": "",
+  "copied_from_base": false,
+  "image_ref": "ghcr.io/elijah286/extensible-config-dialog-labview:linux-99f1e44e3d51",
+  "build_date": "2026-06-24T23:16:58Z",
+  "git_sha": "3371a0687374e70ae2d8972790ae7b94604d0160",
+  "run_url": "https://github.com/elijah286/Extensible-Config-Dialog/actions/runs/28135800349",
+  "vipc": [],
+  "vipm_raw": "",
+  "vipm_packages": [],
+  "nipkg_raw": "",
+  "nipkg_packages": []
+}
