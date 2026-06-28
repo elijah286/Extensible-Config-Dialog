@@ -1,0 +1,66 @@
+LabVIEWCLI started logging in file:  /tmp/lvtemporary_396836.log
+Using LabVIEW: "/usr/local/natinst/LabVIEW-2026-64/labviewprofull"
+LabVIEW launched successfully.
+Connection established with LabVIEW at port number 3363.
+
+Operation output: 
+#### Starting Mass Compile: Sun, Jun 28, 2026 04:52:06 PM
+  Directory: "/workspace"
+Search failed to find "Current VIs Parents Ref__ogtk.vi" previously from "/<userlib>/_OpenG.lib/appcontrol/appcontrol.llb/Current VIs Parents Ref__ogtk.vi"  +=+   Caller: "Configuration.lvlib:Configuration.lvclass:Initialize New Category Display.vi"
+Search failed to find "Create Dir if Non-Existant__ogtk.vi" previously from "/<userlib>/_OpenG.lib/file/file.llb/Create Dir if Non-Existant__ogtk.vi"  +=+   Caller: "Configuration.lvlib:Configuration.lvclass:Construct Configuration Object.vi"
+Search failed to find "Convert File Extension (Path)__ogtk.vi" previously from "/<userlib>/_OpenG.lib/file/file.llb/Convert File Extension (Path)__ogtk.vi"  +=+   Caller: "Configuration.lvlib:Configuration.lvclass:Construct Configuration Object.vi"
+Search failed to find "Convert File Extension__ogtk.vi" previously from "/<userlib>/_OpenG.lib/file/file.llb/Convert File Extension__ogtk.vi"  +=+   Caller: "Configuration.lvlib:Configuration.lvclass:Construct Configuration Object.vi"
+Search failed to find "Valid Path - Traditional__ogtk.vi" previously from "/<userlib>/_OpenG.lib/file/file.llb/Valid Path - Traditional__ogtk.vi"  +=+   Caller: "Configuration.lvlib:Configuration.lvclass:Construct Configuration Object.vi"
+Search failed to find "Valid Path__ogtk.vi" previously from "/<userlib>/_OpenG.lib/file/file.llb/Valid Path__ogtk.vi"  +=+   Caller: "Configuration.lvlib:Configuration.lvclass:Construct Configuration Object.vi"
+Search failed to find "File Exists - Scalar__ogtk.vi" previously from "/<userlib>/_OpenG.lib/file/file.llb/File Exists - Scalar__ogtk.vi"  +=+   Caller: "Configuration.lvlib:Configuration.lvclass:Construct Configuration Object.vi"
+Search failed to find "File Exists__ogtk.vi" previously from "/<userlib>/_OpenG.lib/file/file.llb/File Exists__ogtk.vi"  +=+   Caller: "Configuration.lvlib:Configuration.lvclass:Construct Configuration Object.vi"
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Initialize New Category Display.vi"	Path="/workspace/Methods/Initialize New Category Display.vi" 
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Display UI.vi"	Path="/workspace/Methods/Display UI.vi" 
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Construct Configuration Object.vi"	Path="/workspace/Methods/Construct Configuration Object.vi" 
+  ### Bad subVI: "Configuration.lvlib:Configuration.lvclass:Actor Core.vi"	Path="/workspace/Methods/Actor Core.vi" 
+  ### Bad subVI: "Actor Framework.lvlib:Actor.lvclass:Actor.vi"	Path="/usr/local/natinst/LabVIEW-2026-64/vi.lib/ActorFramework/Actor/Actor.vi" 
+/workspace/.github/labview/PrintToSingleFileHtml/PrintToSingleFileHtml.lvclass (PrintToSingleFileHtml.lvclass)
+    - The class expected to be at "/workspace/.github/labview/CoreOperation/CoreOperation.lvclass" was loaded from "/usr/local/natinst/share/nilvcli/Operations/CoreOperation/CoreOperation.lvclass".
+Search failed to find "LV AI Core.lvlib:XML generator.vi" previously from "/workspace/.github/labview/toimages/_ni/labview/lvctl/vis/LV AI Core/XML generator.vi"  +=+   Caller: "VI to XML.vi"
+  ### Bad VI:    "VI to XML.vi"	Path="/workspace/.github/labview/toimages/_ni/labview/lvctl/vis/VI to XML.vi" 
+Search failed to find "LV AI Core.lvlib:VI generator.vi" previously from "/workspace/.github/labview/toimages/_ni/labview/lvctl/vis/LV AI Core/VI generator.vi"  +=+   Caller: "XML to VI.vi"
+  ### Bad VI:    "XML to VI.vi"	Path="/workspace/.github/labview/toimages/_ni/labview/lvctl/vis/XML to VI.vi" 
+Search failed to find "Read Key (Variant)__ogtk.vi" previously from "/<userlib>/_OpenG.lib/variantconfig/variantconfig.llb/Read Key (Variant)__ogtk.vi"  +=+   Caller: "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Read Configuration Parameters.vi"
+Search failed to find "Write Key (Variant)__ogtk.vi" previously from "/<userlib>/_OpenG.lib/variantconfig/variantconfig.llb/Write Key (Variant)__ogtk.vi"  +=+   Caller: "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Store Configuration Parameters.vi"
+  ### Bad subVI: "Actor Framework.lvlib:Actor.lvclass:Actor.vi"	Path="/usr/local/natinst/LabVIEW-2026-64/vi.lib/ActorFramework/Actor/Actor.vi" 
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Initialize New Category Display.vi"	Path="/workspace/Methods/Initialize New Category Display.vi" 
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Display UI.vi"	Path="/workspace/Methods/Display UI.vi" 
+  ### Bad subVI: "Configuration.lvlib:Configuration.lvclass:Initialize Configuration Display.vi"	Path="/workspace/Methods/Initialize Configuration Display.vi" 
+  ### Bad subVI: "Configuration.lvlib:Configuration.lvclass:Actor Core.vi"	Path="/workspace/Methods/Actor Core.vi" 
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Construct Configuration Object.vi"	Path="/workspace/Methods/Construct Configuration Object.vi" 
+  ### Bad subVI: "Configuration.lvlib:Configuration.lvclass:Save Configuration.vi"	Path="/workspace/Methods/Save Configuration.vi" 
+  ### Bad subVI: "Configuration.lvlib:Configuration.lvclass:Load Configuration.vi"	Path="/workspace/Methods/Load Configuration.vi" 
+  ### Bad VI:    "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Read Configuration Parameters.vi"	Path="/workspace/Basic Configuration Dialog/Dialog Methods/Read Configuration Parameters.vi" 
+  ### Bad VI:    "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Store Configuration Parameters.vi"	Path="/workspace/Basic Configuration Dialog/Dialog Methods/Store Configuration Parameters.vi" 
+  ### Bad subVI: "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Example Panel 2.vi"	Path="/workspace/Basic Configuration Dialog/Dialog Methods/Example Panel 2.vi" 
+  ### Bad subVI: "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Example Panel 1.vi"	Path="/workspace/Basic Configuration Dialog/Dialog Methods/Example Panel 1.vi" 
+  ### Bad subVI: "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Store Static VI References for Subpanel.vi"	Path="/workspace/Basic Configuration Dialog/Dialog Methods/Store Static VI References for Subpanel.vi" 
+  ### Bad subVI: "Actor Framework.lvlib:Actor.lvclass:Actor.vi"	Path="/usr/local/natinst/LabVIEW-2026-64/vi.lib/ActorFramework/Actor/Actor.vi" 
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Initialize New Category Display.vi"	Path="/workspace/Methods/Initialize New Category Display.vi" 
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Display UI.vi"	Path="/workspace/Methods/Display UI.vi" 
+  ### Bad subVI: "Configuration.lvlib:Configuration.lvclass:Initialize Configuration Display.vi"	Path="/workspace/Methods/Initialize Configuration Display.vi" 
+  ### Bad subVI: "Configuration.lvlib:Configuration.lvclass:Actor Core.vi"	Path="/workspace/Methods/Actor Core.vi" 
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Construct Configuration Object.vi"	Path="/workspace/Methods/Construct Configuration Object.vi" 
+  ### Bad subVI: "Configuration.lvlib:Configuration.lvclass:Save Configuration.vi"	Path="/workspace/Methods/Save Configuration.vi" 
+  ### Bad subVI: "Configuration.lvlib:Configuration.lvclass:Load Configuration.vi"	Path="/workspace/Methods/Load Configuration.vi" 
+  ### Bad VI:    "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Read Configuration Parameters.vi"	Path="/workspace/Basic Configuration Dialog/Dialog Methods/Read Configuration Parameters.vi" 
+  ### Bad VI:    "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Store Configuration Parameters.vi"	Path="/workspace/Basic Configuration Dialog/Dialog Methods/Store Configuration Parameters.vi" 
+  ### Bad subVI: "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Example Panel 2.vi"	Path="/workspace/Basic Configuration Dialog/Dialog Methods/Example Panel 2.vi" 
+  ### Bad subVI: "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Example Panel 1.vi"	Path="/workspace/Basic Configuration Dialog/Dialog Methods/Example Panel 1.vi" 
+  ### Bad subVI: "Example Configuration Dialog.lvlib:Example Configuration Dialog.lvclass:Store Static VI References for Subpanel.vi"	Path="/workspace/Basic Configuration Dialog/Dialog Methods/Store Static VI References for Subpanel.vi" 
+  ### Bad subVI: "Launch Example Dialog.vi"	Path="/workspace/Basic Configuration Dialog/Dialog Methods/Launch Example Dialog.vi" 
+  ### Bad subVI: "Actor Framework.lvlib:Actor.lvclass:Actor.vi"	Path="/usr/local/natinst/LabVIEW-2026-64/vi.lib/ActorFramework/Actor/Actor.vi" 
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Initialize New Category Display.vi"	Path="/workspace/Methods/Initialize New Category Display.vi" 
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Display UI.vi"	Path="/workspace/Methods/Display UI.vi" 
+  ### Bad subVI: "Configuration.lvlib:Configuration.lvclass:Actor Core.vi"	Path="/workspace/Methods/Actor Core.vi" 
+  ### Bad VI:    "Configuration.lvlib:Configuration.lvclass:Construct Configuration Object.vi"	Path="/workspace/Methods/Construct Configuration Object.vi" 
+  ### Bad subVI: "TESTING ONLY.vi"	Path="/workspace/TESTING ONLY.vi" 
+#### Finished Mass Compile: Sun, Jun 28, 2026 04:52:14 PM
+
+MassCompile operation failed.
+
