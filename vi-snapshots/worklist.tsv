@@ -1,8 +1,8 @@
-681d0b64230693dec23d5dd2d4f979e8c0bd397e	Accessors/Read Configuration File Path.vi
-e039652b1cddc967b21a92f3dddb745702573458	Accessors/Read VI to Display.vi
-634ac241016f3151d6a8d166be958923af6d7b20	Accessors/Write Canceled_.vi
-5d2b1ef390f2fb94c91d8b95e08084df9aab33ee	Accessors/Write Configuration File Path.vi
-6d0834ef5ece9ea63206c6f3a264e3ac082b8aa2	Accessors/Write VI to Display.vi
+d28642b756814fbcb52fa626cee1e487a6793bd8	Accessors/Read Configuration File Path.vi
+28756855a2d8cd7fd80029352726bd0e453614d7	Accessors/Read VI to Display.vi
+4ba6dcce2c0dc5b706acffd4a316961dc8e8b05a	Accessors/Write Canceled_.vi
+32db64860d7b4925afea8cbd02e1641899aa2421	Accessors/Write Configuration File Path.vi
+fce87ffbd0a272fcb1991df22a76c5cb80818efe	Accessors/Write VI to Display.vi
 ce8f35c29334c81672b17ff41ec0c8fbed229dd9	Basic Configuration Dialog/Dialog Methods/Delete Selected Path from List.vi
 c84c400c618110926b0a5006012bd7c23a050dc2	Basic Configuration Dialog/Dialog Methods/Example Panel 1.vi
 9639d69e0b0c63cc31876521e11c55864cd60839	Basic Configuration Dialog/Dialog Methods/Example Panel 2.vi
@@ -11,25 +11,25 @@ d475f0049d32d21e6a5638225b752ac0a67e15f1	Basic Configuration Dialog/Dialog Metho
 d5b81fd470eae491e6af90bead4eb4f371224ab9	Basic Configuration Dialog/Dialog Methods/Read Configuration Parameters.vi
 b2dc774adec30416dbbb94dca30540df8260943f	Basic Configuration Dialog/Dialog Methods/Store Configuration Parameters.vi
 0234555b195ee2cc0b6bdf75264dfe0e49beb809	Basic Configuration Dialog/Dialog Methods/Store Static VI References for Subpanel.vi
-fe571887557acf99ce82f58c9acb4af5295f747d	Configuration Messages/Display Help for Selected Category Msg/Do.vi
-1fad03871ef6cb3e3a7eebbc4456510ddd23a951	Configuration Messages/Display Help for Selected Category Msg/Send Display Help for Highlighted Category.vi
-9f7d50acd86a0028ae759dcb83451a7cdd016249	Configuration Messages/Display New Configuration SubPanel Msg/Do.vi
-809a579af48ddbd0033908766335fe1bc3d705d4	Configuration Messages/Display New Configuration SubPanel Msg/Send Display New Configuration SubPanel.vi
-d3bf54410fae60502a246f1986a959cf5185bff0	Methods/Actor Core.vi
-6a2d74f589adefdcd0e247eac0769092d41b72bf	Methods/Construct Configuration Object.vi
-54a23e77e7b2e7fcd521e87a9233ab3da797643d	Methods/Display Help Dialog.vi
-56d5b62faaef2681b825379d7a059aaf956da6ca	Methods/Display Help for Selected Category.vi
-d441c52a71ec1f6e1f27582e552622f2f01ffbdd	Methods/Display New Configuration SubPanel.vi
-5a139394205795cca5ffb00e8e3e54734f1ef957	Methods/Display UI.vi
-9f1cd2c09faf10bb47abafe9f611a91d6983fb9e	Methods/Initialize Configuration Display.vi
-d8ccc117ba4e99a1e376bbfb82e23a9e83823672	Methods/Initialize New Category Display.vi
-c748f257da566aeef3d98c0aeabe1531e9e99945	Methods/Load Configuration.vi
-d411211ec78ac30d97baee7a09fecb4754f33297	Methods/Read Configuration Parameters.vi
-beb52e586a936a0525daf2e2d009019d3a69a0c8	Methods/Retrieve Category SubPanel Information.vi
-7645e507ce5d4e88ec291bd3c14c6ea73c507571	Methods/Save Configuration.vi
-9b03d91380362d97a7946ebe6fd3ae90bc07ef8f	Methods/Stop Core.vi
-a0c9555868049b82d4f0e769910a016fc8a7e26f	Methods/Store Configuration Parameters.vi
-e1603267e20d6918a818dd4270c345664e318acc	Methods/Store New VI for Category List.vi
-c29942de7ffb11e139fd2b821d9831d1253003e5	Methods/Store Static VI References for Subpanel.vi
-62ae7b744eb1bfdfa777dd092dd723a08f78ae00	Read Canceled_.vi
+82c6fce70cc087f7625876c52d76a90ddbe75d8a	Configuration Messages/Display Help for Selected Category Msg/Do.vi
+8129655a65641c333a0bc0342e7c6f44243933b8	Configuration Messages/Display Help for Selected Category Msg/Send Display Help for Highlighted Category.vi
+f31d1c2842d81a0576d249a85b191bfb49adfbb5	Configuration Messages/Display New Configuration SubPanel Msg/Do.vi
+30154ca6e8cd11df0786b7ac9dcf3609909d295e	Configuration Messages/Display New Configuration SubPanel Msg/Send Display New Configuration SubPanel.vi
+ac98d25a3a7f0c64fffb4493aeec1b10673c3461	Methods/Actor Core.vi
+4e56384c507d582b055468416ce84cb72bee7a1b	Methods/Construct Configuration Object.vi
+53aaf15de406dc89c1a9b8b5697693f69bf494a4	Methods/Display Help Dialog.vi
+087938e9b5fc2ce6b048a3f5552c4193cc4186f1	Methods/Display Help for Selected Category.vi
+86f973eea544bc3226e68ea4eb564d5b6a40383a	Methods/Display New Configuration SubPanel.vi
+1895484a006d153cf4b1bd3aff5488c61c212464	Methods/Display UI.vi
+77e3bb2a93649937b91d3e12b1b34342828d1f3e	Methods/Initialize Configuration Display.vi
+ed69b6b9a59a3cfa400ad6ce2938aaf216ecb588	Methods/Initialize New Category Display.vi
+62c422deb0744ea94e50293cc2b33060e489bc42	Methods/Load Configuration.vi
+289b0dfd92ff7e5a405f2b6c8e704d5a2d01499c	Methods/Read Configuration Parameters.vi
+319f05563a523cb30df3374a340846d3a1d086d5	Methods/Retrieve Category SubPanel Information.vi
+06aca21165a3d6e3046f88aa3c3bc85fbd23c806	Methods/Save Configuration.vi
+0678a3dc9281747d0e8f7036289a6f2463259d9d	Methods/Stop Core.vi
+83deef9e2b3c7978f7ac195e251d50e3619ac2d7	Methods/Store Configuration Parameters.vi
+3671635bcf860f662c7335dbdb7ca665a822615d	Methods/Store New VI for Category List.vi
+4dc7c77bed349cb84c8b09f8bd40295716d0ba9c	Methods/Store Static VI References for Subpanel.vi
+a8f385632dce858f2f8c0fef6294938e14414a4b	Read Canceled_.vi
 d992d3da3745e199cd08f8923970e00df5364c66	TESTING ONLY.vi
