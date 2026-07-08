@@ -23,7 +23,7 @@ on:
       - '**.lvtest'
       - '!.github/**'
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - '**.vi'
       - '**.lvclass'

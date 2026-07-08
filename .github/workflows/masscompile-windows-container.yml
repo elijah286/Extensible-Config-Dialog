@@ -11,7 +11,7 @@ on:
       - '**.lvclass'
       - '!.github/**'
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - '**.vi'
       - '**.ctl'

@@ -12,7 +12,7 @@ run-name: Publish configurator site - ${{ github.event_name == 'workflow_dispatc
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - '.github/pages/integrate.html'
       - '.github/pages/configure.html'

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "4.2.0",
+  "version": "4.4.4",
   "name": "LabVIEW CI",
   "description": "Portable, repo-agnostic CI/CD capabilities for LabVIEW repositories: mass compile, VI Analyzer, VIDiff comparison reports, VI snapshots / VI Browser, and a status dashboard. Driven entirely by this catalog so the configurator UI and the installer stay in sync and new capabilities are a one-entry change.",
   "installPause": {
@@ -11,6 +11,62 @@
   "history": {
     "comment": "Release notes for the tooling, newest first. `version` (above) is the CURRENT published release and MUST equal releases[0].version. The dashboard version badge and the What's New dialog read these notes to tell a consumer what changed between the version they run and the latest this source repo publishes. Each published version should also be tagged v<version> in this repo so consumers can pin an update to a specific release.",
     "releases": [
+      {"version": "4.4.4", "date": "2026-07-08", "notes": "Windows worker image build now fails fast when the headless VIPM engine wedges: install-vipc.ps1 treats any full VIPM_TIMEOUT install timeout (an operation-timed-out message or CLI exit 124) as a dead engine, so a stuck engine aborts in seconds instead of stacking a 900s timeout per package into a multi-hour build"},
+      {"version": "4.4.3", "date": "2026-07-08", "notes": "Dependencies page now shows a live progress bar for the container update: after you click \"Run the container update\" (or on page load while a build is running) it tracks the Build LabVIEW CI Image run through queued, building (step N of M), and complete/failed"},
+      {"version": "4.4.2", "date": "2026-07-07", "notes": "Dashboard now shows a dismissible update-available banner under the header on client repos when a newer version of the tooling has been released, nudging the repo owner to review What's new and upgrade; the notice reappears when a further version ships"},
+      {"version": "4.4.1", "date": "2026-07-07", "notes": "Dependencies page: the \"Run the container update\" button now dispatches the Build LabVIEW CI Image workflow directly with your chosen update_mode (replace or new) using your saved token, instead of only linking to the Actions tab"},
+      {"version": "4.4.0", "date": "2026-07-06", "notes": "Mass Compile dashboard column now colours the compiled-percentage pill by configurable thresholds (green >= 95%, yellow >= 80%, red below 80%, set in .github/labview-ci.yml under massCompile.thresholds.compiledPercent) and draws a true compile failure as a solid, filled bright-red pill"},
+      {"version": "4.3.5", "date": "2026-07-06", "notes": "Fix the Linux worker image build (apply dependencies) failing with \".github/labview/vipm-linux not found\": the VIPC bake now reads the staged .github/labview/vipm directory that the build writes to"},
+      {"version": "4.3.4", "date": "2026-06-30", "notes": "Mass Compile two-number pill colours Windows and Linux percentages separately and shows an instant Windows/Linux mouse-over on each"},
+      {"version": "4.3.3", "date": "2026-06-29", "notes": "Unit Tests capability card now lists all four supported frameworks (Caraya, LUnit, JKI VI Tester, NI UTF)"},
+      {"version": "4.3.2", "date": "2026-06-28", "notes": "Mass Compile dashboard cell now shows Windows/Linux as a two-number pill"},
+      {
+        "version": "4.3.1",
+        "date": "2026-06-28",
+        "title": "Populate history can re-run an in-flight activity",
+        "type": "patch",
+        "summary": "The Populate history dialog no longer greys out an activity whose cell is currently queued or running. A queued/running cell is now tagged so the dialog counts it as in scope, so Mass Compile (and any other activity) stays re-runnable while a run is in flight instead of showing none in scope. Re-run replaces the in-flight run via the workflow concurrency group; Fill still leaves running cells alone.",
+        "highlights": [
+          "Queued/running cells gain cidash-active-cell tags so Re-run is offered for in-flight activities, not just empty or finished ones.",
+          "Fixes Mass Compile, Unit Tests, and Antidoc showing none in scope with Re-run greyed while their run was queued."
+        ]
+      },
+      {
+        "version": "4.3.0",
+        "date": "2026-06-25",
+        "title": "Warm-container history backfills",
+        "type": "minor",
+        "summary": "Populate history can now reuse one warm container across many revisions for Mass Compile, VI Analyzer, Unit Tests, and Antidoc on Windows, paying the slow image pull and LabVIEW cold-start once for the whole batch instead of once per revision. The option is off by default and clearly warned because container state carries over between revisions.",
+        "highlights": [
+          "Adds opt-in warm-container backfill workflows and scripts for Mass Compile, VI Analyzer, Unit Tests, and Antidoc that walk a revision list through a single container, resumable via a skip-list and a time budget.",
+          "Adds a 'keep one container warm across revisions' checkbox to the Populate history chooser -- off by default, with a red warning that state carries over between revisions.",
+          "Shows a live, history-driven estimate in the chooser comparing fresh vs warm-batch compute time so the saving is visible before you queue."
+        ]
+      },
+      {
+        "version": "4.2.2",
+        "date": "2026-06-28",
+        "title": "Apply to New Repo now prunes obsolete vendored tooling files",
+        "type": "patch",
+        "summary": "Re-applying the tooling with the browser \"Apply to New Repo\" installer now mirrors each vendored tooling directory against the source: any file the current tooling no longer ships is removed from the repository (the consumer's own preserved config is kept). This matches what one-click \"Update now\" already did, and fixes a Windows VI Browser 2.0 render failure where an obsolete Go source (viserver_windows.go and its siblings) lingered alongside the cross-platform replacement and produced duplicate-declaration build errors.",
+        "highlights": [
+          "The browser installer deletes target files under each installed tooling directory that the source has removed, so a re-Apply leaves no orphans -- matching install.py --update.",
+          "Preserved user-config files (e.g. .github/labview/vipm/ci-tooling.vipc) are never pruned.",
+          "Resolves the 'Session/viGetCtrlVariant redeclared in this block' Go build error on the Windows VI Browser 2.0 render after a stale viserver_windows.go was left behind by an older install."
+        ]
+      },
+      {
+        "version": "4.2.1",
+        "date": "2026-06-28",
+        "title": "Installer stops the false 'install already in progress' warning",
+        "type": "patch",
+        "summary": "The Apply to a new repository installer no longer blocks a fresh install with 'an install already in progress' when nothing is actually running. It now treats live GitHub state as authoritative: a finished, merged install leaves its ci/install-labview-ci branch behind (GitHub does not delete the head branch on merge by default), and that leftover branch is no longer mistaken for an install in flight. Stale local records from an abandoned attempt or a closed tab are forgotten instead of nagging, and a local record only blocks while its dashboard is genuinely still publishing -- now verified against the live catalog.json.",
+        "highlights": [
+          "A leftover ci/install-labview-ci branch whose pull request has already merged or closed is treated as harmless debris (the next install fast-forwards it), not as an install still in progress.",
+          "The installer warns only on an open install pull request or an install branch whose pull request has not yet merged/closed; everything else is cleared against live GitHub state.",
+          "A stale local install record that GitHub contradicts is forgotten, and a 'publishing' record only blocks while the live dashboard catalog has not yet reached the installed version."
+        ]
+      },
       {
         "version": "4.2.0",
         "date": "2026-06-27",
@@ -3994,7 +4050,7 @@
     {
       "id": "unit-tests",
       "name": "Unit Tests",
-      "summary": "Run a LabVIEW unit-test framework (e.g. Caraya or VI Tester) in CI and publish pass/fail results to the dashboard.",
+      "summary": "Run a LabVIEW unit-test framework (Caraya, LUnit, JKI VI Tester, or the NI Unit Test Framework) in CI and publish pass/fail results to the dashboard.",
       "status": "stable",
       "recommended": false,
       "supportsOs": [
@@ -4016,7 +4072,7 @@
         ],
         "linux": []
       },
-      "notes": "Runs the configured LabVIEW unit-test frameworks (Caraya, JKI VI Tester) headlessly in the Windows worker via g-cli, normalises their JUnit output into one report, and links each failing test to the VI under test in the VI Browser. Windows-only because Caraya and VI Tester are VIPM packages; choose which tools run and where their tests live on the Unit Testing page. NI UTF headless execution is scaffolded (coming soon)."
+      "notes": "Runs the configured LabVIEW unit-test frameworks headlessly in the Windows worker, normalises their JUnit output into one report, and links each failing test to the VI under test in the VI Browser. Supports Caraya, LUnit, JKI VI Tester, and the NI Unit Test Framework. Windows-only because the frameworks ship as VIPM packages; choose which tools run and where their tests live on the Unit Testing page."
     },
     {
       "id": "antidoc",

@@ -7,7 +7,7 @@ on:
   # Re-render after a script/tooling update from the dashboard's "Run all history"
   # prompt or workflow_dispatch.
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - '**.vi'
       - '**.ctl'
