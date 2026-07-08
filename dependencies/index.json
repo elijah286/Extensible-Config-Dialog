@@ -1,8 +1,15 @@
 {
   "schema": 1,
   "repo": "elijah286/Extensible-Config-Dialog",
-  "sha": "5abf30f1646dae15885c570804c5acfc426085fc",
+  "sha": "06f73c85b27b9c33921c046aa6b4e2b0b873f48c",
   "revisions": [
+    {
+      "sha": "06f73c85b27b9c33921c046aa6b4e2b0b873f48c",
+      "short": "06f73c8",
+      "message": "ci: adopt LabVIEW CI tooling v4.4.4 (full update)",
+      "author": "github-actions[bot]",
+      "date": "2026-07-08T20:07:31Z"
+    },
     {
       "sha": "5abf30f1646dae15885c570804c5acfc426085fc",
       "short": "5abf30f",

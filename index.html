@@ -102,11 +102,39 @@
     .cidash-chip.cc-fail{background:rgba(248,81,73,.16);color:#f85149;border-color:rgba(248,81,73,.4)}
     .cidash-chip.cc-warn{background:rgba(210,153,34,.16);color:#d29922;border-color:rgba(210,153,34,.35)}
     .cidash-chip.cc-info{background:rgba(56,139,253,.16);color:#58a6ff;border-color:rgba(56,139,253,.3)}
+    /* Solid pill: a hard failure (e.g. a Mass Compile run LabVIEW could not
+       complete) fills the pill with a bright, saturated red so it stands out
+       from a merely low percentage (which stays a subtly-tinted red). */
+    .cidash-chip.cc-fail.cc-solid{background:#da3633;color:#fff;border-color:#da3633}
+    .cidash-chip.cc-fail.cc-solid svg{color:#fff}
+    /* Split pill: a neutral container whose individual values colour themselves
+       (used when one cell reports two values that can differ in state, e.g. the
+       Windows / Linux mass-compile percentages). Each value has an instant
+       (no-delay) mouse-over naming its platform via data-tip. */
+    .cidash-chip.cc-split{background:rgba(110,118,129,.14);color:var(--fg-muted);border-color:rgba(110,118,129,.32)}
+    .cidash-chip .cidash-vseg{position:relative;font-weight:700}
+    .cidash-chip .cidash-vseg.cc-pass{color:#3fb950}
+    .cidash-chip .cidash-vseg.cc-fail{color:#f85149}
+    .cidash-chip .cidash-vseg.cc-warn{color:#d29922}
+    /* A hard-failed segment in a split pill is filled bright red (a small solid
+       badge) so it reads as a failure, not just a low number. */
+    .cidash-chip .cidash-vseg.cc-fail.cc-solid{background:#da3633;color:#fff;padding:1px 7px;border-radius:6px}
+    .cidash-chip .cidash-vseg-sep{opacity:.5;margin:0 4px;font-weight:400}
+    .cidash-chip .cidash-vseg[data-tip]:hover::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 7px);transform:translateX(-50%);background:#1c2128;color:#e6edf3;border:1px solid #30363d;padding:2px 7px;border-radius:6px;font-size:.95em;font-weight:600;white-space:nowrap;pointer-events:none;z-index:30;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+    .cidash-chip .cidash-vseg[data-tip]:hover::before{content:"";position:absolute;left:50%;bottom:calc(100% + 2px);transform:translateX(-50%);border:5px solid transparent;border-top-color:#30363d;pointer-events:none;z-index:30}
     @media(prefers-color-scheme:light){
       .cidash-chip.cc-pass{background:#dafbe1;color:#1a7f37;border-color:#2da44e55}
       .cidash-chip.cc-fail{background:#ffebe9;color:#cf222e;border-color:#cf222e44}
       .cidash-chip.cc-warn{background:#fff8c5;color:#9a6700;border-color:#9a670055}
       .cidash-chip.cc-info{background:#ddf4ff;color:#0969da;border-color:#0969da44}
+      .cidash-chip.cc-split{background:#eaeef2;color:#57606a;border-color:#d0d7de}
+      .cidash-chip.cc-fail.cc-solid{background:#cf222e;color:#fff;border-color:#cf222e}
+      .cidash-chip .cidash-vseg.cc-pass{color:#1a7f37}
+      .cidash-chip .cidash-vseg.cc-fail{color:#cf222e}
+      .cidash-chip .cidash-vseg.cc-warn{color:#9a6700}
+      .cidash-chip .cidash-vseg.cc-fail.cc-solid{background:#cf222e;color:#fff}
+      .cidash-chip .cidash-vseg[data-tip]:hover::after{background:#fff;color:#1f2328;border-color:#d0d7de;box-shadow:0 2px 8px rgba(140,149,159,.35)}
+      .cidash-chip .cidash-vseg[data-tip]:hover::before{border-top-color:#d0d7de}
     }
     /* VIDiff "diff stat": different / new / deleted VI counts for a revision.
        Colour-coded modified-amber / added-green / deleted-red with grey slashes;
@@ -243,6 +271,7 @@
   <script>
   (function(){
     var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "backfill"}}}}, "snapshots2": {"label": "VI Browser 2.0 Snapshots", "platforms": {"windows": {"wf": "vi-snapshots-json-windows.yml", "inputs": {"target_sha": "{sha}"}}, "linux": {"wf": "vi-snapshots-json.yml", "inputs": {"mode": "head", "target_sha": "{sha}"}}}}, "unit-tests": {"label": "Unit Tests", "platforms": {"windows": {"wf": "unit-tests-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}}}};
+    var RT_TIMING = {"masscompile": {"windows": {"total": 456.0, "work": 17.0}, "linux": {"total": 43.5, "work": 17.0}}, "vi-analyzer": {"windows": {"total": 27.0, "work": null}}, "vidiff": {"windows": {"total": 788.0, "work": null}, "linux": {"total": 65.0, "work": null}}, "snapshots2": {"windows": {"total": 68.0, "work": null}, "linux": {"total": 82.0, "work": null}}, "unit-tests": {"windows": {"total": null, "work": null}}};
     var REPO = "elijah286/Extensible-Config-Dialog";
     var BRANCH = "master";
     var TOK_KEY = "lvci_dispatch_token";
@@ -991,7 +1020,8 @@
       if(has(422)) return { html:'GitHub rejected the dispatch (HTTP 422) \u2014 usually a bad branch ref (<code>'+esc(BRANCH)+'</code>) or inputs.', tok:false };
       var st=(fails[0]||{}).status; return { html:'Could not queue runs (HTTP '+esc(String(st||'?'))+'). <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View Actions \u2197</a>', tok:false };
     }
-    function dispatchCells(cells, statusFn){
+    function dispatchCells(cells, statusFn, opts){
+      opts = opts || {}; var reuse = !!opts.reuse;
       var perRev=[]; var snapShas=[]; var sawSnap=false; var snapForce=false;
       cells.forEach(function(x){
         if(x.cap==='snapshots'){
@@ -1001,14 +1031,37 @@
         else if(!(x.cap==='vidiff' && !x.parent)){ perRev.push(x); }   // a root commit has no base to diff
       });
       perRev.sort(function(a,b){ return b.order - a.order; });   // oldest first
-      var total=perRev.reduce(function(n,x){ return n + cellPlatforms(x).length; }, 0) + (sawSnap?1:0);
+      // Warm-container batch routing: when "keep one container warm" is on, every
+      // (cap, platform) that exposes a 'batch' backfill workflow is collapsed into
+      // ONE dispatch carrying the whole oldest→newest SHA list, so a single warm
+      // container renders every selected revision (docker exec per commit) instead
+      // of a fresh container per revision. A cell's platforms WITHOUT a batch
+      // target (e.g. Linux) keep dispatching per revision. x._plats holds the
+      // per-revision platforms that survive after batch ones are siphoned off.
+      var batchGroups={}; var batchOrder=[];
+      perRev.forEach(function(x){
+        var keep=[];
+        cellPlatforms(x).forEach(function(plat){
+          var p=(RT[x.cap] && RT[x.cap].platforms) ? RT[x.cap].platforms[plat] : null;
+          if(reuse && p && p.batch){
+            var key=x.cap+'|'+plat; var g=batchGroups[key];
+            if(!g){ g={cap:x.cap, plat:plat, wf:p.batch.wf, shasInput:(p.batch.shas_input||'shas'), shas:[], force:false}; batchGroups[key]=g; batchOrder.push(key); }
+            if(g.shas.indexOf(x.sha)<0) g.shas.push(x.sha);
+            if(x.mode==='rerun' || x.done) g.force=true;
+          } else { keep.push(plat); }
+        });
+        x._plats=keep;
+      });
+      var perRevActive=perRev.filter(function(x){ return x._plats.length>0; });
+      var total=perRevActive.reduce(function(n,x){ return n + x._plats.length; }, 0) + (sawSnap?1:0) + batchOrder.length;
       var t0=Date.now(); var ok=0, err=0, done=0; var fails=[];
       // Paint EVERY targeted cell as "Queued" up front, in one synchronous pass, so
       // the whole batch lights up the instant you click - independent of the throttled
       // dispatch chain below. A dispatch that truly fails then reverts just its own
       // cell, and a thrown error mid-chain can no longer leave the earlier cells un-queued.
       if(sawSnap){ snapShas.forEach(function(sha){ markQueued('snapshots', sha, ['all'], '', t0); }); }
-      perRev.forEach(function(x){ var d=RT[x.cap]; if(d) markQueued(x.cap, x.sha, cellPlatforms(x), x.parent, t0); });
+      batchOrder.forEach(function(key){ var g=batchGroups[key]; g.shas.forEach(function(sha){ markQueued(g.cap, sha, [g.plat], '', t0); }); });
+      perRevActive.forEach(function(x){ var d=RT[x.cap]; if(d) markQueued(x.cap, x.sha, x._plats, x.parent, t0); });
       statusFn('Queuing '+total+' workflow'+(total>1?'s':'')+'\u2026', null);
       var chain=Promise.resolve();
       // 1) Snapshots — one backfill run for the whole history (oldest→newest, deduped).
@@ -1023,11 +1076,26 @@
           }).catch(function(){ err++; });
         });
       }
-      // 2) Per-revision capabilities, oldest first, gently throttled.
-      perRev.forEach(function(x){
+      // 2) Warm-container batch runs — one dispatch per (cap, platform) carrying the
+      // whole SHA list; the backfill workflow walks them oldest→newest in one
+      // container. force=true when any selected revision is a re-run/already done.
+      batchOrder.forEach(function(key){
+        var g=batchGroups[key];
+        chain=chain.then(function(){
+          var inputs={}; inputs[g.shasInput]=g.shas.join(' '); if(g.force) inputs.force='true';
+          return dispatchOne(g.wf, inputs).then(function(r){
+            done++;
+            if(r.ok){ ok++; }
+            else { err++; fails.push({wf:g.wf, status:r.status}); if(r.status===401) clearTok(); g.shas.forEach(function(sha){ qForget(g.cap, sha); }); }
+            statusFn('Queuing\u2026 '+done+'/'+total, null);
+          }).catch(function(){ err++; });
+        }).then(function(){ return new Promise(function(res){ setTimeout(res, 650); }); });
+      });
+      // 3) Per-revision capabilities, oldest first, gently throttled.
+      perRevActive.forEach(function(x){
         chain=chain.then(function(){
           var def=RT[x.cap]; if(!def){ return; }
-          var plats=cellPlatforms(x);
+          var plats=x._plats;
           var jobs=plats.map(function(k){
             var p=def.platforms[k]; var inputs=bfInputs(p, x.sha, x.parent);
             if(x.cap==='snapshots2' && (x.mode==='rerun' || x.done)) inputs.force='true';
@@ -1142,12 +1210,73 @@
     }
     function histTokPanel(show){ var p=document.getElementById('cidash-hist-tok'); if(p) p.style.display = show ? 'block' : 'none'; }
     var actMode = {};                           // cap -> 'off' | 'fill' | 'rerun' (per-activity choice)
+    var reuseWarm = false;                       // opt-in: keep ONE container warm across the queued revisions
+    // ── Warm-container reuse + time estimate ───────────────────────────────
+    // A (cap, platform) is "batch-capable" when its run target carries a 'batch'
+    // backfill workflow (Windows only for now). The reuse toggle is only offered
+    // when at least one installed activity is batch-capable, and only batch-capable
+    // platforms actually collapse into a single warm-container run.
+    function capBatchPlatforms(capId){
+      var def=RT[capId]; if(!def || !def.platforms) return [];
+      return Object.keys(def.platforms).filter(function(k){ return !!(def.platforms[k] && def.platforms[k].batch); });
+    }
+    function anyBatchAvailable(){ return histInstalledCaps().some(function(c){ return capBatchPlatforms(c).length>0; }); }
+    // Default per-platform fallbacks (seconds) used only until a repo has run
+    // history to measure from. Windows containers are the slow case this feature
+    // targets; Linux start in seconds.
+    var TIMING_DEFAULT = { windows:{ startup:600, work:120 }, linux:{ startup:45, work:90 }, all:{ startup:120, work:90 } };
+    function timingFor(cap, plat){
+      // Returns {startup, work} seconds for one (cap, platform), derived from the
+      // server-injected medians (work = in-container compile time; total = whole
+      // run wall-clock; startup = total - work). Falls back to platform defaults.
+      var d=TIMING_DEFAULT[plat] || TIMING_DEFAULT.windows;
+      var t=(RT_TIMING && RT_TIMING[cap] && RT_TIMING[cap][plat]) ? RT_TIMING[cap][plat] : null;
+      var work = (t && t.work>0) ? t.work : d.work;
+      var startup;
+      if(t && t.total>0){ startup = Math.max(20, t.total - work); }
+      else { startup = d.startup; }
+      return { startup:startup, work:work, measured: !!(t && t.total>0) };
+    }
+    function fmtDur(sec){
+      sec=Math.max(0, Math.round(sec));
+      var h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60);
+      if(h>0) return h+'h'+(m>0?(' '+m+'m'):'');
+      if(m>0) return m+'m';
+      return sec+'s';
+    }
+    function histEstimate(){
+      // Fresh vs warm-batch total compute time for the cells about to be queued.
+      // Fresh: every (cell, platform) pays startup+work. Warm: batch-capable
+      // (cap, platform) groups pay startup ONCE + work per revision; everything
+      // else is unchanged. Returns null when nothing measurable is selected.
+      var cells=histCells(); if(!cells.length) return null;
+      var fresh=0, warm=0, anyMeasured=false, anyBatch=false;
+      var groups={};   // cap|plat -> count (batch-capable, warm only)
+      cells.forEach(function(x){
+        if(x.cap==='snapshots') return;   // snapshots are already one backfill run
+        cellPlatforms(x).forEach(function(plat){
+          var tm=timingFor(x.cap, plat); if(tm.measured) anyMeasured=true;
+          fresh += tm.startup + tm.work;
+          var p=(RT[x.cap]&&RT[x.cap].platforms)?RT[x.cap].platforms[plat]:null;
+          if(reuseWarm && p && p.batch){
+            anyBatch=true; var key=x.cap+'|'+plat;
+            if(!groups[key]){ groups[key]={tm:tm, n:0}; }
+            groups[key].n++;
+          } else {
+            warm += tm.startup + tm.work;
+          }
+        });
+      });
+      Object.keys(groups).forEach(function(key){ var g=groups[key]; warm += g.tm.startup + g.n*g.tm.work; });
+      return { fresh:fresh, warm:warm, anyMeasured:anyMeasured, anyBatch:anyBatch };
+    }
     function histAllCells(){
       // EVERY per-revision activity cell on the table, tagged empty (a never-run run
       // glyph) vs done (a cell that already carries a result). bfCells() sees only the
       // empty glyphs; gathering the result cells too is what lets this dialog RE-RUN
-      // an activity, not just fill the blanks. Active (queued/running) cells carry no
-      // data attributes and so are skipped - you can't re-queue what's already running.
+      // an activity, not just fill the blanks. A queued/running cell (cidash-active-cell)
+      // is gathered too as "done" so an in-flight activity stays re-runnable (the new run
+      // replaces it via concurrency) instead of showing "none in scope".
       var out=[]; var rows=document.querySelectorAll('tbody tr[data-project]');
       Array.prototype.forEach.call(rows, function(tr, idx){
         Array.prototype.forEach.call(tr.querySelectorAll('a.cidash-run'), function(a){
@@ -1158,6 +1287,10 @@
           var done = td.getAttribute('data-done') === 'false' ? false : true;
           out.push({ cap:td.getAttribute('data-cap'), sha:td.getAttribute('data-sha'),
                      parent:td.getAttribute('data-parent')||'', order:idx, done:done });
+        });
+        Array.prototype.forEach.call(tr.querySelectorAll('td.cidash-active-cell'), function(td){
+          out.push({ cap:td.getAttribute('data-cap'), sha:td.getAttribute('data-sha'),
+                     parent:td.getAttribute('data-parent')||'', order:idx, done:true });
         });
       });
       if(RT.snapshots2){
@@ -1279,10 +1412,19 @@
         var row=document.getElementById('cidash-hist-actrow-'+cap); if(row) row.classList.toggle('skip', mode==='off');
       });
       var cells=histCells();
-      var shas={}; var snaps=0; var perRev=0; var anyRe=false;
-      cells.forEach(function(x){ shas[x.sha]=1; if(x.cap==='snapshots') snaps=1; else perRev++; if(x.done) anyRe=true; });
-      var runs=perRev + snaps;   // snapshots collapse into one backfill run
+      var shas={}; var snaps=0; var perRevRuns=0; var anyRe=false; var groupKeys={};
+      cells.forEach(function(x){
+        shas[x.sha]=1; if(x.done) anyRe=true;
+        if(x.cap==='snapshots'){ snaps=1; return; }
+        cellPlatforms(x).forEach(function(plat){
+          var p=(RT[x.cap]&&RT[x.cap].platforms)?RT[x.cap].platforms[plat]:null;
+          if(reuseWarm && p && p.batch){ groupKeys[x.cap+'|'+plat]=1; }   // one warm-container run per (cap,platform)
+          else { perRevRuns++; }
+        });
+      });
+      var runs=perRevRuns + Object.keys(groupKeys).length + snaps;
       var nrev=Object.keys(shas).length;
+      var est=histEstimate();
       var sum=document.getElementById('cidash-hist-summary');
       if(sum){
         if(!HIST.length){ sum.innerHTML='No project revisions to populate yet \u2014 commit some VIs first.'; }
@@ -1293,9 +1435,23 @@
           else if(anyOn){ sum.innerHTML='Nothing to queue for the selected revisions and activities.'; }
           else { sum.innerHTML='Pick at least one activity below \u2014 every one is set to <b>Skip</b>.'; }
         } else {
+          // Live, history-driven time estimate. When the warm-container option is on
+          // and at least one activity is batch-capable, show Fresh vs Warm compute
+          // and the saving; otherwise show the single estimate and nudge the option.
+          var estHtml='';
+          if(est){
+            if(reuseWarm && est.anyBatch){
+              estHtml = ' <span style="color:var(--fg-muted)">Est. compute: warm <b>'+fmtDur(est.warm)+'</b> vs fresh '+fmtDur(est.fresh)+' \u2014 saves \u2248 <b>'+fmtDur(Math.max(0,est.fresh-est.warm))+'</b> (runs serially in one container).</span>';
+            } else {
+              estHtml = ' <span style="color:var(--fg-muted)">Est. compute \u2248 '+fmtDur(est.fresh)
+                + (anyBatchAvailable()?' \u2014 tick \u201ckeep one container warm\u201d below to cut the repeated startup':'')+'.</span>';
+            }
+            if(!est.anyMeasured) estHtml += ' <span style="color:var(--fg-muted)">(approximate \u2014 no run history yet)</span>';
+          }
           sum.innerHTML='Will queue <b>'+runs+'</b> run'+(runs>1?'s':'')+' across <b>'+nrev+'</b> revision'+(nrev>1?'s':'')+', oldest first.'
             + (anyRe?' <span style="color:var(--fg-muted)">Re-runs replace the existing result.</span>':'')
-            + (runs>=20?' <span style="color:var(--fg-muted)">They queue and run in order, paced by your concurrency limit.</span>':'');
+            + (runs>=20 && !reuseWarm?' <span style="color:var(--fg-muted)">They queue and run in order, paced by your concurrency limit.</span>':'')
+            + estHtml;
         }
       }
       var go=document.getElementById('cidash-hist-go'); if(go) go.disabled = !runs;
@@ -1361,6 +1517,19 @@
           + '</span></div>';
       });
       h += '</div></div>';
+      // Opt-in warm-container reuse — only shown when at least one installed
+      // activity is batch-capable (has a backfill workflow). OFF by default, with
+      // a prominent warning that state carries over between revisions.
+      if(anyBatchAvailable()){
+        h += '<div class="cidash-hist-sec"><label style="display:flex;gap:10px;align-items:flex-start;border:1px solid #da3633;background:rgba(218,54,51,.06);border-radius:8px;padding:10px 12px;cursor:pointer">'
+          + '<input type="checkbox" id="cidash-hist-reuse" style="margin-top:3px">'
+          + '<span style="font-size:.82em;line-height:1.5">'
+          + '<b style="color:#da3633">\u26A0 Keep one container warm across revisions</b> <span style="color:var(--fg-muted)">(off by default)</span><br>'
+          + '<span style="color:var(--fg-muted)">Pays the slow Windows container startup <b>once</b> for the whole batch instead of per revision \u2014 a big saving on long histories. '
+          + 'The trade-off: container state (temp files, the LabVIEW object cache, the registry) <b>carries over</b> between revisions, so a revision whose code modifies the system can influence a later revision\u2019s result. '
+          + 'The container image itself is never changed. Only Windows activities that support batching are affected \u2014 leave this off unless you understand the risk.</span>'
+          + '</span></label></div>';
+      }
       h += '<div id="cidash-hist-tok" style="display:none;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);margin:0 0 12px">';
       h += '<div style="font-size:.82em;color:var(--fg);font-weight:600;margin-bottom:6px">One-time setup \u2014 a token to queue runs</div>';
       h += '<ol style="font-size:.8em;color:var(--fg-muted);margin:0 0 8px;padding-left:18px;line-height:1.6">';
@@ -1377,6 +1546,8 @@
       h += '<button class="cidash-btn cidash-ghost" id="cidash-hist-cancel">Cancel</button></div>';
       body.innerHTML=h;
       instCaps.forEach(function(cap){ actMode[cap]='fill'; });   // open with every activity on Fill (gaps only)
+      reuseWarm=false;   // warm-container reuse always starts OFF
+      var rchk=document.getElementById('cidash-hist-reuse'); if(rchk) rchk.addEventListener('change', function(){ reuseWarm=!!rchk.checked; histRefresh(); });
       Array.prototype.forEach.call(document.querySelectorAll('.cidash-hist-chip'), function(b){ b.addEventListener('click', function(){ histPreset(b.getAttribute('data-preset')); }); });
       Array.prototype.forEach.call(document.querySelectorAll('.cidash-seg button'), function(b){ b.addEventListener('click', function(){ if(b.disabled) return; histSetMode(b.getAttribute('data-cap'), b.getAttribute('data-mode')); }); });
       Array.prototype.forEach.call(document.querySelectorAll('.cidash-hist-plat'), function(b){ b.addEventListener('change', function(){
@@ -1432,7 +1603,7 @@
       histTokPanel(false);
       var go=document.getElementById('cidash-hist-go'); var cancel=document.getElementById('cidash-hist-cancel');
       if(go) go.disabled=true; if(cancel) cancel.disabled=true;
-      dispatchCells(cells, histStatus).then(function(res){
+      dispatchCells(cells, histStatus, {reuse: reuseWarm}).then(function(res){
         if(cancel) cancel.disabled=false;
         if(res.ok && !res.err){
           histStatus('\u2713 Queued '+res.ok+' run'+(res.ok>1?'s':'')+', oldest first \u2014 watch them fill in on the dashboard\u2026', 'ok');
@@ -1495,7 +1666,7 @@
   </script>
   <main class="lvci-main">
   <h1>CI Dashboard — Extensible-Config-Dialog</h1>
-  <div class="sub">Last updated: 2026-07-08 19:28 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-07-08 20:26 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://github.com/elijah286/Extensible-Config-Dialog">GitHub</a>
     <a href="https://github.com/elijah286/Extensible-Config-Dialog/actions">Actions</a>
@@ -1539,6 +1710,24 @@
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(150,42%,45%)" title="github-actions[bot]" aria-hidden="true">G</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=06f73c85b27b9c33921c046aa6b4e2b0b873f48c" class="cidash-rev-msg" title="ci: adopt LabVIEW CI tooling v4.4.4 (full update)">ci: adopt LabVIEW CI tooling v4.4.4 (full update)</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=06f73c85b27b9c33921c046aa6b4e2b0b873f48c" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">06f73c8</a><span class="cidash-rev-dot">&middot;</span>github-actions[bot]<span class="cidash-rev-dot">&middot;</span>2026-07-08</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
@@ -1963,7 +2152,7 @@
           </div>
         </div>
       </td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="masscompile" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" title="Run Mass Compile for commit 5d92203">&#9655;</a></td>
+      <td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" data-ts="2026-06-28T16:53:18Z"><span class="cidash-chip cc-warn" title="Linux: 34/39 project VIs compiled; green >= 95%, yellow >= 80%, red < 80% (a compile failure is solid red)"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.46 1.05c.66-1.23 2.43-1.23 3.08 0l6.08 11.38A1.75 1.75 0 0 1 14.08 15H1.92a1.75 1.75 0 0 1-1.54-2.57ZM8.75 5.75a.75.75 0 0 0-1.5 0v3a.75.75 0 0 0 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><a href="https://elijah286.github.io/Extensible-Config-Dialog/report/index.html?type=masscompile-report&sha=5d92203dcb9e26e63d3f61a123c313cb14d49ebe&short=5d92203&src=..%2Fmasscompile%2F5d92203dcb9e26e63d3f61a123c313cb14d49ebe%2Findex.html&title=Mass%20Compile%20%C2%B7%205d92203" style="color:inherit">87%</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" data-ts="2026-06-17T18:36:55Z"><span class="cidash-chip cc-fail"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/></svg><a href="https://github.com/elijah286/Extensible-Config-Dialog/actions/runs/27711356174" style="color:inherit">analyze</a></span></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="vidiff" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" data-ts="2026-06-28T17:10:02Z"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=5d92203dcb9e26e63d3f61a123c313cb14d49ebe&changed=1" class="cidash-diffstat" title="VIs changed in this revision: 0 different · 0 new · 0 deleted — click to view the diffs"><span class="ds-mod ds-zero">0</span><span class="ds-sep">/</span><span class="ds-add ds-zero">0</span><span class="ds-sep">/</span><span class="ds-del ds-zero">0</span></a></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 41 VIs in this revision"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=5d92203dcb9e26e63d3f61a123c313cb14d49ebe" style="color:inherit">41</a></span></td>
@@ -1999,7 +2188,7 @@
           </div>
         </div>
       </td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="masscompile" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" title="Run Mass Compile for commit 688fa81">&#9655;</a></td>
+      <td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" data-ts="2026-06-28T16:52:33Z"><span class="cidash-chip cc-warn" title="Linux: 34/39 project VIs compiled; green >= 95%, yellow >= 80%, red < 80% (a compile failure is solid red)"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.46 1.05c.66-1.23 2.43-1.23 3.08 0l6.08 11.38A1.75 1.75 0 0 1 14.08 15H1.92a1.75 1.75 0 0 1-1.54-2.57ZM8.75 5.75a.75.75 0 0 0-1.5 0v3a.75.75 0 0 0 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><a href="https://elijah286.github.io/Extensible-Config-Dialog/report/index.html?type=masscompile-report&sha=688fa810950414efe8e44f6be11ed31d33589e5c&short=688fa81&src=..%2Fmasscompile%2F688fa810950414efe8e44f6be11ed31d33589e5c%2Findex.html&title=Mass%20Compile%20%C2%B7%20688fa81" style="color:inherit">87%</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" title="Run VI Analyzer for commit 688fa81">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" title="Run VIDiff for commit 688fa81">&#9655;</a></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 41 VIs in this revision"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=688fa810950414efe8e44f6be11ed31d33589e5c" style="color:inherit">41</a></span></td>
@@ -2017,7 +2206,7 @@
           </div>
         </div>
       </td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="masscompile" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" title="Run Mass Compile for commit dc16184">&#9655;</a></td>
+      <td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" data-ts="2026-06-28T16:52:20Z"><span class="cidash-chip cc-warn" title="Linux: 34/39 project VIs compiled; green >= 95%, yellow >= 80%, red < 80% (a compile failure is solid red)"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.46 1.05c.66-1.23 2.43-1.23 3.08 0l6.08 11.38A1.75 1.75 0 0 1 14.08 15H1.92a1.75 1.75 0 0 1-1.54-2.57ZM8.75 5.75a.75.75 0 0 0-1.5 0v3a.75.75 0 0 0 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><a href="https://elijah286.github.io/Extensible-Config-Dialog/report/index.html?type=masscompile-report&sha=dc16184ff0f53055cca00b6c644f2c69a9a6f12c&short=dc16184&src=..%2Fmasscompile%2Fdc16184ff0f53055cca00b6c644f2c69a9a6f12c%2Findex.html&title=Mass%20Compile%20%C2%B7%20dc16184" style="color:inherit">87%</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" title="Run VI Analyzer for commit dc16184">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" title="Run VIDiff for commit dc16184">&#9655;</a></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 41 VIs in this revision"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=dc16184ff0f53055cca00b6c644f2c69a9a6f12c" style="color:inherit">41</a></span></td>
@@ -2035,7 +2224,7 @@
           </div>
         </div>
       </td>
-      <td style="text-align:center"><a href="#" class="cidash-run" data-cap="masscompile" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" title="Run Mass Compile for commit f284f1e">&#9655;</a></td>
+      <td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" data-ts="2026-06-28T16:52:17Z"><span class="cidash-chip cc-warn" title="Linux: 30/35 project VIs compiled; green >= 95%, yellow >= 80%, red < 80% (a compile failure is solid red)"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.46 1.05c.66-1.23 2.43-1.23 3.08 0l6.08 11.38A1.75 1.75 0 0 1 14.08 15H1.92a1.75 1.75 0 0 1-1.54-2.57ZM8.75 5.75a.75.75 0 0 0-1.5 0v3a.75.75 0 0 0 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><a href="https://elijah286.github.io/Extensible-Config-Dialog/report/index.html?type=masscompile-report&sha=f284f1ee1de37bbbde515d887b07b7e56f0bc334&short=f284f1e&src=..%2Fmasscompile%2Ff284f1ee1de37bbbde515d887b07b7e56f0bc334%2Findex.html&title=Mass%20Compile%20%C2%B7%20f284f1e" style="color:inherit">86%</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vi-analyzer" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" title="Run VI Analyzer for commit f284f1e">&#9655;</a></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" title="Run VIDiff for commit f284f1e">&#9655;</a></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 37 VIs in this revision"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=f284f1ee1de37bbbde515d887b07b7e56f0bc334" style="color:inherit">37</a></span></td>

@@ -454,6 +454,15 @@ flowchart TD
         anyway, so a finished install never lingers as &ldquo;publishing dashboard&rdquo;. Publishing records are
         rechecked from the public dashboard URL even if the install token has since been forgotten.</p>
 
+      <p>Before starting a new install, the flow also checks whether one is genuinely already in flight, and treats
+        <em>live GitHub state as authoritative</em>: it warns only when there is an open install pull request, or the
+        <code>ci/install-labview-ci</code> branch exists and its pull request has <em>not</em> yet merged or closed.
+        GitHub does not delete a head branch on merge by default, so a finished, merged install leaves that branch
+        behind &mdash; it is treated as harmless debris (the next install fast-forwards it), not as an install still in
+        progress. A local record only blocks a re-install while its dashboard is genuinely still publishing (verified
+        against the live <code>catalog.json</code>); any other stale record that GitHub contradicts is forgotten so it
+        stops nagging on future installs.</p>
+
       <h3>What gets written into your repo</h3>
       <ul>
         <li><strong>Text files</strong> (<code>.yml .ps1 .sh .py .html .md .json .xml .viancfg</code>) have the
@@ -656,6 +665,23 @@ flowchart TD
         revision or pull request. Queued-run state is matched against the current table's cells by capability and
         target revision (or globally for the all-history snapshot backfill) so another repository on the same Pages
         origin cannot suppress the fresh-install card.</p>
+      <p>Each activity in the chooser is set independently to <strong>Skip</strong>, <strong>Fill</strong> (queue only
+        the revisions missing that result), or <strong>Re-run</strong> (queue every selected revision, replacing
+        existing results). An activity is offered for Re-run when any selected revision has a result, an empty cell, or
+        an <em>in-flight</em> queued/running cell — the latter are tagged <code>cidash-active-cell</code> so a re-run
+        replaces the in-flight run via concurrency instead of greying out as &ldquo;none in scope.&rdquo;</p>
+      <p>The Populate-history chooser offers an opt-in <strong>"keep one container warm across revisions"</strong>
+        checkbox, shown only when at least one selected activity has a warm-container backfill workflow installed
+        (Windows Mass Compile, VI Analyzer, Unit Tests, Antidoc). It is always <strong>off by default</strong> and
+        carries a red warning that container state carries over between revisions (see <a href="#lifecycle">§14</a>).
+        When ticked, the chooser collapses every batch-capable <em>(activity, platform)</em> into a
+        <em>single</em> <code>workflow_dispatch</code> carrying the whole oldest→newest SHA list instead of one
+        dispatch per revision; non-batch platforms still queue per revision. The chooser also shows a live, history-driven
+        <strong>time estimate</strong> comparing fresh vs warm-batch compute: the per-activity work time is the median
+        of the durations the dashboard already loads from each <code>summary.json</code>/<code>results.json</code>, and
+        the startup time is the median run total (from the Actions API) minus that work time, falling back to per-platform
+        defaults until a repository has run history. Warm-batch is serial inside one container, so the estimate notes the
+        wall-clock vs total-cost trade-off.</p>
       <p>The shared site-wide header is <code>lvci-header.js</code>: every page declares a tiny
         <code>window.LVCI</code> config and loads the script, which injects a consistent navigation chrome
         (Dashboard / VI Browser nav, Settings &amp; Help menus, version badge, live activity pill, theme toggle).
@@ -928,8 +954,11 @@ ghcr.io/&lt;lcwc-owner&gt;/&lt;lcwc-repo&gt;-labview-base   # the shared base, o
 
       <h3>When images rebuild</h3>
       <p>A worker rebuild is a heavy, opt-in operation. It runs when you apply a dependency update from the dashboard's
-        <em>Review &amp; update dependencies</em> dialog, on the monthly cron (to pick up base-image security updates),
-        or by manual dispatch. Adding or changing a project <code>.vipc</code> never triggers a rebuild on its own &mdash;
+        <em>Review &amp; update dependencies</em> dialog &mdash; the Dependencies page's <em>Run the container update</em>
+        button dispatches the <em>Build LabVIEW CI Image</em> workflow directly with your chosen <code>update_mode</code>
+        (<code>replace</code> or <code>new</code>), prompting once for a fine-grained token with <strong>Actions: write</strong>, then tracking the
+        run's live progress (queued, building, complete) on the page
+        &mdash; on the monthly cron (to pick up base-image security updates), or by manual dispatch. Adding or changing a project <code>.vipc</code> never triggers a rebuild on its own &mdash;
         the dashboard simply flags that dependencies need installing until you choose to run the update.</p>
 
       <h3>Dependency gate (activities wait for the rebuild)</h3>
@@ -1001,7 +1030,28 @@ docker run --rm `
       <div class="note"><span class="lbl">Container lifecycle in one sentence</span>
         A fresh container is created for each action × revision × platform, started when the action begins and
         destroyed when it ends; it is shared across all files in one action's run but never across actions or
-        revisions. The snapshot renderer is the sole exception — see <a href="#cap-snapshots">§16.6</a>.</div>
+        revisions. The snapshot renderer is the sole always-on exception — see <a href="#cap-snapshots">§16.6</a> —
+        and the opt-in <strong>warm-container history backfills</strong> below are the other.</div>
+
+      <h3>Warm-container history backfills (opt-in)</h3>
+      <p>Populating a long history one revision at a time pays the multi-GB image pull and the slow Windows LabVIEW
+        cold-start <em>once per revision</em>. The per-capability <strong>backfill</strong> workflows
+        (<code>masscompile-backfill-windows.yml</code>, <code>vi-analyzer-backfill-windows.yml</code>,
+        <code>unit-tests-backfill-windows.yml</code>, <code>antidoc-backfill-windows.yml</code>, plus the existing
+        VIDiff and snapshot backfills) instead start <strong>one</strong> long-lived container
+        (<code>docker run -d … sleep</code>) and process every requested revision through it with
+        <code>docker exec</code>, turning <em>N × (startup + work)</em> into <em>startup + N × work</em>. Each
+        revision is checked out into a throwaway <code>git worktree</code>, compiled/analyzed/tested inside the
+        container, its report <code>docker cp</code>'d back out to the host (Windows bind-mount output is unreliable),
+        and the host report builder + shared Pages publisher run exactly as in the per-commit job. The runs are
+        resumable: a skip-list built from the deployed <code>gh-pages</code> tree and a <code>TimeBudgetMinutes</code>
+        cap let a batch stop before the 6-hour job limit and continue on the next dispatch.</p>
+      <p>This is strictly <strong>opt-in</strong> and never the default, because reusing one container means its
+        mutable state — temp files, the LabVIEW object cache, the registry — <strong>carries over</strong> between
+        revisions, so a revision whose code modifies the system can influence a later revision's result. The
+        container <em>image</em> is never modified; only the short-lived instance accumulates state, and it is
+        destroyed when the batch ends. The dashboard's Populate-history chooser exposes this as a clearly-warned
+        checkbox — see <a href="#pages">§9</a>.</p>
 
       <h3>Report generation runs on the host, not in the container</h3>
       <p>The container emits raw output (a log, a native HTML report, JUnit XML, …). After it exits, a small Python
@@ -1080,11 +1130,30 @@ docker run --rm `
         VI Tester / LUnit) are <em>best-effort</em>: if a heavy add-on wedges the headless VIPM engine it is logged as a warning
         and the build still publishes a working, UTF-capable image. Override the required set with
         <code>VIPM_REQUIRED_PACKAGES</code>.</div>
+      <div class="note"><span class="lbl">Fast-abort on a wedged engine</span>
+        The VIPM engine (the LabVIEW-runtime <code>VI Package Manager.exe</code>) occasionally fails to finish starting
+        inside the container, after which every <code>vipm install</code> blocks for the full <code>VIPM_TIMEOUT</code>
+        (~900s) before failing. <code>install-vipc.ps1</code> detects that wedged state on the <em>first</em> such
+        timeout — a <code>wait for VIPM startup</code> handshake timeout, an <code>operation '...' timed out after</code>
+        message, or CLI exit <code>124</code> — and stops the remaining install attempts immediately instead of stacking
+        one 900s timeout per package (which previously turned a dead engine into a multi-hour build). A wedged engine is
+        environmental and usually clears on a re-run of the image build.</div>
       <div class="note"><span class="lbl">Public-index fallback</span>
         The resolver-bypass fallback covers packages in the built-in NI LabVIEW Tools Network and VIPM Community
         repositories, including old OpenG <code>sf://opengtoolkit</code> URLs and the legacy
         <code>jki_vi_tester</code> alias. Private/custom VIPM repositories still require either a populated VIPM
         resolver cache, a committed offline VIPC that embeds package files, or direct package-file URLs.</div>
+      <div class="note"><span class="lbl">Baking a package on no VIPM repository</span>
+        A package published on <strong>no</strong> public index (e.g. an in-house framework) can be baked without a
+        private mirror by <strong>committing its <code>.vip</code></strong> anywhere outside <code>.github/</code>; the
+        build stages every repo <code>*.vip</code> into <code>.github/labview/vipm/</code> next to the VIPCs (the glob
+        <code>*.vip</code> does not match <code>*.vipc</code>, and the worker-version hash matches the exact extension so
+        VIPCs are not double-counted). Reference the package by id + version in an applied <code>.vipc</code> and keep
+        VIPM's canonical export name <code>&lt;package-id&gt;-&lt;version&gt;.vip</code> so its id + version parse. When that
+        <code>.vipc</code> is applied, <code>install-vipc.ps1</code> uses the committed <code>.vip</code> in preference to
+        the public mirror, and it is the only way a no-index package resolves at all. The <code>.vipc</code> must still
+        enumerate the package's dependency closure (OpenG, etc.) — deps are not parsed from the committed <code>.vip</code>
+        — and a committed <code>.vip</code> that no applied <code>.vipc</code> references is never installed on its own.</div>
       <div class="warn"><span class="lbl">Why the UTF JUnit reporter is mandatory for unit tests</span>
         The built-in <code>LabVIEWCLI -OperationName RunUnitTests</code> links against
         <code>ni_lib_utf_junit_report</code>. Without it baked in, headless UTF runs fail with error
@@ -1119,10 +1188,28 @@ docker run --rm `
         report builder enumerates the repo's own VIs (excluding <code>.github/</code>, <code>ci-out/</code>,
         <code>build/</code>) as the denominator and emits <code>problems.json</code> (per-VI, grouped by top-level
         folder) plus <code>summary.json</code> (<code>{total, ok, bad, percent, status, missing_deps}</code>).</p>
+      <p>Windows and Linux deploy to disjoint paths &mdash; <code>masscompile/&lt;sha&gt;/summary.json</code> (Windows)
+        and <code>masscompile/&lt;sha&gt;/linux/summary.json</code> (Linux) &mdash; so the two platforms keep separate
+        results. The dashboard reads both and shows a two-number pill (<code>Windows% / Linux%</code>, worst colour
+        wins) when both ran, since the same revision can compile a different set of VIs on each platform; if only one
+        ran it shows that single percentage. Unit Tests use the same two-number pill when Linux results are present.</p>
       <div class="note"><span class="lbl">Exit-code semantics</span>
         <code>0</code> = all compiled; <code>3</code> = partial (some bad VIs, not a container failure); any other
         non-zero = a real container/configuration error. The Python reader also handles UTF-16 BOMs that Windows
         <code>Tee-Object</code> can emit.</div>
+      <p>The dashboard's <strong>Mass Compile</strong> column colours the compiled-percentage badge with
+        configurable thresholds (like the Unit Tests column) so revisions read at a glance instead of a near-flat
+        amber: <strong>green</strong> at or above <code>greenAtLeast</code> (default 95%), <strong>yellow</strong>
+        at or above <code>yellowAtLeast</code> (default 80%), and <strong>red</strong> below <code>redBelow</code>
+        (default 80%). A true compile failure (LabVIEW could not finish the compile &mdash; <code>status: failed</code>,
+        which zeroes the percentage) is drawn as a <strong>solid, bright-red filled pill</strong> to distinguish it
+        from a merely low percentage. Override the thresholds in <code>.github/labview-ci.yml</code>:</p>
+      <pre><code>massCompile:
+  thresholds:
+    compiledPercent:
+      greenAtLeast: 95
+      yellowAtLeast: 80
+      redBelow: 80</code></pre>
 
       <h3 id="cap-vianalyzer">16.2 VI Analyzer <a class="anchor" href="#cap-vianalyzer">#</a></h3>
       <p>Driver: <code>run-vi-analyzer.ps1</code> <span class="pill win">Windows</span>; report:
@@ -1253,6 +1340,11 @@ docker run --rm `
         <li><strong>Dependabot</strong> opens a PR whenever the pinned major alias tag moves; merging it is the
           opt-in.</li>
       </ul>
+      <p>The browser <strong>Apply to New Repo</strong> flow (re-applied on top of an existing install) mirrors the
+        same prune: when it re-vendors a tooling directory it deletes any target file the source no longer ships,
+        except the consumer's own preserved config — so re-applying after a file is removed upstream stays in sync
+        with <strong>Update&nbsp;now</strong> and never leaves an orphan (e.g. an obsolete Go source) that breaks a
+        build.</p>
       <p><code>reconfigure.yml</code> backs the <strong>Configure Pipeline</strong> dialog: it rewrites
         <code>.github/labview-ci.yml</code> from a <code>workflow_dispatch</code> form and opens a reviewable pull
         request rather than committing directly.</p>
