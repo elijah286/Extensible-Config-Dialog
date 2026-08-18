@@ -1,0 +1,21 @@
+{
+  "schema": 2,
+  "platform": "windows",
+  "version": "win-0ea14bbc82b0",
+  "labview_version": "2026",
+  "base_image": "ghcr.io/elijah286/labview-ci-with-containers-labview-base:2026",
+  "base_digest": "sha256:da388d1fe1aa5ed003f7a55f9a28e163a6f7978678bd4b0b0516db6e9875d846",
+  "seed_image": "ghcr.io/elijah286/labview-ci-with-containers-labview-base:2026",
+  "seed_digest": "sha256:da388d1fe1aa5ed003f7a55f9a28e163a6f7978678bd4b0b0516db6e9875d846",
+  "worker_layer": "seed-only-copy",
+  "copied_from_base": true,
+  "image_ref": "ghcr.io/elijah286/extensible-config-dialog-labview:win-0ea14bbc82b0",
+  "build_date": "2026-08-18T00:07:21Z",
+  "git_sha": "fa8d5e6042bc43c61b1745967a508a82e50207c9",
+  "run_url": "https://github.com/elijah286/Extensible-Config-Dialog/actions/runs/32083246843",
+  "vipc": [],
+  "vipm_raw": "",
+  "vipm_packages": [],
+  "nipkg_raw": "",
+  "nipkg_packages": []
+}

@@ -1,7 +1,7 @@
 {
-  "version": "win-4ff5d50bd542",
+  "version": "win-0ea14bbc82b0",
   "platform": "windows",
-  "manifest_url": "https://elijah286.github.io/Extensible-Config-Dialog/workers/windows/win-4ff5d50bd542/manifest.html",
-  "build_date": "2026-08-01T06:01:55Z",
-  "git_sha": "06f73c85b27b9c33921c046aa6b4e2b0b873f48c"
+  "manifest_url": "https://elijah286.github.io/Extensible-Config-Dialog/workers/windows/win-0ea14bbc82b0/manifest.html",
+  "build_date": "2026-08-18T00:07:21Z",
+  "git_sha": "fa8d5e6042bc43c61b1745967a508a82e50207c9"
 }
