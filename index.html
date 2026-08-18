@@ -116,6 +116,7 @@
     .cidash-chip .cidash-vseg.cc-pass{color:#3fb950}
     .cidash-chip .cidash-vseg.cc-fail{color:#f85149}
     .cidash-chip .cidash-vseg.cc-warn{color:#d29922}
+    .cidash-chip .cidash-vseg.cc-muted{color:#8b949e}
     /* A hard-failed segment in a split pill is filled bright red (a small solid
        badge) so it reads as a failure, not just a low number. */
     .cidash-chip .cidash-vseg.cc-fail.cc-solid{background:#da3633;color:#fff;padding:1px 7px;border-radius:6px}
@@ -132,6 +133,7 @@
       .cidash-chip .cidash-vseg.cc-pass{color:#1a7f37}
       .cidash-chip .cidash-vseg.cc-fail{color:#cf222e}
       .cidash-chip .cidash-vseg.cc-warn{color:#9a6700}
+      .cidash-chip .cidash-vseg.cc-muted{color:#57606a}
       .cidash-chip .cidash-vseg.cc-fail.cc-solid{background:#cf222e;color:#fff}
       .cidash-chip .cidash-vseg[data-tip]:hover::after{background:#fff;color:#1f2328;border-color:#d0d7de;box-shadow:0 2px 8px rgba(140,149,159,.35)}
       .cidash-chip .cidash-vseg[data-tip]:hover::before{border-top-color:#d0d7de}
@@ -190,7 +192,7 @@
       .cidash-rev-msg{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
       .cidash-rev-meta{flex-wrap:wrap;white-space:normal}
     }
-    .cidash-run{display:inline-block;color:var(--fg-muted);font-size:.95em;line-height:1;text-decoration:none;opacity:.5;transition:opacity .12s,color .12s}.cidash-run:hover{opacity:1;color:var(--link);text-decoration:none}tr:hover .cidash-run{opacity:.85}.snap-glyph{display:inline-flex;align-items:center;color:var(--fg-muted);opacity:.6;text-decoration:none;flex:0 0 auto;transition:opacity .12s,color .12s}.snap-glyph:hover{opacity:1;color:var(--link)}tr:hover .snap-glyph{opacity:.85}.cidash-btn{border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-size:.85em;font-weight:600;cursor:pointer;font-family:inherit}.cidash-go{background:#238636;color:#fff;border-color:transparent}.cidash-go:hover{background:#2ea043}.cidash-go:disabled{opacity:.6;cursor:default}.cidash-ghost{background:var(--bg);color:var(--fg)}.cidash-ghost:hover{border-color:var(--link)}.cidash-danger{background:#da3633;color:#fff;border-color:transparent}.cidash-danger:hover{background:#f85149}.cidash-danger:disabled{opacity:.6;cursor:default}.cidash-queued{cursor:pointer}.cidash-queued:hover{filter:brightness(1.13)}.cidash-queued:focus-visible{outline:2px solid var(--link);outline-offset:1px}.cidash-qpos{margin-left:5px;font-weight:700;opacity:.92;font-variant-numeric:tabular-nums}.cidash-qpos:empty{display:none}.lvci-backfill{border:1px solid var(--border);border-left:3px solid #1f6feb;background:var(--surface);border-radius:10px;padding:14px 16px;margin:0 0 18px}.lvci-bf-main{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.lvci-bf-icon{font-size:1.5em;line-height:1}.lvci-bf-text{flex:1 1 320px;min-width:240px;font-size:.9em;line-height:1.5}.lvci-bf-text strong{display:block;font-size:1.03em;margin-bottom:2px}.lvci-bf-text span{color:var(--fg-muted)}.lvci-bf-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.lvci-bf-tok{margin-top:12px;border-top:1px solid var(--border);padding-top:12px;font-size:.84em;color:var(--fg-muted)}.lvci-bf-status{font-size:.82em;margin-top:10px}.lvci-bf-status:empty{display:none}.lvci-bf-note{display:block;margin-top:8px}.lvci-bf-info{margin-top:8px;font-size:.92em}.lvci-bf-info>summary{display:inline-block;cursor:pointer;color:var(--link);list-style:none;font-weight:600}.lvci-bf-info>summary::-webkit-details-marker{display:none}.lvci-bf-info>summary:hover{text-decoration:underline}.lvci-bf-info[open]>summary{margin-bottom:8px}.lvci-bf-infobody{color:var(--fg-muted);line-height:1.55;border-left:2px solid #1f6feb;padding-left:12px}.lvci-bf-cfg{display:inline-block;margin-top:8px;color:var(--link);font-weight:600}.cidash-hist-sec{margin:0 0 16px}.cidash-hist-lbl{display:block;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--fg-muted);margin:0 0 7px}.cidash-hist-scope{display:flex;flex-direction:column;gap:9px}.cidash-hist-radio{display:flex;align-items:center;gap:9px;font-size:.9em;cursor:pointer;user-select:none}.cidash-hist-radio input{accent-color:var(--link);width:15px;height:15px;margin:0;flex:0 0 auto}.cidash-hist-radio .sub{color:var(--fg-muted);font-size:.88em}.cidash-hist-rangerow{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:2px 0 4px 25px}.cidash-hist-rangerow label{display:flex;align-items:center;gap:7px;font-size:.84em;color:var(--fg-muted)}#cidash-hist-from,#cidash-hist-to{padding:7px 9px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.85em;font-family:inherit;max-width:248px}.cidash-hist-spectools{display:flex;gap:14px;margin:2px 0 6px 25px;font-size:.8em}.cidash-hist-spectools a{color:var(--link);cursor:pointer}.cidash-hist-spectools a:hover{text-decoration:underline}.cidash-hist-speclist{display:flex;flex-direction:column;gap:1px;max-height:210px;overflow:auto;margin-left:25px;padding:5px;border:1px solid var(--border);border-radius:7px;background:var(--bg)}.cidash-hist-specitem{display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:5px;font-size:.84em;cursor:pointer;min-width:0}.cidash-hist-specitem:hover{background:var(--surface)}.cidash-hist-specitem input{accent-color:var(--link);width:14px;height:14px;margin:0;flex:0 0 auto}.cidash-hist-specitem .sh{font-family:ui-monospace,Menlo,monospace;color:var(--fg-muted);flex:0 0 auto}.cidash-hist-specitem .ms{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}.cidash-hist-intro{margin:0 0 16px;color:var(--fg-muted);font-size:.86em;line-height:1.55}.cidash-hist-actshead{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 10px;margin:0 0 9px}.cidash-hist-quick{display:flex;flex-wrap:wrap;gap:6px}.cidash-hist-chip{border:1px solid var(--border);background:var(--bg);color:var(--fg);border-radius:999px;padding:4px 11px;font-size:.76em;font-weight:600;cursor:pointer;font-family:inherit}.cidash-hist-chip:hover{border-color:var(--link);color:var(--link)}.cidash-hist-acts{display:flex;flex-direction:column;gap:7px}.cidash-hist-actsempty{color:var(--fg-muted);font-size:.85em;padding:4px 2px}.cidash-hist-act{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"info controls" "meta controls";gap:3px 16px;align-items:center;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg)}.cidash-hist-act.skip .cidash-hist-actinfo,.cidash-hist-act.skip .cidash-hist-actmeta{opacity:.5}.cidash-hist-actinfo{grid-area:info;min-width:0}.cidash-hist-actname{font-size:.9em;font-weight:600}.cidash-hist-actsub{color:var(--fg-muted);font-size:.82em;margin-top:1px;line-height:1.4}.cidash-hist-actmeta{grid-area:meta;display:flex;align-items:center;flex-wrap:wrap;gap:4px 14px;min-width:0;font-size:.76em;color:var(--fg-muted)}.cidash-hist-actcount{white-space:nowrap;font-variant-numeric:tabular-nums}.cidash-hist-actcount:empty{display:none}.cidash-hist-plats{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.cidash-hist-plats label{display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none}.cidash-hist-plats input{accent-color:var(--link);width:13px;height:13px;margin:0}.cidash-seg{grid-area:controls;justify-self:end;align-self:center;display:inline-flex;flex:0 0 auto;border:1px solid var(--border);border-radius:7px;overflow:hidden}.cidash-seg button{border:0;background:transparent;color:var(--fg-muted);padding:6px 13px;font-size:.78em;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.5}.cidash-seg button+button{border-left:1px solid var(--border)}.cidash-seg button.on{background:var(--link);color:#fff}.cidash-seg button:disabled{opacity:.34;cursor:default}.cidash-seg button:not(.on):not(:disabled):hover{background:var(--surface);color:var(--fg)}@media(max-width:560px){.cidash-hist-act{grid-template-columns:1fr;grid-template-areas:"info" "meta" "controls";gap:7px 0}.cidash-seg{justify-self:start}}.cidash-hist-summary{font-size:.84em;color:var(--fg-muted);margin:0 0 12px}.cidash-hist-summary b{color:var(--fg)}
+    .cidash-run{display:inline-block;color:var(--fg-muted);font-size:.95em;line-height:1;text-decoration:none;opacity:.5;transition:opacity .12s,color .12s}.cidash-run:hover{opacity:1;color:var(--link);text-decoration:none}tr:hover .cidash-run{opacity:.85}.snap-glyph{display:inline-flex;align-items:center;color:var(--fg-muted);opacity:.6;text-decoration:none;flex:0 0 auto;transition:opacity .12s,color .12s}.snap-glyph:hover{opacity:1;color:var(--link)}tr:hover .snap-glyph{opacity:.85}.cidash-btn{border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-size:.85em;font-weight:600;cursor:pointer;font-family:inherit}.cidash-go{background:#238636;color:#fff;border-color:transparent}.cidash-go:hover{background:#2ea043}.cidash-go:disabled{opacity:.6;cursor:default}.cidash-ghost{background:var(--bg);color:var(--fg)}.cidash-ghost:hover{border-color:var(--link)}.cidash-danger{background:#da3633;color:#fff;border-color:transparent}.cidash-danger:hover{background:#f85149}.cidash-danger:disabled{opacity:.6;cursor:default}.cidash-queued{cursor:pointer}.cidash-queued:hover{filter:brightness(1.13)}.cidash-queued:focus-visible{outline:2px solid var(--link);outline-offset:1px}.cidash-qpos{margin-left:5px;font-weight:700;opacity:.92;font-variant-numeric:tabular-nums}.cidash-qpos:empty{display:none}.lvci-backfill{border:1px solid var(--border);border-left:3px solid #1f6feb;background:var(--surface);border-radius:10px;padding:14px 16px;margin:0 0 18px}.lvci-bf-main{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.lvci-bf-icon{font-size:1.5em;line-height:1}.lvci-bf-text{flex:1 1 320px;min-width:240px;font-size:.9em;line-height:1.5}.lvci-bf-text strong{display:block;font-size:1.03em;margin-bottom:2px}.lvci-bf-text span{color:var(--fg-muted)}.lvci-bf-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.lvci-bf-tok{margin-top:12px;border-top:1px solid var(--border);padding-top:12px;font-size:.84em;color:var(--fg-muted)}.lvci-bf-status{font-size:.82em;margin-top:10px}.lvci-bf-status:empty{display:none}.lvci-bf-note{display:block;margin-top:8px}.lvci-bf-info{margin-top:8px;font-size:.92em}.lvci-bf-info>summary{display:inline-block;cursor:pointer;color:var(--link);list-style:none;font-weight:600}.lvci-bf-info>summary::-webkit-details-marker{display:none}.lvci-bf-info>summary:hover{text-decoration:underline}.lvci-bf-info[open]>summary{margin-bottom:8px}.lvci-bf-infobody{color:var(--fg-muted);line-height:1.55;border-left:2px solid #1f6feb;padding-left:12px}.lvci-bf-cfg{display:inline-block;margin-top:8px;color:var(--link);font-weight:600}.cidash-hist-sec{margin:0 0 16px}.cidash-hist-lbl{display:block;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--fg-muted);margin:0 0 7px}.cidash-hist-scope{display:flex;flex-direction:column;gap:9px}.cidash-hist-radio{display:flex;align-items:center;gap:9px;font-size:.9em;cursor:pointer;user-select:none}.cidash-hist-radio input{accent-color:var(--link);width:15px;height:15px;margin:0;flex:0 0 auto}.cidash-hist-radio .sub{color:var(--fg-muted);font-size:.88em}.cidash-hist-rangerow{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:2px 0 4px 25px}.cidash-hist-rangerow label{display:flex;align-items:center;gap:7px;font-size:.84em;color:var(--fg-muted)}#cidash-hist-from,#cidash-hist-to{padding:7px 9px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.85em;font-family:inherit;max-width:248px}.cidash-hist-spectools{display:flex;gap:14px;margin:2px 0 6px 25px;font-size:.8em}.cidash-hist-spectools a{color:var(--link);cursor:pointer}.cidash-hist-spectools a:hover{text-decoration:underline}.cidash-hist-speclist{display:flex;flex-direction:column;gap:1px;max-height:210px;overflow:auto;margin-left:25px;padding:5px;border:1px solid var(--border);border-radius:7px;background:var(--bg)}.cidash-hist-specitem{display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:5px;font-size:.84em;cursor:pointer;min-width:0}.cidash-hist-specitem:hover{background:var(--surface)}.cidash-hist-specitem input{accent-color:var(--link);width:14px;height:14px;margin:0;flex:0 0 auto}.cidash-hist-specitem .sh{font-family:ui-monospace,Menlo,monospace;color:var(--fg-muted);flex:0 0 auto}.cidash-hist-specitem .ms{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}.cidash-hist-revfilter{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px}.cidash-hist-search{flex:1 1 220px;min-width:150px;padding:7px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:.85em;font-family:inherit}.cidash-hist-inclchk{display:inline-flex;align-items:center;gap:6px;font-size:.82em;color:var(--fg-muted);cursor:pointer;white-space:nowrap}.cidash-hist-inclchk input{accent-color:var(--link);width:14px;height:14px;margin:0}.cidash-hist-specitem .cidash-hist-deptag{margin-left:auto;font-size:.7em;color:var(--fg-muted);border:1px solid var(--border);border-radius:4px;padding:0 5px;flex:0 0 auto}.cidash-hist-specempty{color:var(--fg-muted);font-size:.84em;padding:8px}.cidash-hist-intro{margin:0 0 16px;color:var(--fg-muted);font-size:.86em;line-height:1.55}.cidash-hist-actshead{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 10px;margin:0 0 9px}.cidash-hist-quick{display:flex;flex-wrap:wrap;gap:6px}.cidash-hist-chip{border:1px solid var(--border);background:var(--bg);color:var(--fg);border-radius:999px;padding:4px 11px;font-size:.76em;font-weight:600;cursor:pointer;font-family:inherit}.cidash-hist-chip:hover{border-color:var(--link);color:var(--link)}.cidash-hist-acts{display:flex;flex-direction:column;gap:7px}.cidash-hist-actsempty{color:var(--fg-muted);font-size:.85em;padding:4px 2px}.cidash-hist-act{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"info controls" "meta controls";gap:3px 16px;align-items:center;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg)}.cidash-hist-act.skip .cidash-hist-actinfo,.cidash-hist-act.skip .cidash-hist-actmeta{opacity:.5}.cidash-hist-actinfo{grid-area:info;min-width:0}.cidash-hist-actname{font-size:.9em;font-weight:600}.cidash-hist-actsub{color:var(--fg-muted);font-size:.82em;margin-top:1px;line-height:1.4}.cidash-hist-actmeta{grid-area:meta;display:flex;align-items:center;flex-wrap:wrap;gap:4px 14px;min-width:0;font-size:.76em;color:var(--fg-muted)}.cidash-hist-actcount{white-space:nowrap;font-variant-numeric:tabular-nums}.cidash-hist-actcount:empty{display:none}.cidash-hist-plats{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.cidash-hist-plats label{display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none}.cidash-hist-plats input{accent-color:var(--link);width:13px;height:13px;margin:0}.cidash-seg{grid-area:controls;justify-self:end;align-self:center;display:inline-flex;flex:0 0 auto;border:1px solid var(--border);border-radius:7px;overflow:hidden}.cidash-seg button{border:0;background:transparent;color:var(--fg-muted);padding:6px 13px;font-size:.78em;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.5}.cidash-seg button+button{border-left:1px solid var(--border)}.cidash-seg button.on{background:var(--link);color:#fff}.cidash-seg button:disabled{opacity:.34;cursor:default}.cidash-seg button:not(.on):not(:disabled):hover{background:var(--surface);color:var(--fg)}@media(max-width:560px){.cidash-hist-act{grid-template-columns:1fr;grid-template-areas:"info" "meta" "controls";gap:7px 0}.cidash-seg{justify-self:start}}.cidash-hist-summary{font-size:.84em;color:var(--fg-muted);margin:0 0 12px}.cidash-hist-summary b{color:var(--fg)}
   </style>
 </head>
 <body>
@@ -224,7 +226,15 @@
     // "dialog disappeared on its own" bug).
     function lvciModalOpen() {
       var m = document.getElementById('lvci-modal');
-      return !!(m && m.style.display === 'block');
+      if (m && m.style.display === 'block') return true;
+      // The Populate-history and Debug Run dialogs are their own modals; reloading
+      // while either is open destroys its in-flight work too (the Debug Run
+      // "dialog vanished while the container booted" bug).
+      var h = document.getElementById('cidash-hist-modal');
+      if (h && h.style.display === 'block') return true;
+      var d = document.getElementById('cidash-debug-modal');
+      if (d && d.style.display === 'block') return true;
+      return false;
     }
     // Auto-refresh on the cadence the server picked (60 s while CI is live, else
     // 15 min) -- but NEVER while a dialog is open, because reloading the page destroys
@@ -270,8 +280,8 @@
   </div>
   <script>
   (function(){
-    var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "backfill"}}}}, "snapshots2": {"label": "VI Browser 2.0 Snapshots", "platforms": {"windows": {"wf": "vi-snapshots-json-windows.yml", "inputs": {"target_sha": "{sha}"}}, "linux": {"wf": "vi-snapshots-json.yml", "inputs": {"mode": "head", "target_sha": "{sha}"}}}}, "unit-tests": {"label": "Unit Tests", "platforms": {"windows": {"wf": "unit-tests-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}}}};
-    var RT_TIMING = {"masscompile": {"windows": {"total": 456.0, "work": 17.0}, "linux": {"total": 43.5, "work": 17.0}}, "vi-analyzer": {"windows": {"total": 27.0, "work": null}}, "vidiff": {"windows": {"total": 788.0, "work": null}, "linux": {"total": 65.0, "work": null}}, "snapshots2": {"windows": {"total": 68.0, "work": null}, "linux": {"total": 82.0, "work": null}}, "unit-tests": {"windows": {"total": null, "work": null}}};
+    var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "run-vi-analyzer-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "backfill"}}}}, "snapshots2": {"label": "VI Browser 2.0 Snapshots", "platforms": {"windows": {"wf": "vi-snapshots-json-windows.yml", "inputs": {"target_sha": "{sha}"}}, "linux": {"wf": "vi-snapshots-json.yml", "inputs": {"mode": "head", "target_sha": "{sha}"}}}}, "unit-tests": {"label": "Unit Tests", "platforms": {"windows": {"wf": "unit-tests-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}}}};
+    var RT_TIMING = {"masscompile": {"windows": {"total": 456.0, "work": 17.0}, "linux": {"total": 43.5, "work": 17.0}}, "vi-analyzer": {"windows": {"total": 27.0, "work": null}, "linux": {"total": 18.0, "work": null}}, "vidiff": {"windows": {"total": 788.0, "work": null}, "linux": {"total": 65.0, "work": null}}, "snapshots2": {"windows": {"total": 68.0, "work": null}, "linux": {"total": 82.0, "work": null}}, "unit-tests": {"windows": {"total": null, "work": null}}};
     var REPO = "elijah286/Extensible-Config-Dialog";
     var BRANCH = "master";
     var TOK_KEY = "lvci_dispatch_token";
@@ -349,6 +359,16 @@
     var qQueuePos = null, qQueueTotal = 0, qQueueAt = 0;
     function qLoad(){ try{ return JSON.parse(localStorage.getItem(QKEY)||"{}")||{}; }catch(e){ return {}; } }
     function qSave(o){ try{ localStorage.setItem(QKEY, JSON.stringify(o)); }catch(e){} }
+    function resultCell(c, sha){
+      // The cell carrying a re-runnable activity's result OR its in-flight run - both
+      // are valid targets to overlay an optimistic "Queued" spinner onto. A finished
+      // result is a cidash-cap-cell; a queued/running auto-run is a cidash-active-cell
+      // (tagged so the Populate-history dialog can re-run an in-flight activity). Matching
+      // both is what lets a re-run of an in-flight cell show its Queued badge, not just
+      // re-runs of finished ones (the latest revision's activity is usually still in flight).
+      return document.querySelector('td.cidash-cap-cell[data-cap="'+c+'"][data-sha="'+sha+'"]')
+          || document.querySelector('td.cidash-active-cell[data-cap="'+c+'"][data-sha="'+sha+'"]');
+    }
     function qPaint(td, c, sha){
       // Overlay the spinning "Queued" badge onto the cell, replacing its run glyph.
       // The badge is now a BUTTON (not a link): clicking it opens the manage dialog
@@ -453,7 +473,7 @@
           // result cell and remember its original badge so a failed/cancelled dispatch
           // can restore it. Same bridge the report viewer's "Re-run" uses (see qSync),
           // now reachable from the Populate-history dialog's per-activity "Re-run".
-          var rc = document.querySelector('td.cidash-cap-cell[data-cap="'+c+'"][data-sha="'+sha+'"]');
+          var rc = resultCell(c, sha);
           if(rc){
             var oR = qLoad(); var kR = c+'|'+sha;
             if(oR[kR] && !oR[kR].orig){ oR[kR].orig = rc.innerHTML; qSave(oR); }
@@ -682,7 +702,7 @@
         if(!e){ delete o[key]; changed = true; return; }
         var painted = document.querySelector('td.cidash-queued-cell[data-qcap="'+c+'"][data-qsha="'+sha+'"]');
         var a = document.querySelector('a.cidash-run[data-cap="'+c+'"][data-sha="'+sha+'"]');
-        var rc = document.querySelector('td.cidash-cap-cell[data-cap="'+c+'"][data-sha="'+sha+'"]');
+        var rc = resultCell(c, sha);
         if(e.failed){
           if(rc){
             var frts = Date.parse(rc.getAttribute('data-ts')||'') || 0;
@@ -852,6 +872,20 @@
       }
       return out.join('');
     }
+    function qReportUrl(entry){
+      // A failed overlay that replaced a deployed RESULT cell stashed that cell's
+      // original chip HTML (entry.orig). If that chip linked to a deployed report
+      // (anything other than a bare GitHub Actions run page), hand it back so the
+      // failed dialog can route to the report - where a unit-test / analyzer failure
+      // is actually explained - instead of only the Actions log. A hard run failure
+      // that produced no report (no orig, or an Actions-only link) yields '' -> the
+      // dialog keeps just the "View run" (Actions) button.
+      var o = entry && entry.orig; if(!o) return '';
+      var m = /href="([^"]+)"/i.exec(o); if(!m) return '';
+      var u = m[1];
+      if(/github\.com\/[^"']*\/actions\//i.test(u)) return '';
+      return u;
+    }
     function renderQ(){
       var c = qState.cap, sha = qState.sha; if(!c) return;
       var o = qLoad(); var entry = o[c+'|'+sha]; var def = RT[c];
@@ -866,14 +900,20 @@
       if(!failed && live.length>1 && pos){ h += '<p style="margin:0 0 12px;font-size:.85em">Place in queue: <strong>#'+pos+'</strong> <span style="color:var(--fg-muted)">of '+live.length+' queued from this browser (oldest first).</span></p>'; }
       h += '<div id="cidash-q-status" style="font-size:.82em;min-height:1.2em;margin:0 0 12px"></div>';
       h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">';
+      var repUrl = failed ? qReportUrl(entry) : '';
       h += qViewLinks(c, entry);
-      if(failed){ h += '<button class="cidash-btn cidash-ghost" id="cidash-q-dismiss">Dismiss</button>'; }
+      if(failed){
+        if(repUrl){ h += '<a class="cidash-btn" style="text-decoration:none" href="'+repUrl+'" target="_blank" rel="noopener">View report \u2197</a>'; }
+        h += '<button class="cidash-btn" id="cidash-q-rerun">Re-run</button>';
+        h += '<button class="cidash-btn cidash-ghost" id="cidash-q-dismiss">Dismiss</button>';
+      }
       else { h += '<button class="cidash-btn cidash-danger" id="cidash-q-cancel">\u2715 Cancel run</button>'; }
       h += '</div>';
-      if(failed){ h += '<p style="color:var(--fg-muted);font-size:.76em;margin:12px 0 0"><strong>View</strong> opens the failed run on GitHub to see what went wrong. <strong>Dismiss</strong> clears this badge so you can run it again from the dashboard.</p>'; }
+      if(failed){ h += '<p style="color:var(--fg-muted);font-size:.76em;margin:12px 0 0">'+(repUrl?'<strong>View report</strong> opens this activity\u2019s report to see what failed. ':'')+'<strong>View</strong> opens the failed run on GitHub to see what went wrong. <strong>Re-run</strong> starts it again for this commit. <strong>Dismiss</strong> clears this badge.</p>'; }
       else { h += '<p style="color:var(--fg-muted);font-size:.76em;margin:12px 0 0"><strong>Cancel run</strong> stops it on GitHub Actions (uses the same token you queued it with). <strong>View</strong> opens it on GitHub, where you can watch it or stop it manually.</p>'; }
       $("cidash-q-body").innerHTML = h;
       var cb=$("cidash-q-cancel"); if(cb) cb.addEventListener('click', function(){ cancelQueued(c, sha); });
+      var rb=$("cidash-q-rerun"); if(rb) rb.addEventListener('click', function(){ var rp=(entry.parent||''), rs=(entry.short||sha.slice(0,7)); qForget(c, sha); cidashQClose(); openRun(c, sha, rp, rs); });
       var db=$("cidash-q-dismiss"); if(db) db.addEventListener('click', function(){ qForget(c, sha); cidashQClose(); });
     }
     function openQ(c, sha){
@@ -1020,6 +1060,36 @@
       if(has(422)) return { html:'GitHub rejected the dispatch (HTTP 422) \u2014 usually a bad branch ref (<code>'+esc(BRANCH)+'</code>) or inputs.', tok:false };
       var st=(fails[0]||{}).status; return { html:'Could not queue runs (HTTP '+esc(String(st||'?'))+'). <a href="https://github.com/'+REPO+'/actions" target="_blank" rel="noopener" style="color:var(--link)">View Actions \u2197</a>', tok:false };
     }
+    var QUEUE_CONFIRM_MAX = 10;   // confirm before firing more than this many runs at once
+    // Count how many workflow runs dispatchCells(cells, opts) will queue, WITHOUT
+    // dispatching -- so a large batch can be confirmed first. Mirrors the `total`
+    // computed inside dispatchCells (snapshots -> one backfill; each warm-container
+    // batch (cap,platform) group -> one dispatch; remaining per-revision platforms
+    // counted individually).
+    function dispatchTotal(cells, opts){
+      opts = opts || {}; var reuse = !!opts.reuse;
+      var sawSnap=false; var perRev=[];
+      (cells||[]).forEach(function(x){
+        if(x.cap==='snapshots'){ sawSnap=true; }
+        else if(!(x.cap==='vidiff' && !x.parent)){ perRev.push(x); }
+      });
+      var batchSeen={}; var batchGroups=0; var perRevPlats=0;
+      perRev.forEach(function(x){
+        cellPlatforms(x).forEach(function(plat){
+          var p=(RT[x.cap] && RT[x.cap].platforms) ? RT[x.cap].platforms[plat] : null;
+          if(reuse && p && p.batch){ var key=x.cap+'|'+plat; if(!batchSeen[key]){ batchSeen[key]=1; batchGroups++; } }
+          else { perRevPlats++; }
+        });
+      });
+      return perRevPlats + (sawSnap?1:0) + batchGroups;
+    }
+    // Ask before queuing a large batch (guards against accidentally firing a whole
+    // history from the Populate-history dialog). Returns false only when the user
+    // cancels a >QUEUE_CONFIRM_MAX batch; a native confirm() keeps it robust + modal.
+    function confirmLargeQueue(n){
+      if(n <= QUEUE_CONFIRM_MAX) return true;
+      return window.confirm('This will queue '+n+' workflow runs on '+REPO+'.\n\nThat can use a lot of GitHub Actions minutes. Queue all '+n+' now?');
+    }
     function dispatchCells(cells, statusFn, opts){
       opts = opts || {}; var reuse = !!opts.reuse;
       var perRev=[]; var snapShas=[]; var sawSnap=false; var snapForce=false;
@@ -1120,6 +1190,7 @@
       if(!cells.length){ bfStatus('Nothing left to run \u2014 every revision is queued or already has results.', 'ok'); return; }
       if(!getTok()){ bfTokPanel(true); bfStatus('Add a token (Actions: Read and write) to queue runs.', 'warn'); var i=document.getElementById('lvci-bf-tok-input'); if(i) i.focus(); return; }
       bfTokPanel(false);
+      if(!confirmLargeQueue(dispatchTotal(cells))){ bfStatus('Cancelled \u2014 nothing was queued.', 'warn'); return; }
       var runBtn=document.getElementById('lvci-bf-run'); var disBtn=document.getElementById('lvci-bf-dismiss');
       if(runBtn) runBtn.disabled=true; if(disBtn) disBtn.disabled=true;
       dispatchCells(cells, bfStatus).then(function(res){
@@ -1156,7 +1227,7 @@
     // activities to queue. Reuses dispatchCells (oldest-first, snapshots as one
     // backfill) + the same token and optimistic-queued bridge as every other
     // dispatch on the dashboard.
-    var HIST = [{"sha": "5d92203dcb9e26e63d3f61a123c313cb14d49ebe", "short": "5d92203", "msg": "package spec", "snapshots2": {"windows": {"have": 0, "total": 39}, "linux": {"have": 39, "total": 39}}}, {"sha": "688fa810950414efe8e44f6be11ed31d33589e5c", "short": "688fa81", "msg": "changed  access scope of get path", "snapshots2": {"windows": {"have": 0, "total": 39}, "linux": {"have": 39, "total": 39}}}, {"sha": "dc16184ff0f53055cca00b6c644f2c69a9a6f12c", "short": "dc16184", "msg": "Better support for an API", "snapshots2": {"windows": {"have": 0, "total": 39}, "linux": {"have": 39, "total": 39}}}, {"sha": "f284f1ee1de37bbbde515d887b07b7e56f0bc334", "short": "f284f1e", "msg": "minor improvements", "snapshots2": {"windows": {"have": 0, "total": 35}, "linux": {"have": 0, "total": 35}}}, {"sha": "4e8d2e03d9d528d354e03833a49998f94411cb38", "short": "4e8d2e0", "msg": "Moving over from SVN", "snapshots2": {"windows": {"have": 0, "total": 35}, "linux": {"have": 0, "total": 35}}}];                        // [{sha, short, msg}] newest-first (project revisions)
+    var HIST = [{"sha": "5d92203dcb9e26e63d3f61a123c313cb14d49ebe", "short": "5d92203", "msg": "package spec", "dep_only": false, "snapshots2": {"windows": {"have": 0, "total": 39}, "linux": {"have": 39, "total": 39}}}, {"sha": "688fa810950414efe8e44f6be11ed31d33589e5c", "short": "688fa81", "msg": "changed  access scope of get path", "dep_only": false, "snapshots2": {"windows": {"have": 0, "total": 39}, "linux": {"have": 39, "total": 39}}}, {"sha": "dc16184ff0f53055cca00b6c644f2c69a9a6f12c", "short": "dc16184", "msg": "Better support for an API", "dep_only": false, "snapshots2": {"windows": {"have": 0, "total": 39}, "linux": {"have": 39, "total": 39}}}, {"sha": "f284f1ee1de37bbbde515d887b07b7e56f0bc334", "short": "f284f1e", "msg": "minor improvements", "dep_only": false, "snapshots2": {"windows": {"have": 0, "total": 35}, "linux": {"have": 0, "total": 35}}}, {"sha": "4e8d2e03d9d528d354e03833a49998f94411cb38", "short": "4e8d2e0", "msg": "Moving over from SVN", "dep_only": false, "snapshots2": {"windows": {"have": 0, "total": 35}, "linux": {"have": 0, "total": 35}}}];                        // [{sha, short, msg}] newest-first (project revisions)
     var RAN = {"masscompile": 1, "snapshots": 1, "snapshots2": 1, "vi-analyzer": 1, "vidiff": 1};                     // {cap:1} caps with a result/active run somewhere in history
     var CAP_META = {                            // label + sub for each known capability
       'snapshots':   ['VI Snapshots', 'Renders every changed VI (classic HTML snapshots)'],
@@ -1165,11 +1236,12 @@
       'masscompile': ['Mass Compile', 'Compiles the whole project, each revision'],
       'vi-analyzer': ['VI Analyzer',  'Runs the VI Analyzer suite, each revision'],
       'unit-tests':  ['Unit Tests',   'Runs the unit-test suite, each revision'],
-      'antidoc':     ['Antidoc',      'Generates project documentation, each revision']
+      'antidoc':     ['Antidoc',      'Generates project documentation, each revision'],
+      'builds':      ['Builds',       'Runs the project build specifications (EXE, PPL, ...), each revision']
     };
-    var CAP_ORDER = ['snapshots','snapshots2','vidiff','masscompile','vi-analyzer','unit-tests','antidoc'];
+    var CAP_ORDER = ['snapshots','snapshots2','vidiff','masscompile','vi-analyzer','unit-tests','antidoc','builds'];
     var DIFF_CAPS = { snapshots:1, snapshots2:1, vidiff:1 };  // the lean "diff-based" subset
-    var PLATFORM_CAPS = { snapshots2:1, vidiff:1, masscompile:1, 'vi-analyzer':1 };
+    var PLATFORM_CAPS = { snapshots2:1, vidiff:1, masscompile:1, 'vi-analyzer':1, builds:1 };
     var platState = {};                         // cap id -> selected platform keys for history rows
     function capPlatforms(capId){ return (RT[capId] && RT[capId].platforms) ? Object.keys(RT[capId].platforms) : []; }
     function histHasPlatformPicker(capId){ return !!PLATFORM_CAPS[capId] && capPlatforms(capId).length > 1; }
@@ -1202,7 +1274,7 @@
       return CAP_ORDER.filter(function(c){ return (seen[c] || RAN[c]) && RT[c]; });
     }
     function histModal(){ return document.getElementById('cidash-hist-modal'); }
-    function cidashHistClose(){ var m=histModal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
+    function cidashHistClose(){ var m=histModal(); if(m) m.style.display='none'; document.body.style.overflow=''; try{ if(window.parent!==window) window.parent.postMessage('lvci:hist-close',location.origin); }catch(e){} }
     function histStatus(html, kind){
       var s=document.getElementById('cidash-hist-status'); if(!s) return;
       var col = kind==='ok' ? '#3fb950' : (kind==='err' ? '#f85149' : (kind==='warn' ? '#d29922' : 'var(--fg-muted)'));
@@ -1292,6 +1364,20 @@
           out.push({ cap:td.getAttribute('data-cap'), sha:td.getAttribute('data-sha'),
                      parent:td.getAttribute('data-parent')||'', order:idx, done:true });
         });
+        // A client-side optimistic overlay (Queued / Running / Failed) can REPLACE an
+        // empty run glyph, leaving the cell with ONLY data-qcap/data-qsha (the run's
+        // <a> - and thus the cap/sha this dialog keys off - is gone). Gather those too
+        // so a cell whose only state is an in-browser overlay (e.g. a unit-test run that
+        // FAILED) stays re-runnable here instead of vanishing as "none in scope". A
+        // cap-cell/active-cell that ALSO carries an overlay is already counted above, so
+        // skip it to avoid double-counting; parent is recovered from the stored entry.
+        Array.prototype.forEach.call(tr.querySelectorAll('td.cidash-queued-cell[data-qcap]'), function(td){
+          if(td.classList.contains('cidash-cap-cell') || td.classList.contains('cidash-active-cell')) return;
+          var qc=td.getAttribute('data-qcap'), qs=td.getAttribute('data-qsha');
+          if(!qc || !qs) return;
+          var qe=(qLoad()[qc+'|'+qs])||{};
+          out.push({ cap:qc, sha:qs, parent:qe.parent||'', order:idx, done:true });
+        });
       });
       if(RT.snapshots2){
         HIST.forEach(function(r, idx){
@@ -1305,10 +1391,24 @@
       return out;
     }
     function histScopeMode(){ var r=document.querySelector('input[name="cidash-hist-scope"]:checked'); return r ? r.value : 'all'; }
-    function histIdx(sha){ for(var i=0;i<HIST.length;i++){ if(HIST[i].sha===sha) return i; } return -1; }
+    // The revision pickers mirror the dashboard table: dependency-only revisions
+    // (only a .vipc/.vip changed) are hidden unless "Show dependency-only" is on,
+    // and a free-text search narrows by short SHA or commit title. histVisible() is
+    // the newest-first set every scope (all / range / specific) actually operates on.
+    var histSearch = '';
+    var histInclDep = false;
+    function histMatchSearch(r){
+      if(!histSearch) return true;
+      var q=histSearch.toLowerCase();
+      return (String(r.short||'').toLowerCase().indexOf(q)>=0)
+          || (String(r.sha||'').toLowerCase().indexOf(q)>=0)
+          || (String(r.msg||'').toLowerCase().indexOf(q)>=0);
+    }
+    function histVisible(){ return HIST.filter(function(r){ return (histInclDep || !r.dep_only) && histMatchSearch(r); }); }
+    function histIdxIn(list, sha){ for(var i=0;i<list.length;i++){ if(list[i].sha===sha) return i; } return -1; }
     function histIncludedShas(){
-      // Three scopes drive which revisions are queued (HIST is newest-first):
-      //   all      -> every revision
+      // Three scopes drive which revisions are queued (visible set is newest-first):
+      //   all      -> every visible revision
       //   range    -> Start (older bound) .. Stop (newer bound), inclusive; a blank
       //               Start = oldest and a blank Stop = newest, and a reversed pair
       //               is swapped so the range is always valid
@@ -1318,17 +1418,45 @@
         Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec:checked'), function(b){ inc[b.value]=1; });
         return inc;
       }
+      var vis=histVisible();
       if(mode==='range'){
         var f=document.getElementById('cidash-hist-from'); var t=document.getElementById('cidash-hist-to');
-        var iFrom = (f && f.value) ? histIdx(f.value) : HIST.length-1;   // '' = oldest
-        var iTo   = (t && t.value) ? histIdx(t.value) : 0;               // '' = newest
-        if(iFrom<0) iFrom=HIST.length-1; if(iTo<0) iTo=0;
+        var iFrom = (f && f.value) ? histIdxIn(vis, f.value) : vis.length-1;   // '' = oldest
+        var iTo   = (t && t.value) ? histIdxIn(vis, t.value) : 0;              // '' = newest
+        if(iFrom<0) iFrom=vis.length-1; if(iTo<0) iTo=0;
         var lo=Math.min(iFrom,iTo), hi=Math.max(iFrom,iTo);
-        for(var j=lo;j<=hi;j++){ if(HIST[j]) inc[HIST[j].sha]=1; }
+        for(var j=lo;j<=hi;j++){ if(vis[j]) inc[vis[j].sha]=1; }
         return inc;
       }
-      HIST.forEach(function(r){ inc[r.sha]=1; });
+      vis.forEach(function(r){ inc[r.sha]=1; });
       return inc;
+    }
+    function histRenderRevList(){
+      // (Re)build the "All" count, the range dropdowns and the specific checklist
+      // from histVisible(), preserving current selections where the revision is
+      // still visible. Called on open and whenever the search / dep toggle changes.
+      var vis=histVisible();
+      var ac=document.getElementById('cidash-hist-allcount');
+      if(ac) ac.textContent='All '+vis.length+' revision'+(vis.length===1?'':'s');
+      var optsHtml=vis.map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc((r.short||'')+(r.msg?(' \u2014 '+r.msg):''))+'</option>'; }).join('');
+      ['cidash-hist-from','cidash-hist-to'].forEach(function(id){
+        var sel=document.getElementById(id); if(!sel) return;
+        var prev=sel.value;
+        var head=(id==='cidash-hist-from')?'<option value="">Oldest (beginning)</option>':'<option value="">Newest (latest)</option>';
+        sel.innerHTML=head+optsHtml;
+        sel.value=(prev && vis.some(function(r){return r.sha===prev;}))?prev:'';
+      });
+      var checked={};
+      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec:checked'), function(b){ checked[b.value]=1; });
+      var host=document.getElementById('cidash-hist-speclist'); if(!host) return;
+      if(!vis.length){ host.innerHTML='<div class="cidash-hist-specempty">No revisions match.</div>'; return; }
+      host.innerHTML=vis.map(function(r){
+        return '<label class="cidash-hist-specitem"><input type="checkbox" class="cidash-hist-spec" value="'+esc(r.sha)+'"'+(checked[r.sha]?' checked':'')+'>'
+          + '<span class="sh">'+esc(r.short||'')+'</span><span class="ms">'+esc(r.msg||'')+'</span>'
+          + (r.dep_only?'<span class="cidash-hist-deptag" title="Only an external dependency (.vipc/.vip) changed in this revision">dep</span>':'')
+          + '</label>';
+      }).join('');
+      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.addEventListener('change', histRefresh); });
     }
     function histScopeApply(){
       // Reveal only the sub-control for the chosen scope.
@@ -1476,20 +1604,23 @@
       var body=document.getElementById('cidash-hist-body'); if(!body) return;
       var h='';
       h += '<p class="cidash-hist-intro">Queue CI for revisions that already exist so the dashboard fills in. Runs <strong>oldest \u2192 newest</strong>. For each activity, choose to <b>Fill</b> only the missing results or <b>Re-run</b> every selected revision.</p>';
-      var optsHtml = HIST.map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc((r.short||'')+(r.msg?(' \u2014 '+r.msg):''))+'</option>'; }).join('');
-      h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl">Which revisions</label><div class="cidash-hist-scope">';
-      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="all" checked> All '+HIST.length+' revision'+(HIST.length===1?'':'s')+' <span class="sub">\u2014 the full history</span></label>';
+      var anyDep = HIST.some(function(r){ return r.dep_only; });
+      h += '<div class="cidash-hist-sec"><label class="cidash-hist-lbl">Which revisions</label>';
+      h += '<div class="cidash-hist-revfilter"><input type="text" id="cidash-hist-revsearch" class="cidash-hist-search" placeholder="Search by title or SHA\u2026" autocomplete="off" spellcheck="false" value="'+esc(histSearch)+'">';
+      if(anyDep) h += '<label class="cidash-hist-inclchk" title="Revisions whose only change is an external dependency (.vipc/.vip). Hidden by default, matching the dashboard."><input type="checkbox" id="cidash-hist-incldep"'+(histInclDep?' checked':'')+'> Show dependency-only revisions</label>';
+      h += '</div>';
+      h += '<div class="cidash-hist-scope">';
+      h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="all" checked> <span id="cidash-hist-allcount">All revisions</span> <span class="sub">\u2014 the full history</span></label>';
       h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="range"> A range of history</label>';
       h += '<div class="cidash-hist-rangerow" id="cidash-hist-rangerow" style="display:none">';
-      h += '<label>Start at <select id="cidash-hist-from"><option value="">Oldest (beginning)</option>'+optsHtml+'</select></label>';
-      h += '<label>stop at <select id="cidash-hist-to"><option value="">Newest (latest)</option>'+optsHtml+'</select></label>';
+      h += '<label>Start at <select id="cidash-hist-from"></select></label>';
+      h += '<label>stop at <select id="cidash-hist-to"></select></label>';
       h += '</div>';
       h += '<label class="cidash-hist-radio"><input type="radio" name="cidash-hist-scope" value="specific"> Specific revision(s)</label>';
       h += '<div id="cidash-hist-specwrap" style="display:none">';
       h += '<div class="cidash-hist-spectools"><a href="#" id="cidash-hist-spec-all">Select all</a><a href="#" id="cidash-hist-spec-none">Clear</a></div>';
-      h += '<div class="cidash-hist-speclist" id="cidash-hist-speclist">';
-      HIST.forEach(function(r){ h += '<label class="cidash-hist-specitem"><input type="checkbox" class="cidash-hist-spec" value="'+esc(r.sha)+'"><span class="sh">'+esc(r.short||'')+'</span><span class="ms">'+esc(r.msg||'')+'</span></label>'; });
-      h += '</div></div>';
+      h += '<div class="cidash-hist-speclist" id="cidash-hist-speclist"></div>';
+      h += '</div>';
       h += '</div></div>';
       var instCaps=histInstalledCaps();
       h += '<div class="cidash-hist-sec"><div class="cidash-hist-actshead"><label class="cidash-hist-lbl" style="margin:0">Activities</label>';
@@ -1545,6 +1676,13 @@
       h += '<button class="cidash-btn cidash-go" id="cidash-hist-go">\u25B6 Queue runs</button>';
       h += '<button class="cidash-btn cidash-ghost" id="cidash-hist-cancel">Cancel</button></div>';
       body.innerHTML=h;
+      // Mirror the dashboard's current dependency-only filter so the dialog shows
+      // the same revisions the table does; populate the pickers from the visible set.
+      var _dd=document.getElementById('show-deponly'); histInclDep=!!(_dd && _dd.checked);
+      var _idp=document.getElementById('cidash-hist-incldep'); if(_idp) _idp.checked=histInclDep;
+      histRenderRevList();
+      var _rs=document.getElementById('cidash-hist-revsearch'); if(_rs) _rs.addEventListener('input', function(){ histSearch=_rs.value.trim(); histRenderRevList(); histRefresh(); });
+      if(_idp) _idp.addEventListener('change', function(){ histInclDep=!!_idp.checked; histRenderRevList(); histRefresh(); });
       instCaps.forEach(function(cap){ actMode[cap]='fill'; });   // open with every activity on Fill (gaps only)
       reuseWarm=false;   // warm-container reuse always starts OFF
       var rchk=document.getElementById('cidash-hist-reuse'); if(rchk) rchk.addEventListener('change', function(){ reuseWarm=!!rchk.checked; histRefresh(); });
@@ -1560,7 +1698,6 @@
       Array.prototype.forEach.call(document.querySelectorAll('input[name="cidash-hist-scope"]'), function(r){ r.addEventListener('change', function(){ histScopeApply(); histRefresh(); }); });
       var hf=document.getElementById('cidash-hist-from'); if(hf) hf.addEventListener('change', histRefresh);
       var ht=document.getElementById('cidash-hist-to'); if(ht) ht.addEventListener('change', histRefresh);
-      Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.addEventListener('change', histRefresh); });
       var spa=document.getElementById('cidash-hist-spec-all'); if(spa) spa.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=true; }); histRefresh(); });
       var spn=document.getElementById('cidash-hist-spec-none'); if(spn) spn.addEventListener('click', function(e){ e.preventDefault(); Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=false; }); histRefresh(); });
       var go=document.getElementById('cidash-hist-go'); if(go) go.addEventListener('click', histRun);
@@ -1582,7 +1719,7 @@
       // platform-split - limit to the document's platform. Falls back silently to
       // the normal full dialog when the revision/activity isn't on this dashboard.
       try{
-        if(opts.sha && histIdx(opts.sha)>=0){
+        if(opts.sha && histIdxIn(HIST, opts.sha)>=0){
           var sp=document.querySelector('input[name="cidash-hist-scope"][value="specific"]'); if(sp){ sp.checked=true; histScopeApply(); }
           Array.prototype.forEach.call(document.querySelectorAll('input.cidash-hist-spec'), function(b){ b.checked=(b.value===opts.sha); });
         }
@@ -1601,6 +1738,7 @@
       if(!cells.length){ histStatus('Nothing to queue \u2014 the selected revisions already have results for those activities.', 'warn'); return; }
       if(!getTok()){ histTokPanel(true); histStatus('Add a token (Actions: Read and write) to queue runs.', 'warn'); var i=document.getElementById('cidash-hist-tok-input'); if(i) i.focus(); return; }
       histTokPanel(false);
+      if(!confirmLargeQueue(dispatchTotal(cells, {reuse: reuseWarm}))){ histStatus('Cancelled \u2014 nothing was queued.', 'warn'); return; }
       var go=document.getElementById('cidash-hist-go'); var cancel=document.getElementById('cidash-hist-cancel');
       if(go) go.disabled=true; if(cancel) cancel.disabled=true;
       dispatchCells(cells, histStatus, {reuse: reuseWarm}).then(function(res){
@@ -1627,6 +1765,23 @@
     }
     // Exposed for the shared header's "Populate history" menu item.
     window.lvciRunHistory = histOpen;
+    // When the dialog is opened inside an overlay iframe from a report page's
+    // "Re-run" (host requests ?lvci-embed=1), show ONLY the dialog: hide the
+    // dashboard header/table and make the page transparent, so the iframe reads
+    // as a plain modal over the dimmed host page, not the whole dashboard behind it.
+    function lvciEmbedMode(){
+      try{
+        var d=document.documentElement; if(d.classList.contains('lvci-embed')) return; d.classList.add('lvci-embed');
+        var st=document.createElement('style');
+        st.textContent='html.lvci-embed,html.lvci-embed body{background:transparent!important}'
+          +'html.lvci-embed body>*:not(#cidash-hist-modal){display:none!important}'
+          +'html.lvci-embed #cidash-hist-modal{background:rgba(0,0,0,.55)!important}';
+        (document.head||document.documentElement).appendChild(st);
+      }catch(e){}
+    }
+    // Apply embed hiding synchronously - this script runs while the page is still
+    // parsing (before <main>/the table below), so the chrome is never painted.
+    try{ if(new URLSearchParams(location.search||'').get('lvci-embed')==='1') lvciEmbedMode(); }catch(e){}
     // Exposed because the modal's "× Close" button and backdrop use inline onclick
     // handlers, which resolve against window — not this IIFE's scope. Without this
     // the close button silently did nothing (the Cancel button and Esc, which call
@@ -1645,9 +1800,11 @@
       try{
         var p=new URLSearchParams(location.search||'');
         if(p.get('lvci-populate')!=='1') return;
+        var embed=(p.get('lvci-embed')==='1');
         var opts={ cap:(p.get('cap')||''), sha:(p.get('sha')||''), platform:(p.get('platform')||'') };
-        try{ ['lvci-populate','cap','sha','platform'].forEach(function(k){ p.delete(k); });
+        try{ ['lvci-populate','lvci-embed','cap','sha','platform'].forEach(function(k){ p.delete(k); });
              var qs=p.toString(); history.replaceState(null,'',location.pathname+(qs?('?'+qs):'')+location.hash); }catch(e){}
+        if(embed) lvciEmbedMode();
         histOpen((opts.cap||opts.sha)?opts:undefined);
       }catch(e){}
     }
@@ -1664,9 +1821,200 @@
     window.addEventListener('focus', qRecheck);
   })();
   </script>
+
+  <div id="cidash-debug-modal" onclick="if(event.target===this)cidashDebugClose()" style="display:none;position:fixed;inset:0;z-index:320;background:rgba(0,0,0,.55)">
+    <div role="dialog" aria-modal="true" aria-labelledby="cidash-debug-title" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(600px,calc(100% - 32px));max-height:calc(100% - 48px);overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 48px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface)">
+        <strong id="cidash-debug-title" style="font-size:.95em">Debug Run</strong>
+        <button onclick="cidashDebugClose()" style="background:transparent;border:1px solid var(--border);color:var(--fg);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.82em">&#10005; Close</button>
+      </div>
+      <div id="cidash-debug-body" style="padding:16px"></div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var RT = {"masscompile": {"label": "Mass Compile", "platforms": {"windows": {"wf": "masscompile-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "masscompile-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vi-analyzer": {"label": "VI Analyzer", "platforms": {"windows": {"wf": "run-vi-analyzer-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}, "linux": {"wf": "run-vi-analyzer-linux-container.yml", "inputs": {"commit_sha": "{sha}"}}}}, "vidiff": {"label": "VIDiff", "platforms": {"windows": {"wf": "vidiff-windows-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}, "linux": {"wf": "vidiff-linux-container.yml", "inputs": {"head_sha": "{sha}", "base_sha": "{parent}"}}}}, "snapshots": {"label": "VI Snapshots", "platforms": {"all": {"wf": "vi-snapshots.yml", "inputs": {"mode": "backfill"}}}}, "snapshots2": {"label": "VI Browser 2.0 Snapshots", "platforms": {"windows": {"wf": "vi-snapshots-json-windows.yml", "inputs": {"target_sha": "{sha}"}}, "linux": {"wf": "vi-snapshots-json.yml", "inputs": {"mode": "head", "target_sha": "{sha}"}}}}, "unit-tests": {"label": "Unit Tests", "platforms": {"windows": {"wf": "unit-tests-windows-container.yml", "inputs": {"commit_sha": "{sha}"}}}}};
+    var HIST = [{"sha": "5d92203dcb9e26e63d3f61a123c313cb14d49ebe", "short": "5d92203", "msg": "package spec", "dep_only": false, "snapshots2": {"windows": {"have": 0, "total": 39}, "linux": {"have": 39, "total": 39}}}, {"sha": "688fa810950414efe8e44f6be11ed31d33589e5c", "short": "688fa81", "msg": "changed  access scope of get path", "dep_only": false, "snapshots2": {"windows": {"have": 0, "total": 39}, "linux": {"have": 39, "total": 39}}}, {"sha": "dc16184ff0f53055cca00b6c644f2c69a9a6f12c", "short": "dc16184", "msg": "Better support for an API", "dep_only": false, "snapshots2": {"windows": {"have": 0, "total": 39}, "linux": {"have": 39, "total": 39}}}, {"sha": "f284f1ee1de37bbbde515d887b07b7e56f0bc334", "short": "f284f1e", "msg": "minor improvements", "dep_only": false, "snapshots2": {"windows": {"have": 0, "total": 35}, "linux": {"have": 0, "total": 35}}}, {"sha": "4e8d2e03d9d528d354e03833a49998f94411cb38", "short": "4e8d2e0", "msg": "Moving over from SVN", "dep_only": false, "snapshots2": {"windows": {"have": 0, "total": 35}, "linux": {"have": 0, "total": 35}}}];
+    var REPO = "elijah286/Extensible-Config-Dialog";
+    var BRANCH = "master";
+    var TOK_KEY = "lvci_dispatch_token";
+    var WF = "debug-session.yml";
+    var CAP_LABEL = { masscompile:'Mass Compile', vidiff:'VIDiff', snapshots2:'VI Browser 2.0 Snapshots', builds:'Builds' };
+    function $(id){ return document.getElementById(id); }
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    function getTok(){ try{ return localStorage.getItem(TOK_KEY)||localStorage.getItem("lvci_install_token")||''; }catch(e){ return ''; } }
+    function setTok(v){ try{ localStorage.setItem(TOK_KEY, v); }catch(e){} }
+    function ghHeaders(){ return { 'Authorization':'Bearer '+getTok(), 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' }; }
+    function pagesBase(){ var u=(window.LVCI&&window.LVCI.pagesUrl)||''; if(u&&u.charAt(u.length-1)!=='/') u+='/'; return u; }
+    function tokenSetupUrl(){
+      var owner=(REPO.split('/')[0])||'';
+      return 'https://github.com/settings/personal-access-tokens/new?name='+encodeURIComponent('LabVIEW CI dispatch')
+        +'&description='+encodeURIComponent('Queue LabVIEW CI runs for '+REPO)
+        +(owner?'&target_name='+encodeURIComponent(owner):'')+'&actions=write';
+    }
+    // Existing debug sessions (any in-progress debug-session run), shown below the
+    // start form: reconnect (Open) or End from ANY device, with a live progress
+    // indicator for ones still queued or booting.
+    var liveTimer = null, liveIds = '';
+    function clearLiveTimer(){ if(liveTimer){ clearInterval(liveTimer); liveTimer=null; } }
+    function ensureLiveCss(){
+      if(document.getElementById('dbg-live-css')) return;
+      var st=document.createElement('style'); st.id='dbg-live-css';
+      st.textContent='.dbg-bar{height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin:6px 0}'
+        +'.dbg-bar>span{display:block;height:100%;width:0;background:#1f6feb;border-radius:4px;transition:width .4s}'
+        +'.dbg-bar.dbg-ok>span{background:#2ea043}'
+        +'.dbg-bar.dbg-indet>span{width:35%;animation:dbgSlide 1.15s ease-in-out infinite}'
+        +'@keyframes dbgSlide{0%{margin-left:-35%}100%{margin-left:100%}}';
+      (document.head||document.documentElement).appendChild(st);
+    }
+    function endRun(runId){
+      if(!runId) return;
+      if(!window.confirm('End debug session run #'+runId+'? This cancels the run and tears down the container.')) return;
+      fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+runId+'/cancel', { method:'POST', headers:ghHeaders() })
+        .then(function(){ setTimeout(refreshLiveSessions, 1500); }).catch(function(){});
+    }
+    function livePlat(r){ var m=/\((windows|linux)\)/i.exec(r.display_title||r.name||''); return m?m[1].toLowerCase():''; }
+    function liveRow(r){
+      var sh=(r.head_sha||'').slice(0,7); var plat=livePlat(r);
+      return '<div class="dbg-live-row" style="padding:8px 0;border-bottom:1px solid var(--border)">'
+        + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+        +   '<span style="font-size:.85em"><a href="'+esc(r.html_url)+'" target="_blank" rel="noopener">run #'+r.id+' &#8599;</a> &middot; <code>'+esc(sh)+'</code>'+(plat?(' &middot; '+esc(plat)):'')+'</span>'
+        +   '<span id="dbg-live-open-'+r.id+'" style="margin-left:auto"></span>'
+        +   '<button class="dbg-live-end" data-run="'+r.id+'" style="background:transparent;border:1px solid #f85149;color:#f85149;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:.8em">End</button>'
+        + '</div>'
+        + '<div class="dbg-bar dbg-indet" id="dbg-live-bar-'+r.id+'"><span></span></div>'
+        + '<div id="dbg-live-stat-'+r.id+'" style="font-size:.78em;color:var(--fg-muted)">Checking status&hellip;</div>'
+        + '</div>';
+    }
+    function setLiveBar(id, mode, pct){
+      var el=$('dbg-live-bar-'+id); if(!el) return;
+      el.className='dbg-bar'+(mode==='indet'?' dbg-indet':(mode==='ok'?' dbg-ok':''));
+      var sp=el.firstChild; if(!sp) return;
+      if(mode==='indet'){ sp.style.width=''; } else { sp.style.width=(pct==null?0:Math.max(4,Math.min(100,pct)))+'%'; }
+    }
+    function setLiveStat(id, html){ var el=$('dbg-live-stat-'+id); if(el) el.innerHTML=html; }
+    function setLiveOpen(id, url){ var el=$('dbg-live-open-'+id); if(el) el.innerHTML='<a href="'+esc(url)+'" target="_blank" rel="noopener" style="display:inline-block;background:#2ea043;border:1px solid #2ea043;color:#fff;padding:4px 12px;border-radius:6px;text-decoration:none;font-size:.82em">Open remote desktop &#8599;</a>'; }
+    function fillLiveRow(r){
+      // Live? the connect file is published once the tunnel is up.
+      fetch(pagesBase()+'debug/'+r.id+'.json?_='+Date.now(), { cache:'no-cache' })
+        .then(function(x){ return x.ok?x.json():null; })
+        .then(function(j){
+          if(j&&j.url){ setLiveOpen(r.id, j.url); setLiveBar(r.id,'ok',100); setLiveStat(r.id,'<span style="color:#3fb950">Live &mdash; remote desktop ready.</span>'); return; }
+          if(r.status==='queued'||r.status==='pending'){ setLiveBar(r.id,'indet'); setLiveStat(r.id,'Queued &mdash; waiting for a runner or another debug session to finish.'); return; }
+          fetch('https://api.github.com/repos/'+REPO+'/actions/runs/'+r.id+'/jobs?per_page=5', { headers:ghHeaders(), cache:'no-cache' })
+            .then(function(x){ return x.ok?x.json():null; })
+            .then(function(d){
+              var jobs=((d&&d.jobs)||[]);
+              var total=0, done=0, cur='';
+              jobs.forEach(function(j){ (j.steps||[]).forEach(function(s){ total++; if(s.status==='completed') done++; else if(s.status==='in_progress'&&!cur) cur=s.name; }); });
+              if(total){ setLiveBar(r.id,'', Math.round(done/total*100)); setLiveStat(r.id,'Booting &mdash; '+esc(cur||'working')+' ('+done+'/'+total+')'); }
+              else { setLiveBar(r.id,'indet'); setLiveStat(r.id,'Booting the container + LabVIEW&hellip;'); }
+            }).catch(function(){ setLiveBar(r.id,'indet'); setLiveStat(r.id,'Booting&hellip;'); });
+        }).catch(function(){ setLiveBar(r.id,'indet'); setLiveStat(r.id,'Checking status&hellip;'); });
+    }
+    function refreshLiveSessions(){
+      var box=$('dbg-live'); if(!box) return;
+      if(!getTok()){ box.innerHTML=''; liveIds=''; return; }
+      fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WF)+'/runs?per_page=20', { headers:ghHeaders(), cache:'no-cache' })
+        .then(function(r){ return r.ok?r.json():null; })
+        .then(function(d){
+          var box=$('dbg-live'); if(!box) return;
+          var runs=((d&&d.workflow_runs)||[]).filter(function(r){ return r.status!=='completed'; });
+          var hdr='<div style="font-weight:600;font-size:.88em;margin:0 0 4px">Existing debug sessions</div>';
+          if(!runs.length){ box.innerHTML=hdr+'<div style="font-size:.8em;color:var(--fg-muted)">None running. Started sessions run on the runner (independent of this browser) and appear here.</div>'; liveIds=''; return; }
+          var ids=runs.map(function(r){ return r.id; }).join(',');
+          if(ids!==liveIds){
+            ensureLiveCss();
+            box.innerHTML=hdr
+              + '<div style="font-size:.78em;color:var(--fg-muted);margin:0 0 6px">Reconnect (Open) or end any session from here &mdash; on any device.</div>'
+              + runs.map(liveRow).join('');
+            liveIds=ids;
+            var ends=box.querySelectorAll('.dbg-live-end');
+            for(var i=0;i<ends.length;i++){ ends[i].addEventListener('click', function(){ endRun(this.getAttribute('data-run')); }); }
+          }
+          runs.forEach(fillLiveRow);
+        }).catch(function(){});
+    }
+    // Quickly surface a just-dispatched run in the list (before the 5s poll settles).
+    function kickLive(){ refreshLiveSessions(); setTimeout(refreshLiveSessions,1500); setTimeout(refreshLiveSessions,4000); setTimeout(refreshLiveSessions,8000); }
+    function modal(){ return $('cidash-debug-modal'); }
+    function cidashDebugClose(){ clearLiveTimer(); var m=modal(); if(m) m.style.display='none'; document.body.style.overflow=''; }
+    window.cidashDebugClose = cidashDebugClose;
+    function debugStatus(html, kind){
+      var s=$('dbg-status'); if(!s) return;
+      var col = kind==='ok' ? '#3fb950' : (kind==='err' ? '#f85149' : (kind==='warn' ? '#d29922' : 'var(--fg-muted)'));
+      s.style.color=col; s.innerHTML=html||'';
+    }
+    // ── Config form + existing-sessions list ───────────────────────────
+    function renderStep1(){
+      var revs=HIST.slice(0,200).map(function(r){ return '<option value="'+esc(r.sha)+'">'+esc(r.short||r.sha.slice(0,7))+' &mdash; '+esc((r.msg||'').slice(0,60))+'</option>'; }).join('');
+      var body=''
+        + '<p style="margin:0 0 10px;color:var(--fg-muted);font-size:.9em">Start an interactive LabVIEW desktop on a worker container for a specific revision, then remote in. The project opens automatically and an on-screen menu lets you run CI operations (Mass Compile, Builds, VIDiff&hellip;) and watch them execute live.</p>'
+        + '<div style="margin:0 0 12px;padding:8px 10px;border:1px solid var(--border);border-left:3px solid #d29922;border-radius:6px;background:rgba(210,153,34,.08);font-size:.85em;color:var(--fg)">Each debug session occupies one of this project\'s Actions runners for its whole lifetime and will block other CI jobs if no runner slots are free. End sessions as soon as you are done.</div>'
+        + '<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-rev">Revision</label><br>'
+        +   '<select id="dbg-rev" style="width:100%;max-width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'+revs+'</select></div>'
+        + '<div style="margin:0 0 14px"><label style="font-weight:600;font-size:.85em" for="dbg-min">Auto-end after</label><br>'
+        +   '<select id="dbg-min" style="padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)">'
+        +     '<option value="30">30 minutes</option><option value="45" selected>45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option></select></div>'
+        + (getTok()?'':'<div style="margin:0 0 12px"><label style="font-weight:600;font-size:.85em" for="dbg-tok">Dispatch token</label><br><input id="dbg-tok" type="password" placeholder="fine-grained PAT with Actions: write" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--fg)"><div style="font-size:.8em;color:var(--fg-muted);margin-top:3px"><a href="'+tokenSetupUrl()+'" target="_blank" rel="noopener">Create one &#8599;</a></div></div>')
+        + '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap"><button id="dbg-start" title="Boot a LabVIEW debug desktop on this revision; pick operations from the on-screen menu once inside" style="background:#1f6feb;border:1px solid #1f6feb;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:.9em">Start debug session</button><span id="dbg-status" style="font-size:.85em;color:var(--fg-muted)"></span></div>'
+        + '<div id="dbg-live" style="margin:16px 0 0;border-top:1px solid var(--border);padding-top:12px;max-height:280px;overflow-y:auto"></div>';
+      $('cidash-debug-body').innerHTML=body;
+      try{ if(typeof window.lvciRevPicker==='function') window.lvciRevPicker($('dbg-rev')); }catch(e){}
+      $('dbg-start').addEventListener('click', function(){ startSession(); });
+      refreshLiveSessions();
+      clearLiveTimer(); liveTimer=setInterval(refreshLiveSessions, 5000);
+    }
+    // Dispatch a debug session: boot a LabVIEW desktop on the chosen revision
+    // with the project open; operations are chosen from the on-screen menu.
+    function startSession(){
+      var t=$('dbg-tok'); if(t && t.value.trim()){ setTok(t.value.trim()); }
+      if(!getTok()){ debugStatus('Enter a token with <strong>Actions: write</strong> to start.', 'err'); return; }
+      var sha=$('dbg-rev') ? $('dbg-rev').value : '';
+      if(!sha){ debugStatus('Pick a revision.', 'err'); return; }
+      var mins=$('dbg-min') ? $('dbg-min').value : '45';
+      var startBtn=$('dbg-start');
+      if(startBtn){ startBtn.disabled=true; startBtn.textContent='Starting...'; }
+      debugStatus('Dispatching the debug session...');
+      function reset(){ if(startBtn){ startBtn.disabled=false; startBtn.textContent='Start debug session'; } }
+      var inputs={ commit_sha:sha, platform:'linux', actions:'', minutes:String(mins), open_source:'true' };
+      fetch('https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WF)+'/dispatches', {
+        method:'POST', headers:Object.assign({'Content-Type':'application/json'}, ghHeaders()),
+        body:JSON.stringify({ ref:BRANCH, inputs:inputs })
+      }).then(function(r){
+        reset();
+        if(r.status===204){ debugStatus('Session dispatched &mdash; it will appear below as it boots.', 'ok'); kickLive(); return; }
+        if(r.status===401){ try{ localStorage.removeItem(TOK_KEY); }catch(e){} debugStatus('Token rejected (401). Paste a valid token above.', 'err'); renderStep1(); return; }
+        if(r.status===403){ debugStatus('Dispatch forbidden (403). The token needs <strong>Actions: write</strong> for <code>'+esc(REPO)+'</code>.', 'err'); return; }
+        if(r.status===404){ debugStatus('Not found (404). <code>'+esc(WF)+'</code> is not installed, or the token cannot see this repo.', 'err'); return; }
+        debugStatus('Dispatch failed (HTTP '+r.status+').', 'err');
+      }).catch(function(e){ reset(); debugStatus('Network error: '+esc(String(e&&e.message||e)), 'err'); });
+    }
+    // ── Open ───────────────────────────────────────────────────────────────
+    function debugOpen(){
+      var m=modal(); if(!m) return;
+      m.style.display='block'; document.body.style.overflow='hidden';
+      renderStep1();
+    }
+    window.lvciDebugRun = debugOpen;
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var m=modal(); if(m && m.style.display==='block') cidashDebugClose(); } });
+    // Auto-open when another page routed here for Debug Run (?lvci-debug=1); strip
+    // the param so a manual reload doesn't reopen it.
+    function lvciAutoDebug(){
+      try{
+        var p=new URLSearchParams(location.search||'');
+        if(p.get('lvci-debug')!=='1') return;
+        p.delete('lvci-debug');
+        try{ var qs=p.toString(); history.replaceState(null,'',location.pathname+(qs?('?'+qs):'')+location.hash); }catch(e){}
+        debugOpen();
+      }catch(e){}
+    }
+    if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', lvciAutoDebug); } else { lvciAutoDebug(); }
+  })();
+  </script>
   <main class="lvci-main">
   <h1>CI Dashboard — Extensible-Config-Dialog</h1>
-  <div class="sub">Last updated: 2026-08-17 23:10 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
+  <div class="sub">Last updated: 2026-08-18 00:07 UTC &nbsp;|&nbsp; Auto-refreshes every 15 min</div>
   <div class="nav">
     <a href="https://github.com/elijah286/Extensible-Config-Dialog">GitHub</a>
     <a href="https://github.com/elijah286/Extensible-Config-Dialog/actions">Actions</a>
@@ -1707,9 +2055,29 @@
         <th style="text-align:center">Snapshots</th>
         <th style="text-align:center">Unit Tests</th>
         <th style="text-align:center">Antidoc</th>
+        <th style="text-align:center">Builds</th>
       </tr>
     </thead>
     <tbody>
+    <tr data-project="false" data-deponly="false">
+      <td class="cidash-rev">
+        <div class="cidash-rev-wrap">
+          <span class="cidash-avatar" style="background:hsl(66,42%,45%)" title="Elijah Kerry" aria-hidden="true">E</span>
+          <div class="cidash-rev-body">
+            <div class="cidash-rev-line1"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=fa8d5e6042bc43c61b1745967a508a82e50207c9" class="cidash-rev-msg" title="Add LabVIEW CI pipeline">Add LabVIEW CI pipeline</a></div>
+            <div class="cidash-rev-meta"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=fa8d5e6042bc43c61b1745967a508a82e50207c9" class="cidash-rev-sha" title="Browse this revision's VIs in the VI Browser">fa8d5e6</a><span class="cidash-rev-dot">&middot;</span>Elijah Kerry<span class="cidash-rev-dot">&middot;</span>2026-08-18</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+    </tr>
+
     <tr data-project="false" data-deponly="false">
       <td class="cidash-rev">
         <div class="cidash-rev-wrap">
@@ -1720,6 +2088,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1744,6 +2113,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -1756,6 +2126,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1780,6 +2151,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -1792,6 +2164,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1816,6 +2189,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -1828,6 +2202,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1852,6 +2227,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -1864,6 +2240,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1888,6 +2265,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -1900,6 +2278,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1924,6 +2303,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -1936,6 +2316,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1960,6 +2341,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -1972,6 +2354,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -1996,6 +2379,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -2008,6 +2392,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2032,6 +2417,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -2044,6 +2430,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2068,6 +2455,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -2080,6 +2468,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2104,6 +2493,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -2116,6 +2506,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2140,6 +2531,7 @@
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="true" data-deponly="false">
@@ -2158,6 +2550,7 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 41 VIs in this revision"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=5d92203dcb9e26e63d3f61a123c313cb14d49ebe" style="color:inherit">41</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="5d92203dcb9e26e63d3f61a123c313cb14d49ebe" data-parent="7b10515d1488b217118a64102382bcbdb27e01b5" data-short="5d92203" title="Run Unit Tests for commit 5d92203">&#9655;</a></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="false" data-deponly="false">
@@ -2170,6 +2563,7 @@
           </div>
         </div>
       </td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
@@ -2194,6 +2588,7 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 41 VIs in this revision"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=688fa810950414efe8e44f6be11ed31d33589e5c" style="color:inherit">41</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="688fa810950414efe8e44f6be11ed31d33589e5c" data-parent="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-short="688fa81" title="Run Unit Tests for commit 688fa81">&#9655;</a></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="true" data-deponly="false">
@@ -2211,6 +2606,7 @@
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" title="Run VIDiff for commit dc16184">&#9655;</a></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 41 VIs in this revision"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=dc16184ff0f53055cca00b6c644f2c69a9a6f12c" style="color:inherit">41</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="dc16184ff0f53055cca00b6c644f2c69a9a6f12c" data-parent="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-short="dc16184" title="Run Unit Tests for commit dc16184">&#9655;</a></td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
@@ -2230,6 +2626,7 @@
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 37 VIs in this revision"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=f284f1ee1de37bbbde515d887b07b7e56f0bc334" style="color:inherit">37</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="f284f1ee1de37bbbde515d887b07b7e56f0bc334" data-parent="4e8d2e03d9d528d354e03833a49998f94411cb38" data-short="f284f1e" title="Run Unit Tests for commit f284f1e">&#9655;</a></td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr>
 
     <tr data-project="true" data-deponly="false">
@@ -2243,10 +2640,11 @@
         </div>
       </td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="masscompile" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" data-ts="2026-06-17T18:36:33Z"><span class="cidash-chip cc-fail"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/></svg><a href="https://github.com/elijah286/Extensible-Config-Dialog/actions/runs/27711334595" style="color:inherit">compile</a></span></td>
-      <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" data-ts="2026-06-28T17:09:49Z"><span class="cidash-chip cc-pass"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L1.22 9.28a.75.75 0 1 1 1.06-1.06L6 11.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg><a href="https://elijah286.github.io/Extensible-Config-Dialog/report/index.html?type=vi-analyzer-report&sha=4e8d2e03d9d528d354e03833a49998f94411cb38&short=4e8d2e0&src=..%2Fvi-analyzer%2F4e8d2e03d9d528d354e03833a49998f94411cb38%2Findex.html&title=VI%20Analyzer%20%C2%B7%204e8d2e0" style="color:inherit">analyze</a></span></td>
+      <td style="text-align:center" class="cidash-cap-cell" data-cap="vi-analyzer" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" data-ts="2026-06-28T17:09:49Z"><span class="cidash-chip cc-fail cc-solid" title="Windows: 265 findings across 37 VI(s), 55 analyzed"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/></svg><a href="https://elijah286.github.io/Extensible-Config-Dialog/report/index.html?type=vi-analyzer-report&sha=4e8d2e03d9d528d354e03833a49998f94411cb38&short=4e8d2e0&platform=windows&src=..%2Fvi-analyzer%2F4e8d2e03d9d528d354e03833a49998f94411cb38%2Findex.html&title=VI%20Analyzer%20%C2%B7%204e8d2e0" style="color:inherit">265</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="vidiff" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" title="Run VIDiff for commit 4e8d2e0">&#9655;</a></td>
       <td style="text-align:center" class="cidash-cap-cell" data-cap="snapshots" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" data-ts="" data-done="true"><span class="cidash-chip cc-info" title="Snapshots rendered for all 37 VIs in this revision"><a href="https://elijah286.github.io/Extensible-Config-Dialog/vi-snapshots/index.html?sha=4e8d2e03d9d528d354e03833a49998f94411cb38" style="color:inherit">37</a></span></td>
       <td style="text-align:center"><a href="#" class="cidash-run" data-cap="unit-tests" data-sha="4e8d2e03d9d528d354e03833a49998f94411cb38" data-parent="" data-short="4e8d2e0" title="Run Unit Tests for commit 4e8d2e0">&#9655;</a></td>
+      <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
       <td style="text-align:center;color:var(--fg-muted);font-size:.75em">—</td>
     </tr></tbody>
   </table>
