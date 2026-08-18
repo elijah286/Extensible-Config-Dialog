@@ -1,7 +1,7 @@
 {
-  "version": "linux-faa4596c3848",
+  "version": "linux-4ce478ba9bb6",
   "platform": "linux",
-  "manifest_url": "https://elijah286.github.io/Extensible-Config-Dialog/workers/linux/linux-faa4596c3848/manifest.html",
-  "build_date": "2026-08-01T05:43:42Z",
-  "git_sha": "06f73c85b27b9c33921c046aa6b4e2b0b873f48c"
+  "manifest_url": "https://elijah286.github.io/Extensible-Config-Dialog/workers/linux/linux-4ce478ba9bb6/manifest.html",
+  "build_date": "2026-08-18T00:07:19Z",
+  "git_sha": "fa8d5e6042bc43c61b1745967a508a82e50207c9"
 }
