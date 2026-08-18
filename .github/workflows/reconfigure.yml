@@ -36,11 +36,11 @@ on:
         required: false
         default: ''
       container_vipc:
-        description: 'Monitored VIPC files as path::monitor pairs separated by ; (blank = keep current)'
+        description: 'Monitored VIPC files as path::platforms pairs separated by ; (platforms joined by +, e.g. windows+linux, or "none"; legacy true/false accepted; blank = keep current)'
         required: false
         default: ''
       container_dragon:
-        description: 'Monitored Dragon (NIPM) files as path::monitor pairs separated by ; (blank = keep current)'
+        description: 'Monitored Dragon (NIPM) files as path::platforms pairs separated by ; (platforms joined by +, e.g. windows+linux, or "none"; legacy true/false accepted; blank = keep current)'
         required: false
         default: ''
       container_actions:
@@ -75,6 +75,10 @@ on:
         default: ''
       via_rules:
         description: 'VI Analyzer per-path configs as <config>::<paths> pairs separated by ; (paths joined by |; config "none" excludes; blank = keep current)'
+        required: false
+        default: ''
+      builds:
+        description: 'Build specifications to run: "all" (build every spec, the default) or <project>::<name>::<oses> pairs separated by ; (oses joined by +, e.g. example/App.lvproj::My App::windows+linux; "none" to skip; blank = keep current)'
         required: false
         default: ''
       unit_tests:
@@ -120,6 +124,7 @@ jobs:
           IN_AUTO_INSTALL_DEPS: ${{ inputs.auto_install_dependencies }}
           IN_VIA_DEFAULT: ${{ inputs.via_default }}
           IN_VIA_RULES: ${{ inputs.via_rules }}
+          IN_BUILDS: ${{ inputs.builds }}
           IN_UNIT_TESTS: ${{ inputs.unit_tests }}
         run: |
           python3 - <<'PY'
@@ -141,6 +146,7 @@ jobs:
           auto_install_in = os.environ.get('IN_AUTO_INSTALL_DEPS', '').strip().lower()
           via_default_in = os.environ.get('IN_VIA_DEFAULT', '').strip()
           via_rules_in = os.environ.get('IN_VIA_RULES', '').strip()
+          builds_in = os.environ.get('IN_BUILDS', '').strip()
           unit_tests_in = os.environ.get('IN_UNIT_TESTS', '').strip()
 
           # Preserve provenance fields from any existing manifest.
@@ -197,7 +203,9 @@ jobs:
                       if re.match(r'^\s{4}actions:\s*$', line): in_actions = True; in_vipc = False; continue
                       if in_vipc:
                           m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
-                          if m: cur_vipc = {'path': m.group(1).strip(), 'monitor': False}; prev['vipc'].append(cur_vipc); continue
+                          if m: cur_vipc = {'path': m.group(1).strip(), 'monitor': False, 'monitorOn': None}; prev['vipc'].append(cur_vipc); continue
+                          m = re.match(r'^\s{8}monitorOn:\s*(\S+)', line)
+                          if m and cur_vipc is not None: cur_vipc['monitorOn'] = [s.strip().lower() for s in m.group(1).split('+') if s.strip()]; continue
                           m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
                           if m and cur_vipc is not None: cur_vipc['monitor'] = (m.group(1).strip().lower() == 'true'); continue
                       if in_actions:
@@ -235,7 +243,10 @@ jobs:
                   if in_d:
                       m = re.match(r'^\s{6}-\s*path:\s*"?([^"]+?)"?\s*$', line)
                       if m:
-                          cur = {'path': m.group(1).strip(), 'monitor': False}; out.append(cur); continue
+                          cur = {'path': m.group(1).strip(), 'monitor': False, 'monitorOn': None}; out.append(cur); continue
+                      m = re.match(r'^\s{8}monitorOn:\s*(\S+)', line)
+                      if m and cur is not None:
+                          cur['monitorOn'] = [s.strip().lower() for s in m.group(1).split('+') if s.strip()]; continue
                       m = re.match(r'^\s{8}monitor:\s*(\S+)', line)
                       if m and cur is not None:
                           cur['monitor'] = (m.group(1).strip().lower() == 'true')
@@ -254,6 +265,17 @@ jobs:
 
           # Container: explicit input wins; blank keeps whatever the manifest had.
           container_use = container_use_in or prev['container_use'] or 'latest'
+          # Worker platforms a dependency file can be monitored for. A file with
+          # monitor:true and no monitorOn is monitored for ALL of them (back-compat
+          # with configs written before per-container monitoring).
+          ALL_MON_PLATFORMS = ['windows', 'linux']
+          def _norm_on(v):
+              if not v.get('monitor'):
+                  return []
+              on = v.get('monitorOn')
+              if on is None:
+                  return list(ALL_MON_PLATFORMS)
+              return [p for p in ALL_MON_PLATFORMS if p in on]
           def _parse_vipc(s):
               out = []
               for entry in s.split(';'):
@@ -261,9 +283,16 @@ jobs:
                   if not entry: continue
                   if '::' in entry:
                       path, mon = entry.rsplit('::', 1)
-                      out.append({'path': path.strip(), 'monitor': mon.strip().lower() not in ('0', 'false', 'no', 'off')})
+                      low = mon.strip().lower()
+                      if low in ('1', 'true', 'yes', 'on'):
+                          on = list(ALL_MON_PLATFORMS)
+                      elif low in ('', '0', 'false', 'no', 'off', 'none', '-'):
+                          on = []
+                      else:
+                          on = [p for p in low.split('+') if p in ALL_MON_PLATFORMS]
+                      out.append({'path': path.strip(), 'monitor': bool(on), 'monitorOn': on})
                   else:
-                      out.append({'path': entry, 'monitor': False})
+                      out.append({'path': entry, 'monitor': False, 'monitorOn': []})
               return out
           vipc = _parse_vipc(container_vipc_in) if container_vipc_in else prev['vipc']
           dragon = _parse_vipc(container_dragon_in) if container_dragon_in else prev['dragon']
@@ -376,6 +405,47 @@ jobs:
               via_default = prev_via.get('default', '')
               via_rules = prev_via.get('rules', [])
 
+          # Builds: which build specifications run, and on which OS. Input "all"
+          # (or an all-selected list) = build everything (the default, no block
+          # written); an explicit list restricts specs/OS; blank keeps the
+          # manifest's block. Shape: <project>::<name>::<os+os|none>.
+          def _parse_builds_block(text):
+              lines = text.splitlines(); i = 0
+              while i < len(lines) and not re.match(r'^\s{2}builds:\s*$', lines[i]):
+                  i += 1
+              if i >= len(lines):
+                  return None
+              i += 1; run_all = True; specs = []; in_specs = False; saw = False
+              while i < len(lines):
+                  line = lines[i]; i += 1
+                  if re.match(r'^\s{0,1}\S', line):
+                      break
+                  m = re.match(r'^\s{4}runAll:\s*(true|false)', line)
+                  if m:
+                      run_all = (m.group(1) == 'true'); in_specs = False; saw = True; continue
+                  if re.match(r'^\s{4}specs:\s*$', line):
+                      in_specs = True; saw = True; continue
+                  if in_specs:
+                      m = re.match(r'^\s{6}-\s*"?([^"]+?)"?\s*$', line)
+                      if m:
+                          specs.append(m.group(1)); saw = True
+              return {'runAll': run_all, 'specs': specs} if saw else None
+          def _parse_builds_input(s):
+              s = s.strip()
+              if s == '':
+                  return None
+              if s.lower() == 'all':
+                  return {'runAll': True, 'specs': []}
+              specs = []
+              for e in s.split(';'):
+                  e = e.strip().replace('"', '')
+                  if e and e.count('::') >= 2:
+                      specs.append(e)
+              return {'runAll': False, 'specs': specs}
+          prev_builds = _parse_builds_block(mpath.read_text(encoding='utf-8')) if mpath.exists() else None
+          _parsed_builds = _parse_builds_input(builds_in)
+          builds_cfg = _parsed_builds if _parsed_builds is not None else prev_builds
+
           lines = [
               '# .github/labview-ci.yml - LabVIEW CI configuration',
               '# Updated by the Reconfigure workflow.',
@@ -398,14 +468,20 @@ jobs:
               lines.append('    vipc:')
               for v in vipc:
                   p = str(v['path']).replace('"', '')
+                  on = _norm_on(v)
                   lines.append(f'      - path: "{p}"')
-                  lines.append(f"        monitor: {'true' if v['monitor'] else 'false'}")
+                  lines.append(f"        monitor: {'true' if on else 'false'}")
+                  if on and set(on) != set(ALL_MON_PLATFORMS):
+                      lines.append(f"        monitorOn: {'+'.join(on)}")
           if dragon:
               lines.append('    dragon:')
               for v in dragon:
                   p = str(v['path']).replace('"', '')
+                  on = _norm_on(v)
                   lines.append(f'      - path: "{p}"')
-                  lines.append(f"        monitor: {'true' if v['monitor'] else 'false'}")
+                  lines.append(f"        monitor: {'true' if on else 'false'}")
+                  if on and set(on) != set(ALL_MON_PLATFORMS):
+                      lines.append(f"        monitorOn: {'+'.join(on)}")
           if container_actions:
               lines.append('    actions:')
               for _id in sorted(container_actions):
@@ -428,6 +504,15 @@ jobs:
                           lines.append('      - config: "' + str(_cfg).replace('"', '') + '"')
                       _paths = '|'.join(str(p).replace('|', '').replace('"', '') for p in _r['paths'])
                       lines.append(f'        paths: "{_paths}"')
+          # Builds: only written when specs are restricted (runAll is the default;
+          # no block means the runners build every spec on every supported OS).
+          if builds_cfg and not builds_cfg.get('runAll', True):
+              lines.append('  builds:')
+              lines.append('    runAll: false')
+              if builds_cfg.get('specs'):
+                  lines.append('    specs:')
+                  for _e in builds_cfg['specs']:
+                      lines.append('      - "' + str(_e).replace('"', '') + '"')
           if triggers:
               lines.append('  triggers:')
               for _id in sorted(triggers):
@@ -502,32 +587,26 @@ jobs:
               with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as _f:
                   _f.write(f'RESOLVED_LV={ver}\n')
 
-          # Toggle Antidoc (a VIPM package) in the container dependency manifest.
-          # "keep" (or blank) leaves the current include flag untouched.
-          ppath = pathlib.Path('.github/labview/vipm/ci-tooling.packages.json')
-          if ppath.exists() and antidoc_in not in ('', 'keep'):
-              antidoc = antidoc_in == 'true'
-              obj = json.loads(ppath.read_text(encoding='utf-8'))
-              for p in obj.get('vipmPackages', {}).get('packages', []):
-                  if p.get('name') == 'wovalab_lib_antidoc_cli':
-                      p['include'] = bool(antidoc)
-              ppath.write_text(json.dumps(obj, indent=2) + '\n', encoding='utf-8')
-              print('Antidoc include ->', antidoc)
+          # Antidoc dependencies are now owned by committed
+          # .github/labview/antidoc/antidoc.vipc (VIPC-first). Keep this input
+          # non-destructive here for backward compatibility with Configure UI.
+          if antidoc_in not in ('', 'keep'):
+              print('Antidoc toggle requested:', antidoc_in)
+              print('No manifest regeneration is performed; committed antidoc.vipc remains authoritative.')
           else:
               print('Antidoc: keep current')
           PY
 
-      - name: Regenerate container VIPC (best effort)
+      - name: Validate committed container VIPCs (best effort)
         continue-on-error: true
         run: |
-          GEN=.github/labview/vipm/build-tooling-vipc.py
-          PKG=.github/labview/vipm/ci-tooling.packages.json
-          OUT=.github/labview/vipm/ci-tooling.vipc
-          if [ -f "$GEN" ] && [ -f "$PKG" ]; then
-            python3 "$GEN" --manifest "$PKG" --out "$OUT" --labview-version "${RESOLVED_LV:-2026}"
-          else
-            echo "VIPC generator or manifest not present; skipping regeneration."
-          fi
+          for VIPC in .github/labview/vipm/ci-tooling.vipc .github/labview/antidoc/antidoc.vipc; do
+            if [ -f "$VIPC" ]; then
+              python3 -c 'import sys, zipfile, xml.etree.ElementTree as ET; p = sys.argv[1]; z = zipfile.ZipFile(p); assert "config.xml" in z.namelist(), p + " is missing config.xml"; ET.fromstring(z.read("config.xml")); print("Validated committed VIPC:", p)' "$VIPC"
+            else
+              echo "No committed VIPC found at $VIPC; skipping validation."
+            fi
+          done
 
       - name: Open pull request
         env:
@@ -570,6 +649,7 @@ jobs:
           | VI Browser renders | ${{ inputs.vi_browser }} |
           | VI Analyzer default | ${{ inputs.via_default }} |
           | VI Analyzer rules | ${{ inputs.via_rules }} |
+          | Builds | ${{ inputs.builds }} |
           | Unit tests | ${{ inputs.unit_tests }} |
 
           Review and merge to apply. Container-dependency and LabVIEW-version changes

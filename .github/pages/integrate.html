@@ -26,6 +26,10 @@
         --chip:#eaeef2;--code:#f6f8fa;
       }
     }
+    /* Re-assert page-specific tokens the shared header's theme toggle doesn't
+       manage, so a forced Light/Dark choice fully re-themes this page. */
+    :root[data-lvci-theme=dark]{--surface2:#0d1117}
+    :root[data-lvci-theme=light]{--surface2:#fff}
     *{box-sizing:border-box}
     body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
          background:var(--bg);color:var(--fg);line-height:1.5}
@@ -111,6 +115,12 @@
     .insopt{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:.9em;cursor:pointer}
     .insopt input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px}
     .insopt small{display:block;color:var(--fg-muted);font-size:.84em;margin-top:2px}
+    .chan-picker{margin:2px 0 14px;padding:10px 12px;border:1px solid var(--border);border-radius:8px}
+    .chan-title{font-weight:600;font-size:.86em;margin-bottom:5px}
+    .chan-opt{display:flex;align-items:center;gap:8px;font-size:.9em;padding:2px 0;cursor:pointer}
+    .chan-opt input{accent-color:var(--accent);width:16px;height:16px}
+    .chan-hint{color:var(--fg-muted);font-size:.85em}
+    .chan-target{margin:6px 0 0;font-size:.85em;color:var(--fg-muted)}
     .insdone{list-style:none;margin:14px 0 0;padding:0}
     .insdone li{position:relative;padding:0 0 0 24px;margin:0 0 7px;font-size:.88em;color:var(--fg);line-height:1.5}
     .insdone li::before{content:"\2713";position:absolute;left:0;top:1px;color:var(--accent);font-weight:700}
@@ -262,6 +272,8 @@
         <div id="insFlightList"></div>
       </div>
 
+      <div class="chan-picker" id="installChanPick"></div>
+
       <div class="insopts" id="githubInstallOptions">
         <label class="insopt"><input type="checkbox" id="optReadme" checked>
           <span><strong>Add a CI dashboard link to the README</strong><small>Adds a dashboard badge and link to your README in the same pull request (only if it isn&rsquo;t already there).</small></span>
@@ -407,12 +419,12 @@
     const NO_SUB_PREFIX = ".github/labview-ci/";
 
     let catalog = null;
+    let liveCatalog = null;   // the source's live (dev-tip) catalog; 'catalog' may target an older channel
     let canonical = { repo: SOURCE_FALLBACK.repo, ref: SOURCE_FALLBACK.ref };  // effective tooling source after following the relocation pointer (source.json)
     let relocated = null;         // {from,to} when the tooling has moved to a new official home
     let activeTab = "bash";
     const selected = new Set();   // capability ids the user checked
-    const EXPERIMENTAL_STATUS = "experimental";
-    const osSel = new Set(["windows", "linux"]);   // Stable Windows + Linux jobs are selected by default; experimental lanes stay opt-in below.
+    const osSel = new Set(["windows", "linux"]);   // Windows + Linux jobs are selected by default.
     let priorState = null;        // set by detectPriorInstall when re-installing over an existing setup
     let insRunId = 0;             // bumped per install run; guards the async publish-wait UI against a newer install
     let capabilityChoicesChanged = false;
@@ -464,6 +476,48 @@
       throw new Error("Could not load catalog.json");
     }
 
+    function installChannel() { try { return localStorage.getItem("lvci_install_channel") || "beta"; } catch (_) { return "beta"; } }
+    function setInstallChannel(c) { try { localStorage.setItem("lvci_install_channel", c); } catch (_) {} }
+    // Cumulative install channels: stable=release only; beta=release+beta;
+    // dev=everything. Default beta. Returns the version to install for a channel.
+    function channelTargetVersion(cat, chan) {
+      if (!cat) return "";
+      const betaV = cat.betaVersion || "", stableV = cat.stableVersion || "", tip = cat.version || "";
+      const newerV = (a, b) => (!a ? b : (!b ? a : (cmpVerStr(a, b) >= 0 ? a : b)));
+      return chan === "dev" ? tip : (chan === "beta" ? (newerV(betaV, stableV) || tip) : (stableV || tip));
+    }
+    // Load the catalog for the chosen channel: when it targets an older marked
+    // version than the live dev tip, fetch THAT version's catalog so the version,
+    // capabilities, and vendored files are all consistent at the tag installed.
+    async function catalogForChannel(chan) {
+      if (!liveCatalog) return null;
+      const t = channelTargetVersion(liveCatalog, chan);
+      if (!t || t === liveCatalog.version) return liveCatalog;
+      try {
+        const r = await fetch(`https://raw.githubusercontent.com/${canonical.repo}/v${t}/.github/labview-ci/catalog.json`, { cache: "no-store" });
+        if (r.ok) return await r.json();
+      } catch (_) { /* fall through to live */ }
+      return liveCatalog;
+    }
+    function renderInstallChannel() {
+      const el = $("installChanPick"); if (!el || !liveCatalog) return;
+      const chan = installChannel();
+      const bv = liveCatalog.betaVersion || "", sv = liveCatalog.stableVersion || "";
+      const tv = channelTargetVersion(liveCatalog, chan);
+      const opt = (val, label, hint) =>
+        `<label class="chan-opt"><input type="radio" name="lvci-inschan" class="chan-radio" value="${val}"${chan === val ? " checked" : ""}> <span>${label}</span> <span class="chan-hint">${hint}</span></label>`;
+      el.innerHTML = `<div class="chan-title">Which version to install</div>` +
+        opt("stable", "Release only", sv ? ("v" + esc(sv)) : "none marked yet") +
+        opt("beta", "Release + beta", bv ? ("v" + esc(bv)) : "none marked yet") +
+        opt("dev", "Release + beta + dev", "v" + esc(liveCatalog.version || "")) +
+        `<p class="chan-target">Installs <strong>v${esc(tv)}</strong>.</p>`;
+    }
+    async function onInstallChannelChange(val) {
+      setInstallChannel(val);
+      catalog = (await catalogForChannel(val)) || liveCatalog;
+      renderVersions(); renderCaps(); renderInstallChannel(); update();
+    }
+
     function source() {
       const s = (catalog && catalog.source) || SOURCE_FALLBACK;
       // A consumer install/upgrade PINS to the exact published version (an
@@ -505,22 +559,20 @@
     }
 
     function isPlanned(cap) { return cap && cap.status === "planned"; }
-    function isExperimental(cap) { return cap && cap.status === EXPERIMENTAL_STATUS; }
-    function experimentalCaps() { return (catalog.capabilities || []).filter(c => isExperimental(c)); }
 
     function renderCaps() {
       const host = $("caps");
       host.innerHTML = "";
       selected.clear();
-      catalog.capabilities.filter(cap => !isExperimental(cap)).forEach(cap => {
+      catalog.capabilities.forEach(cap => {
         const planned = isPlanned(cap);
         const wrap = document.createElement("label");
         wrap.className = "cap" + (planned ? " disabled" : "");
         const cb = document.createElement("input");
         cb.type = "checkbox"; cb.value = cap.id; cb.disabled = planned;
-        // Available non-experimental capabilities are on by default. Experimental
-        // ones are grouped in a separate opt-in card below.
-        cb.checked = !planned;
+        // Capabilities are on by default unless the catalog flags one defaultOff
+        // (opt-in), like Antidoc, which needs the shared image + network at run time.
+        cb.checked = !planned && !cap.defaultOff;
         if (cb.checked) selected.add(cap.id);
         cb.addEventListener("change", () => {
           markCapabilityChoicesChanged();
@@ -533,7 +585,6 @@
         if (cap.recommended) badges.push('<span class="badge rec">Recommended</span>');
         if (cap.status === "advanced") badges.push('<span class="badge adv">Advanced</span>');
         if (planned) badges.push('<span class="badge planned">Coming soon</span>');
-        if (isExperimental(cap)) badges.push('<span class="badge exp">Experimental</span>');
         const osBadges = (cap.supportsOs || []).map(o => `<span class="badge os">${o}</span>`).join("");
         body.innerHTML =
           `<div class="name">${cap.name}${badges.join("")}</div>` +
@@ -544,35 +595,6 @@
         wrap.dataset.id = cap.id;
         host.appendChild(wrap);
       });
-      renderExperimentalCard(host);
-    }
-
-    function renderExperimentalCard(host) {
-      const caps = experimentalCaps().filter(cap => !isPlanned(cap));
-      if (!caps.length) return;
-      const wrap = document.createElement("div");
-      wrap.className = "cap";
-      wrap.dataset.id = "__experimental";
-      const cb = document.createElement("input");
-      cb.type = "checkbox"; cb.value = "__experimental"; cb.checked = false;
-      cb.addEventListener("change", () => {
-        markCapabilityChoicesChanged();
-        caps.forEach(cap => {
-          if (cb.checked) { selected.add(cap.id); addRequires(cap.id); }
-          else selected.delete(cap.id);
-        });
-        syncChecks(); update();
-      });
-      const body = document.createElement("div");
-      const included = caps.map(cap =>
-        `<li><strong>${esc(cap.name)}</strong> - ${esc(cap.summary)}</li>`
-      ).join("");
-      body.innerHTML =
-        `<div class="name">Experimental features<span class="badge exp">Experimental</span></div>` +
-        `<div class="desc">Opt into features still being proven before they become part of the default installer path.</div>` +
-        `<details class="exp-details"><summary>Included experimental features</summary><ul>${included}</ul></details>`;
-      wrap.appendChild(cb); wrap.appendChild(body);
-      host.appendChild(wrap);
     }
 
     function byId(id) { return catalog.capabilities.find(c => c.id === id); }
@@ -586,12 +608,7 @@
       document.querySelectorAll(".cap").forEach(el => {
         const cb = el.querySelector("input");
         if (!cb || cb.disabled) return;
-        if (el.dataset.id === "__experimental") {
-          const ids = experimentalCaps().filter(cap => !isPlanned(cap)).map(cap => cap.id);
-          cb.checked = ids.length > 0 && ids.every(id => selected.has(id));
-        } else {
-          cb.checked = selected.has(el.dataset.id);
-        }
+        cb.checked = selected.has(el.dataset.id);
       });
     }
 
@@ -1291,7 +1308,6 @@
       const imgs = [];
       if (opts.buildWindowsImage) imgs.push("Windows");
       if (opts.buildLinuxImage) imgs.push("Linux");
-      if (opts.buildWindowsBeta) imgs.push("Windows Beta");
       installPlanSteps = [
         { id: "prepare", title: "Prepare install pull request", eta: "under 1 min", state: "active", detail: "Reading the repo, fetching the selected tooling, and opening the install PR." },
         { id: "merge", title: "Merge install pull request", eta: opts.autoMerge ? "a few seconds" : "your review", state: "pending", detail: opts.autoMerge ? "The configurator will squash-merge it after the branch is ready." : "Review and merge the PR when you are ready; setup continues after the merge." }
@@ -1637,6 +1653,8 @@
         "    paths:",
         "      - '.github/labview-ci.yml'",
         "      - '.github/workflows/dashboard-pages.yml'",
+        "      - '**/*.vipc'",
+        "      - '**/*.dragon'",
         "  workflow_run:",
         "    workflows:",
         '      - "Mass Compile \u2014 Windows Container"',
@@ -1646,6 +1664,8 @@
         '      - "VIDiff Report \u2014 Linux Container"',
         '      - "VIDiff Deploy \u2014 Pages + PR Comment"',
         '      - "VI Snapshots and VI Browser"',
+        '      - "Build LabVIEW CI Image"',
+        '      - "Build LabVIEW CI Image - Linux"',
         "    types: [completed]",
         "  schedule:",
         "    - cron: '0 * * * *'",
@@ -2014,7 +2034,6 @@
       const targets = [];
       if (setup.buildImage) targets.push({ label: "Windows worker image", workflow: "copy-labview-image.yml", dispatch: true });
       if (setup.buildLinuxImage) targets.push({ label: "Linux worker image", workflow: "copy-labview-linux-image.yml", dispatch: true });
-      if (setup.buildWindowsBeta) targets.push({ label: "Windows Beta worker image", workflow: "build-labview-windows-beta-image.yml", dispatch: true, inputs: { copy_only: "true" } });
       if (!targets.length) return "skipped";
       const states = {};
       const render = () => {
@@ -2544,10 +2563,52 @@
       await proceedInstall($("repo").value.trim(), { keepSettings, deleteStale });
     }
 
+    // This configurator is a CLIENT installer. It vendors a tooling payload pinned
+    // to the chosen channel and deletes files it does not recognise as current
+    // tooling. The tooling SOURCE repo carries release machinery no client has --
+    // release.yml, promote-release.py, discover-clients.yml, these configurator
+    // pages themselves -- so pointing the installer at the source repo, or at a
+    // fork of it, strips its ability to publish AND overwrites catalog.json (the
+    // version of record) with whatever older version the channel resolves to.
+    //
+    // That is not hypothetical: on 2026-07-30 an install pinned at v4.11.10 (the
+    // beta channel head at the time) landed on a fork of the source, downgraded
+    // the catalog from 4.12.4, deleted 48 source-only files, and stalled every
+    // client release for two weeks. Refuse it, with no override -- there is no
+    // legitimate reason to install the client payload over its own source.
+    async function toolingSourceBlock(repo) {
+      const src = (canonical && canonical.repo) || SOURCE_FALLBACK.repo;
+      const norm = (s) => String(s || "").trim().toLowerCase();
+      if (norm(repo) === norm(src)) return { src, why: "is the LabVIEW CI tooling source repository" };
+      // The fork check needs the API. On a network/permission failure we fall
+      // through and allow the install: the source repo's own catalog-source-sync
+      // check is the authoritative backstop and cannot be bypassed from here.
+      let meta = null;
+      try {
+        const r = await gh(`/repos/${repo}`);
+        meta = r.ok ? await r.json() : null;
+      } catch (_) { return null; }
+      if (!meta || !meta.fork) return null;
+      const parents = [meta.parent && meta.parent.full_name, meta.source && meta.source.full_name].filter(Boolean);
+      if (parents.some(p => norm(p) === norm(src))) return { src, why: "is a fork of the LabVIEW CI tooling source repository" };
+      return null;
+    }
+
+    function toolingSourceMessage(repo, block) {
+      return `<strong>${esc(repo)}</strong> ${esc(block.why)} (<strong>${esc(block.src)}</strong>), so this installer will not run against it.` +
+        ` Installing the client payload here would delete the release machinery that publishes LabVIEW CI and roll <code>catalog.json</code> back to an older version.` +
+        ` To change the tooling itself, edit it in <strong>${esc(block.src)}</strong> and open a pull request there.` +
+        ` To try the pipeline out, point this at a separate test repository instead.`;
+    }
+
     async function installToRepo() {
       const repo = $("repo").value.trim();
       if (!repo.includes("/")) { setInsStatus("Enter your target repository (owner/name) in step 1 first.", "err"); const r = $("repo"); if (r) r.focus(); return; }
       if (!getInsTok()) { showInsTokPanel(); return; }
+      {
+        const block = await toolingSourceBlock(repo);
+        if (block) { setInsStatus(toolingSourceMessage(repo, block), "err"); return; }
+      }
       hideFlightPanel();
       installBusy(true);
       setInsStatus("Checking your repository&hellip;", null);
@@ -2558,6 +2619,12 @@
     }
 
     async function proceedInstall(repo, opts) {
+      // Hard stop at the choke point every install path funnels through
+      // (installToRepo -> continueAfterFlight, and the re-install panel's
+      // confirmReinstall), so the check above cannot be skipped by resuming an
+      // in-flight install or by a stale panel left open from an earlier repo.
+      const blocked = await toolingSourceBlock(repo);
+      if (blocked) { hideReinstallPanel(); setInsStatus(toolingSourceMessage(repo, blocked), "err"); installBusy(false); return; }
       const owner = repo.split("/")[0];
       const s = source();
       installBusy(true);
@@ -2574,8 +2641,7 @@
           autoMerge: !!($("optAutoMerge") && $("optAutoMerge").checked),
           hasDashboard: activities.includes("dashboard"),
           buildWindowsImage: activities.includes("custom-image") && osList.includes("windows"),
-          buildLinuxImage: activities.includes("custom-image") && osList.includes("linux"),
-          buildWindowsBeta: osList.includes("windows") && (catalog.capabilities || []).some(c => isExperimental(c) && (c.supportsOs || []).includes("windows") && activities.includes(c.id))
+          buildLinuxImage: activities.includes("custom-image") && osList.includes("linux")
         });
         if (opts.keepSettings && priorState && priorState.canKeep) {
           setup.kept = activities.map(actLabel).join(", ") + " \u00b7 LabVIEW " + version + " \u00b7 " + osList.join(", ");
@@ -2631,12 +2697,7 @@
         // built — so a fresh install must build it once. Remember whether to do that.
         setup.buildImage = activities.includes("custom-image") && osList.includes("windows");
         setup.buildLinuxImage = activities.includes("custom-image") && osList.includes("linux");
-        // The Windows Beta (experimental) worker container is copied only when an
-        // experimental Windows capability (e.g. Antidoc) is selected. Its build files
-        // are owned by that capability, so they are only present when it is installed.
-        setup.buildWindowsBeta = osList.includes("windows") && (catalog.capabilities || []).some(c =>
-          isExperimental(c) && (c.supportsOs || []).includes("windows") && activities.includes(c.id));
-        setup.buildImages = setup.buildImage || setup.buildLinuxImage || setup.buildWindowsBeta;
+        setup.buildImages = setup.buildImage || setup.buildLinuxImage;
 
         if ($("optReadme") && $("optReadme").checked && setup.hasDashboard) {
           setInsStatus("Preparing the README link&hellip;", null);
@@ -3153,14 +3214,17 @@
 
     (async function init() {
       if (window.top !== window.self) { const _bl = document.getElementById("backLink"); if (_bl) _bl.style.display = "none"; }
-      try { catalog = await loadCatalog(); }
+      try { liveCatalog = await loadCatalog(); }
       catch (e) {
         document.querySelector(".wrap").insertAdjacentHTML("afterbegin",
           `<section><h2 class="err">Could not load catalog.json</h2><p class="hint">${e.message}. ` +
           `If you are viewing this locally, serve the folder over HTTP.</p></section>`);
         return;
       }
-      renderVersions(); renderCaps();
+      catalog = (await catalogForChannel(installChannel())) || liveCatalog;
+      renderVersions(); renderCaps(); renderInstallChannel();
+      const _cp = $("installChanPick");
+      if (_cp) _cp.addEventListener("change", (e) => { const r = e.target.closest(".chan-radio"); if (r && r.checked) onInstallChannelChange(r.value); });
       const chooser = $("capChooser"); if (chooser) chooser.open = false;
       wire(); update(); refreshInsForget();
       refreshInstallPause();

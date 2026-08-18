@@ -23,7 +23,7 @@ on:
       - '**.lvtest'
       - '!.github/**'
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - '**.vi'
       - '**.lvclass'
@@ -52,11 +52,14 @@ permissions:
   packages: read
   actions: read   # so wait-for-worker-image.sh can read the worker-image build runs
 
-# Share the report-deploy concurrency group with the other report workflows so
-# gh-pages pushes queue instead of racing (a loser's push bounces with
-# "fetch first" and its report never deploys).
+# Each activity+revision gets its OWN concurrency group so different activities
+# (and different revisions) run in PARALLEL, and re-dispatching the SAME
+# activity+revision queues behind the in-flight one instead of cancelling it.
+# gh-pages push races between parallel report deploys are handled by the
+# retry-safe publish-gh-pages action (it re-fetches gh-pages and retries the push),
+# so serialising the whole job is no longer needed.
 concurrency:
-  group: report-pages-deploy
+  group: ${{ github.workflow }}-${{ github.event.inputs.commit_sha || github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -72,8 +75,17 @@ jobs:
         run: |
           INPUT="${{ github.event.inputs.commit_sha }}"
           if [ -n "$INPUT" ]; then
-            FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha')
-            echo "sha=$FULL" >> "$GITHUB_OUTPUT"
+            if printf '%s' "$INPUT" | grep -Eiq '^[0-9a-f]{40}$'; then
+              # Already a full commit SHA - use it directly. Skipping the gh API
+              # round-trip keeps a transient rate-limit (HTTP 403) from hard-failing
+              # the whole run at 'Determine target SHA'.
+              echo "sha=$INPUT" >> "$GITHUB_OUTPUT"
+            else
+              # A short SHA / ref: try to expand it, but fall back to the raw input
+              # (never abort) if the API call fails or is rate-limited.
+              FULL=$(gh api "repos/${{ github.repository }}/commits/$INPUT" --jq '.sha' 2>/dev/null || true)
+              echo "sha=${FULL:-$INPUT}" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi

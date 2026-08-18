@@ -218,9 +218,10 @@ def parse_failed(report: str) -> list[dict]:
     return vis
 
 
-# A test-error block in the "Testing Errors" section:
-#   <b>TestName</b><table ...><tr><th>..three..</th></tr> ...3-col rows... </table>
-_ERR_BLOCK_RE = re.compile(r"<b>(?P<test>.*?)</b>\s*<table[^>]*>(?P<rows>.*?)</table>", re.S | re.I)
+# A test-error block in the "Testing Errors" section. VI Analyzer heads each
+# category with either <b>Name</b> (per-test errors) or <h3>Name</h3> (e.g.
+# "VI Not Loadable"), followed by a 3-column table (VI Name / VI Path / message).
+_ERR_BLOCK_RE = re.compile(r"<(?:b|h3)>(?P<test>.*?)</(?:b|h3)>\s*<table[^>]*>(?P<rows>.*?)</table>", re.S | re.I)
 _ROW3_RE = re.compile(
     r"<tr>\s*<td>(?P<a>.*?)</td>\s*<td>(?P<b>.*?)</td>\s*<td>(?P<c>.*?)</td>\s*</tr>", re.S | re.I
 )
@@ -306,10 +307,14 @@ def _finalize(vis: list, summary: dict, errors: dict, testing_errors: list,
     }
 
 
-def _project_testing_errors(report: str) -> list:
+def _all_testing_errors(report: str) -> list:
+    # Every VI that could not be tested, grouped by error category. Each item is
+    # tagged `tooling` when it is a CI-tooling VI (under .github/ etc.) rather than
+    # project code, so the report can NAME the VIs + errors and flag which ones are
+    # just CI helpers (and therefore harmless), instead of showing a bare count.
     out = []
     for blk in parse_testing_errors(report):
-        items = [it for it in blk["items"] if not is_tooling_vi(it["vi_rel"])]
+        items = [{**it, "tooling": is_tooling_vi(it["vi_rel"])} for it in blk["items"]]
         if items:
             out.append({"test": blk["test"], "items": items})
     return out
@@ -324,7 +329,7 @@ def build_data(report: str, args: argparse.Namespace) -> dict:
     # exceed it. Surface both so the per-severity/per-VI tallies reconcile (in _finalize).
     meta_extra = dict(parse_meta(report))
     return _finalize(vis, parse_summary(report), parse_errors(report),
-                     _project_testing_errors(report), meta_extra, args)
+                     _all_testing_errors(report), meta_extra, args)
 
 
 # ── Multi-configuration merge ─────────────────────────────────────────────────
@@ -350,7 +355,7 @@ def _parse_pass_report(text: str, label: str) -> dict:
     for v in vis:
         v["config"] = label
     return {"vis": vis, "summary": parse_summary(text), "errors": parse_errors(text),
-            "testing_errors": _project_testing_errors(text), "meta": parse_meta(text)}
+            "testing_errors": _all_testing_errors(text), "meta": parse_meta(text)}
 
 
 def merge_passes(passes: list, args: argparse.Namespace) -> dict:
@@ -577,6 +582,16 @@ h1{font-size:1.35em;margin:0 0 2px}
 .errband table{border-collapse:collapse;width:100%;margin-top:8px;font-size:.8em}
 .errband td,.errband th{border:1px solid var(--border);padding:5px 8px;text-align:left;vertical-align:top}
 .errband th{color:var(--fg-muted);font-weight:600}
+.errbd{font-size:.82em;color:var(--fg-muted)}
+.errnote{font-size:.84em;margin-top:8px;line-height:1.5}
+.errnote code{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:0 4px}
+.errdetail{margin-top:10px;max-height:360px;overflow:auto}
+.errcat{font-weight:600;font-size:.84em;margin:10px 0 2px}
+.errcat .errcount{color:var(--fg-muted);font-weight:400}
+.errband .errvi{font-weight:600}
+.errband .errpath{font-weight:400;color:var(--fg-muted);font-size:.9em;word-break:break-all;margin-top:2px}
+.errband .errmsg{color:var(--fg-muted)}
+.errtool{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:0 8px;font-size:.72em;color:var(--fg-muted);font-weight:600;vertical-align:middle}
 
 /* tabs + toolbar */
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:12px}
@@ -644,6 +659,18 @@ h1{font-size:1.35em;margin:0 0 2px}
 .empty{color:var(--fg-muted);padding:30px;text-align:center}
 .hidden{display:none!important}
 
+/* inline snapshot preview (rendered VI shown inside a card when it is expanded) */
+.snapinline{margin:2px 0 12px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)}
+.snapinline-bar{display:flex;align-items:center;gap:10px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:.78em;color:var(--fg-muted)}
+.snapinline-cap{flex:1 1 auto}
+.snapinline-frame{width:100%;height:360px;border:none;background:#fff;display:block}
+.snapinline-open{flex:0 0 auto;background:none;border:1px solid var(--border);color:var(--link);border-radius:6px;padding:2px 9px;font:inherit;font-size:.95em;cursor:pointer}
+.snapinline-open:hover{border-color:var(--link)}
+.snapinline-note{padding:12px;font-size:.82em;color:var(--fg-muted);line-height:1.5}
+
+/* raw-report download link in the summary sub-line */
+.rawdl{white-space:nowrap}
+
 /* snapshot drawer */
 #backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .15s;z-index:40}
 #backdrop.show{opacity:1;pointer-events:auto}
@@ -686,12 +713,27 @@ h1{font-size:1.35em;margin:0 0 2px}
 .rrnone{font-size:.86em;color:var(--fg-muted);line-height:1.5}
 .rrtok{margin-top:12px;display:flex;flex-direction:column;gap:8px;font-size:.84em}
 .rrtok input{background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font:inherit}
+/* platform toggle */
+.platrow{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+#plat-toggle{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+#plat-toggle button{border:none;background:var(--surface);color:var(--fg-muted);cursor:pointer;font:inherit;
+  font-weight:600;font-size:.82em;padding:7px 16px;display:inline-flex;align-items:center;gap:7px}
+#plat-toggle button:hover:not(.active):not(:disabled){background:var(--hover);color:var(--fg)}
+#plat-toggle button.active{background:var(--link);color:#fff}
+#plat-toggle button:disabled{opacity:.4;cursor:default}
+#plat-toggle .sep{width:1px;align-self:stretch;background:var(--border)}
+.platnote{color:var(--fg-muted);font-size:.8em}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>VI Analyzer Report</h1>
   <div class="sub" id="sub"></div>
+
+  <div class="platrow">
+    <div id="plat-toggle"></div>
+    <span class="platnote" id="platnote"></span>
+  </div>
 
   <div class="cards" id="cards"></div>
   <div class="bar"><span id="barfill"></span></div>
@@ -754,6 +796,41 @@ const SNAP_BASE = '__PAGES_BASE__/vi-snapshots/';
 const MULTICFG = ((META.configs||[]).filter(c=>!c.exclude).length) > 1;
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+// ── platform toggle (switch between the Windows and Linux VI Analyzer reports) ──
+// The Windows report lives at vi-analyzer/<sha>/ and the Linux report at
+// vi-analyzer/<sha>/linux/, so the two reports are one directory apart. We probe
+// the other platform's summary.json; if it exists the button navigates there,
+// otherwise it is disabled with a note. (The VI Analyzer report renders entirely
+// from its own injected blob, so switching loads the sibling report rather than
+// re-rendering in place.)
+(function platToggle(){
+  const PLAT_LABEL = {windows:'Windows', linux:'Linux'};
+  const ORDER_PLAT = ['windows','linux'];
+  const self = META.platform === 'linux' ? 'linux' : 'windows';
+  const other = self === 'linux' ? 'windows' : 'linux';
+  const otherIndex   = self === 'linux' ? '../index.html'   : 'linux/index.html';
+  const otherSummary = self === 'linux' ? '../summary.json' : 'linux/summary.json';
+  const host = document.getElementById('plat-toggle');
+  const note = document.getElementById('platnote');
+  if(!host) return;
+  function draw(otherOk){
+    host.innerHTML = ORDER_PLAT.map((p,i)=>{
+      const dis = (p!==self && !otherOk) ? 'disabled' : '';
+      return (i?'<span class="sep"></span>':'') +
+        `<button data-plat="${p}" class="${p===self?'active':''}" ${dis}>${esc(PLAT_LABEL[p])}</button>`;
+    }).join('');
+    host.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+      if(b.dataset.plat===self || b.disabled) return;
+      window.location.href = otherIndex;
+    }));
+  }
+  draw(false); // optimistic: keep the other platform disabled until the probe returns
+  fetch(otherSummary,{cache:'no-store'}).then(r=>{
+    if(r.ok){ draw(true); note.textContent=''; }
+    else { note.textContent = `VI Analyzer has not run on ${PLAT_LABEL[other]} for this commit.`; }
+  }).catch(()=>{ note.textContent = `VI Analyzer has not run on ${PLAT_LABEL[other]} for this commit.`; });
+})();
+
 // active severity filters (all on by default)
 const active = new Set(ORDER);
 let query = '';
@@ -775,7 +852,8 @@ let query = '';
     (m.analysis_date ? `&middot; ${esc(m.analysis_date)} ` : '') +
     (m.duration ? `&middot; ${esc(m.duration)} ` : '') +
     `&middot; generated ${esc(m.generated_utc||'')}` +
-    (ghLink ? ` &middot; <a href="${ghLink}" target="_blank" rel="noopener" title="View this commit on GitHub">commit on GitHub &#8599;</a>` : '');
+    (ghLink ? ` &middot; <a href="${ghLink}" target="_blank" rel="noopener" title="View this commit on GitHub">commit on GitHub &#8599;</a>` : '') +
+    ` &middot; <a class="rawdl" href="raw.html" download="vi-analyzer-${esc(m.short||'report')}-raw.html" title="Download the native LabVIEW VI Analyzer HTML report this summary was built from">&#11015; Download raw report</a>`;
 
   const pct = SUM.tests_run ? Math.round(SUM.passed/SUM.tests_run*1000)/10 : 0;
   // "Failed tests" is VI Analyzer's official count of failed test instances; a
@@ -808,16 +886,32 @@ let query = '';
   const totalErr = (ERR.vi_not_loadable+ERR.test_not_loadable+ERR.test_not_runnable+ERR.test_error_out)||0;
   if(!te.length && !totalErr) return;
   const el = document.getElementById('errband'); el.classList.remove('hidden');
-  let rows = '';
-  for(const blk of te){
-    for(const it of blk.items){
-      rows += `<tr><td>${esc(blk.test)}</td><td>${esc(it.vi_name)}</td><td>${esc(it.message)}</td></tr>`;
-    }
+  // Flatten the per-category VI-level detail so we can explain what failed.
+  const items = []; for(const blk of te) for(const it of blk.items) items.push(it);
+  const proj = items.filter(it=>!it.tooling), tool = items.filter(it=>it.tooling);
+  let note;
+  if(items.length){
+    if(tool.length && !proj.length)
+      note = `<div class="errnote">All ${tool.length} are <strong>CI helper VIs</strong> (under <code>.github/</code>), not your project code &mdash; they do not affect your analysis results. Each VI and its error is listed below.</div>`;
+    else if(tool.length && proj.length)
+      note = `<div class="errnote"><strong>${proj.length}</strong> in your project code, <strong>${tool.length}</strong> in CI helper VIs &mdash; each VI and its error is listed below.</div>`;
+    else
+      note = `<div class="errnote">The affected VIs and their errors are listed below.</div>`;
+  } else {
+    note = `<div class="errnote">The native report did not attach VI-level detail &mdash; open the <a href="raw.html" target="_blank" rel="noopener">native report</a> for specifics.</div>`;
   }
+  const chip = it => it.tooling ? ` <span class="errtool" title="CI tooling VI, not your project code">CI tooling</span>` : '';
+  const groups = te.map(blk=>{
+    const rows = blk.items.map(it=>
+      `<tr><td class="errvi">${esc(it.vi_name)}${chip(it)}<div class="errpath">${esc(it.vi_rel||it.vi_path)}</div></td><td class="errmsg">${esc(it.message)}</td></tr>`).join('');
+    return `<div class="errcat">${esc(blk.test)} <span class="errcount">(${blk.items.length})</span></div>`+
+      `<table><tr><th>VI</th><th>Error message</th></tr>${rows}</table>`;
+  }).join('');
   el.innerHTML =
-    `<h2>⚠ ${totalErr} testing error${totalErr===1?'':'s'} — these tests could not run (infrastructure, not code quality)</h2>`+
-    `<div style="font-size:.82em;color:var(--fg-muted)">VI not loadable: ${ERR.vi_not_loadable} &middot; Test not loadable: ${ERR.test_not_loadable} &middot; Test not runnable: ${ERR.test_not_runnable} &middot; Test error out: ${ERR.test_error_out}</div>`+
-    (rows?`<details><summary>Show details</summary><table><tr><th>Test</th><th>VI</th><th>Error</th></tr>${rows}</table></details>`:'');
+    `<h2>&#9888; ${totalErr} testing error${totalErr===1?'':'s'} &mdash; these tests could not run (infrastructure, not code quality)</h2>`+
+    `<div class="errbd">VI not loadable: ${ERR.vi_not_loadable} &middot; Test not loadable: ${ERR.test_not_loadable} &middot; Test not runnable: ${ERR.test_not_runnable} &middot; Test error out: ${ERR.test_error_out}</div>`+
+    note +
+    (items.length ? `<div class="errdetail">${groups}</div>` : '');
 })();
 
 // ── severity chips ───────────────────────────────────────────────────────
@@ -868,7 +962,7 @@ function viCard(v){
       <button class="snapbtn" data-snap="${esc(v.vi_rel)}" data-name="${esc(v.name)}">Snapshot</button>
       <button class="rerunbtn" data-rerun="${esc(v.vi_rel)}" data-name="${esc(v.name)}" title="Re-run VI Analyzer on this VI with a chosen configuration">Re-run…</button>
     </summary>
-    <div class="vibody">${rules}</div>
+    <div class="vibody"><div class="snapinline" data-snap="${esc(v.vi_rel)}" data-name="${esc(v.name)}"></div>${rules}</div>
   </details>`;
 }
 function renderVI(){
@@ -1005,10 +1099,42 @@ document.addEventListener('click',e=>{
   openSnap(b.dataset.snap, b.dataset.name);
 });
 
+// Inline snapshot preview inside each VI card: lazily load the rendered VI when
+// the card is expanded so the graphical code sits right next to its findings.
+// Nothing loads until a VI is opened; the full-size drawer stays available.
+async function loadInlineSnap(host){
+  if(host.dataset.loaded) return;
+  host.dataset.loaded='1';
+  const viRel=host.dataset.snap, name=host.dataset.name;
+  host.innerHTML=`<div class="snapinline-note">Loading snapshot\u2026</div>`;
+  try{ await ensureSnapshots(); }catch(e){}
+  const htmlPath=snapMap && snapMap[viRel];
+  if(htmlPath){
+    const stale=(snapFromSha && META.sha && snapFromSha!==META.sha)
+      ? `<div class="snapinline-note">Latest available snapshot (commit ${esc(snapFromSha.slice(0,7))}); this commit's may still be rendering.</div>` : '';
+    host.innerHTML=
+      `<div class="snapinline-bar"><span class="snapinline-cap">Front panel &amp; block diagram</span>`+
+      `<button class="snapinline-open snapbtn" data-snap="${esc(viRel)}" data-name="${esc(name)}" title="Open a larger, interactive view">Open full view \u2197</button></div>`+
+      `<iframe class="snapinline-frame" loading="lazy" src="${esc(SNAP_BASE+htmlPath)}" title="Snapshot of ${esc(name)}"></iframe>`+stale;
+  }else{
+    host.innerHTML=`<div class="snapinline-note">No snapshot yet for <code>${esc(viRel)}</code> \u2014 it may still be rendering. <a href="${SNAP_BASE}index.html${META.sha?`?sha=${META.sha}`:''}" target="_blank" rel="noopener">Open the VI Browser \u2197</a></div>`;
+  }
+}
+// `toggle` does not bubble, so listen in the capture phase.
+document.addEventListener('toggle',e=>{
+  const vi=e.target;
+  if(vi && vi.classList && vi.classList.contains('vi') && vi.open){
+    const host=vi.querySelector('.snapinline');
+    if(host) loadInlineSnap(host);
+  }
+}, true);
+
 // ── re-run a single VI with a chosen .viancfg configuration ────────────────────
 const RR_TOK = 'lvci_dispatch_token';
 let rrConfigs = null, rrVi = '', rrPollTimer = null;
-function rrWorkflow(){ return 'run-vi-analyzer-windows-container.yml'; }
+// A single-VI re-run dispatches the workflow that produced THIS report's platform,
+// so a Linux report re-runs on Linux and a Windows report on Windows.
+function rrWorkflow(){ return (META.platform === 'linux') ? 'run-vi-analyzer-linux-container.yml' : 'run-vi-analyzer-windows-container.yml'; }
 function rrTok(){ try { return localStorage.getItem(RR_TOK)||''; } catch(e){ return ''; } }
 // Slug must match the runner's deterministic re-run output path (PowerShell/bash).
 function rrSlug(cfg, vi){ return (cfg+'__'+vi).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80); }
