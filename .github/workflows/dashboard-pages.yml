@@ -1,4 +1,4 @@
-# CI Dashboard — GitHub Pages. Thin caller installed by .github/labview-ci/install.py.
+# CI Dashboard — GitHub Pages. Thin caller installed by the LabVIEW CI configurator.
 # The dashboard build logic lives in the shared composite action, pulled at the tooling
 # version this repo opted into (.github/labview-ci.yml: source.ref) and checked out at
 # runtime — so this repo keeps no copy of the generator and the dashboard updates only
@@ -10,11 +10,12 @@ on:
   # Build on the install merge + whenever the config changes, so the dashboard
   # publishes itself the first time without waiting for the hourly schedule.
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - '.github/labview-ci.yml'
       - '.github/workflows/dashboard-pages.yml'
-  status:
+      - '**/*.vipc'
+      - '**/*.dragon'
   workflow_run:
     workflows:
       - "Mass Compile — Windows Container"
@@ -24,6 +25,8 @@ on:
       - "VIDiff Report — Linux Container"
       - "VIDiff Deploy — Pages + PR Comment"
       - "VI Snapshots and VI Browser"
+      - "Build LabVIEW CI Image"
+      - "Build LabVIEW CI Image - Linux"
     types: [completed]
   schedule:
     - cron: '0 * * * *'
@@ -49,7 +52,7 @@ jobs:
         shell: bash
         run: |
           REF=$(awk '/^[[:space:]]*ref:[[:space:]]/{print $2; exit}' .github/labview-ci.yml 2>/dev/null)
-          echo "ref=${REF:-v4.4.4}" >> "$GITHUB_OUTPUT"
+          echo "ref=${REF:-v4.15.1}" >> "$GITHUB_OUTPUT"
       - name: Check out tooling (opted-in version)
         uses: actions/checkout@v5
         with:
@@ -69,6 +72,9 @@ jobs:
           publish_dir: ci-out/dashboard
           destination_dir: .
           keep_files: true
+      # Retry once if a concurrent gh-pages push (configurator site, VI
+      # snapshots, report deploys) made this a non-fast-forward; peaceiris
+      # re-clones gh-pages each run, so the retry starts from the new tip.
       - name: Wait out a gh-pages push race
         if: steps.deploy.outcome == 'failure'
         run: sleep 30
